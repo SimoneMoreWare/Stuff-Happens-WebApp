@@ -24,9 +24,10 @@
 
 ## Database Tables
 
-- Table `users` - contains xx yy zz
-- Table `something` - contains ww qq ss
-- ...
+- Table `Users` - contains registered users with authentication credentials. Stores id (PK), username (unique), email (unique), hashed password, salt for encryption, and creation timestamp.
+- Table `Cards` - contains horrible situation cards for the game. Each card has id (PK), situation name, robohash image URL, unique bad_luck_index (1-100), theme classification, and creation timestamp.
+- Table `Games` - tracks individual game sessions. Stores id (PK), user_id (FK, NULL for anonymous), game status (playing/won/lost), cards_collected count, wrong_guesses count, current_round number, and timestamps.
+- Table `GameCards` - junction table linking games and cards with game progress details. Contains id (PK), game_id (FK), card_id (FK), round_number, guess correctness, user's position guess, initial card flag, and play timestamp.
 
 ## Main React Components
 
@@ -42,5 +43,6 @@
 
 ## Users Credentials
 
-- username, password (plus any other requested info)
-- username, password (plus any other requested info)
+- user1, password (email: u1@p.it)
+- user2, password (email: u2@p.it)
+- testuser, password (email: u3@p.it)

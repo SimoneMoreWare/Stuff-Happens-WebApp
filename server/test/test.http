@@ -6,10 +6,6 @@
 @theme = university_life
 
 ###
-### Health Check
-GET {{baseUrl}}/health
-
-###
 ### Authentication Tests
 ###
 
@@ -131,12 +127,18 @@ Content-Type: application/json
 
 {}
 
+### Start next round (replace 1 with actual game ID)
+POST {{baseUrl}}/games/10/next-round
+Content-Type: application/json
+
+{}
+
 ### Submit guess (replace with actual values from your game)
-POST {{baseUrl}}/games/1/guess
+POST {{baseUrl}}/games/10/guess
 Content-Type: application/json
 
 {
-  "gameCardId": 1,
+  "gameCardId": 34,
   "position": 2,
   "timeElapsed": 12.3
 }

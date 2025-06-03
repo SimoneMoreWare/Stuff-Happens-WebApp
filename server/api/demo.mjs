@@ -5,11 +5,11 @@ import { getRandomCards, getCorrectPosition, getCardsByIds } from '../dao/cardDA
 const router = express.Router();
 
 /**
- * POST /api/demo/start - Start a demo game (anonymous users only)
+ * POST /api/demo/start - Start a demo game (anonymous users)
  * 
  * Creates a single-round demo game for anonymous users.
  * Returns 3 initial cards and 1 card to guess.
- * No data is saved to the database permanently.
+ * No data is saved to the database permanently - everything is handled in memory.
  * 
  * Body parameters:
  * @param {string} theme - Theme for the cards (default: 'university_life')
@@ -54,7 +54,8 @@ router.post('/start', [
         res.json({
             initialCards,
             targetCard: targetCardWithoutIndex,
-            message: 'Demo game started! Try to guess where the target card belongs.'
+            message: 'Demo game started! Try to guess where the target card belongs.',
+            isDemo: true
         });
 
     } catch (error) {

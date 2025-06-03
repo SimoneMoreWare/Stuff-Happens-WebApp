@@ -4,7 +4,6 @@ import {
     createGame, 
     getGameById, 
     getActiveGameByUser, 
-    updateGame, 
     completeGame, 
     getUserGameHistory,
     advanceRound,
@@ -27,19 +26,17 @@ import { isLoggedIn } from '../middleware/authMiddleware.mjs';
 const router = express.Router();
 
 /**
- * POST /api/games - Create a new game
+ * POST /api/games - Create a new game (AUTHENTICATED USERS ONLY)
  * 
- * Creates a new game for authenticated users or demo game for anonymous users.
- * For registered users: creates a full game that will be saved in history.
- * For anonymous users: creates a demo game (1 round only).
+ * Creates a new full game for authenticated users that will be saved in history.
+ * Anonymous users should use /api/demo/start for demo games.
  * 
  * Automatically generates 3 initial random cards and adds them to the game.
  * 
  * Body parameters:
  * @param {string} theme - Theme for the cards (default: 'university_life')
- * @param {boolean} isDemoGame - Whether this is a demo game (optional, auto-detected)
  */
-router.post('/', [
+router.post('/', isLoggedIn, [
     body('theme').optional().isIn(['university_life', 'travel', 'sports', 'love_life', 'work_life'])
         .withMessage('Invalid theme'),
 ], async (req, res) => {
@@ -49,22 +46,19 @@ router.post('/', [
     }
 
     const { theme = 'university_life' } = req.body;
-    const userId = req.isAuthenticated() ? req.user.id : null;
-    const isDemoGame = !req.isAuthenticated();
+    const userId = req.user.id; // Always authenticated due to middleware
 
     try {
-        // For registered users, check if they already have an active game
-        if (userId) {
-            const activeGame = await getActiveGameByUser(userId);
-            if (activeGame) {
-                return res.status(400).json({ 
-                    error: 'You already have an active game. Complete it before starting a new one.',
-                    activeGameId: activeGame.id 
-                });
-            }
+        // Check if user already has an active game
+        const activeGame = await getActiveGameByUser(userId);
+        if (activeGame) {
+            return res.status(400).json({ 
+                error: 'You already have an active game. Complete it before starting a new one.',
+                activeGameId: activeGame.id 
+            });
         }
 
-        // Create the game
+        // Create the full game
         const gameId = await createGame(userId);
 
         // Get 3 random initial cards
@@ -85,8 +79,7 @@ router.post('/', [
         res.status(201).json({
             game,
             initialCards,
-            isDemoGame,
-            message: isDemoGame ? 'Demo game created' : 'Game created successfully'
+            message: 'Full game created successfully'
         });
 
     } catch (error) {
@@ -122,6 +115,50 @@ router.get('/current', isLoggedIn, async (req, res) => {
     } catch (error) {
         console.error('Error fetching current game:', error);
         res.status(500).json({ error: 'Database error while fetching current game' });
+    }
+});
+
+/**
+ * GET /api/games/history - Get user's game history
+ * 
+ * Returns completed games (won/lost) for the authenticated user.
+ * Only for registered users - anonymous users don't have history.
+ */
+router.get('/history', isLoggedIn, async (req, res) => {
+    try {
+        const games = await getUserGameHistory(req.user.id);
+        
+        // For each game, get the cards involved
+        const gamesWithDetails = await Promise.all(
+            games.map(async (game) => {
+                const gameCards = await getGameCards(game.id);
+                const cardIds = gameCards.map(gc => gc.card_id);
+                const cardDetails = cardIds.length > 0 ? await getCardsByIds(cardIds) : [];
+                
+                // Organize cards with their game results
+                const cardsWithResults = gameCards.map(gameCard => {
+                    const cardDetail = cardDetails.find(cd => cd.id === gameCard.card_id);
+                    return {
+                        ...cardDetail,
+                        round_number: gameCard.round_number,
+                        guessed_correctly: gameCard.guessed_correctly,
+                        is_initial: gameCard.is_initial,
+                        won: gameCard.is_initial || gameCard.guessed_correctly === true
+                    };
+                });
+
+                return {
+                    ...game,
+                    cards: cardsWithResults
+                };
+            })
+        );
+
+        res.json(gamesWithDetails);
+
+    } catch (error) {
+        console.error('Error fetching game history:', error);
+        res.status(500).json({ error: 'Database error while fetching game history' });
     }
 });
 
@@ -191,6 +228,50 @@ router.get('/:id', [
     } catch (error) {
         console.error('Error fetching game details:', error);
         res.status(500).json({ error: 'Database error while fetching game' });
+    }
+});
+
+/**
+ * DELETE /api/games/:id - Delete/abandon a game
+ * 
+ * Allows a user to abandon their current game.
+ * Can only be used on games in 'playing' status.
+ * 
+ * @param {number} id - Game ID
+ */
+router.delete('/:id', [
+    param('id').isInt({ min: 1 }).withMessage('Game ID must be a positive integer')
+], isLoggedIn, async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(422).json({ errors: errors.array() });
+    }
+
+    try {
+        const game = await getGameById(req.params.id);
+        
+        if (!game) {
+            return res.status(404).json({ error: 'Game not found' });
+        }
+
+        // Authorization
+        if (game.user_id !== req.user.id) {
+            return res.status(403).json({ error: 'You can only abandon your own games' });
+        }
+
+        // Can only abandon active games
+        if (game.status !== 'playing') {
+            return res.status(400).json({ error: 'Can only abandon active games' });
+        }
+
+        // Mark game as lost (abandoned)
+        await completeGame(game.id, 'lost');
+
+        res.status(204).end();
+
+    } catch (error) {
+        console.error('Error abandoning game:', error);
+        res.status(500).json({ error: 'Database error while abandoning game' });
     }
 });
 
@@ -442,94 +523,6 @@ router.post('/:id/guess', [
     } catch (error) {
         console.error('Error processing guess:', error);
         res.status(500).json({ error: 'Database error while processing guess' });
-    }
-});
-
-/**
- * GET /api/games/history - Get user's game history
- * 
- * Returns completed games (won/lost) for the authenticated user.
- * Only for registered users - anonymous users don't have history.
- */
-router.get('/history', isLoggedIn, async (req, res) => {
-    try {
-        const games = await getUserGameHistory(req.user.id);
-        
-        // For each game, get the cards involved
-        const gamesWithDetails = await Promise.all(
-            games.map(async (game) => {
-                const gameCards = await getGameCards(game.id);
-                const cardIds = gameCards.map(gc => gc.card_id);
-                const cardDetails = cardIds.length > 0 ? await getCardsByIds(cardIds) : [];
-                
-                // Organize cards with their game results
-                const cardsWithResults = gameCards.map(gameCard => {
-                    const cardDetail = cardDetails.find(cd => cd.id === gameCard.card_id);
-                    return {
-                        ...cardDetail,
-                        round_number: gameCard.round_number,
-                        guessed_correctly: gameCard.guessed_correctly,
-                        is_initial: gameCard.is_initial,
-                        won: gameCard.is_initial || gameCard.guessed_correctly === true
-                    };
-                });
-
-                return {
-                    ...game,
-                    cards: cardsWithResults
-                };
-            })
-        );
-
-        res.json(gamesWithDetails);
-
-    } catch (error) {
-        console.error('Error fetching game history:', error);
-        res.status(500).json({ error: 'Database error while fetching game history' });
-    }
-});
-
-/**
- * DELETE /api/games/:id - Delete/abandon a game
- * 
- * Allows a user to abandon their current game.
- * Can only be used on games in 'playing' status.
- * 
- * @param {number} id - Game ID
- */
-router.delete('/:id', [
-    param('id').isInt({ min: 1 }).withMessage('Game ID must be a positive integer')
-], isLoggedIn, async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(422).json({ errors: errors.array() });
-    }
-
-    try {
-        const game = await getGameById(req.params.id);
-        
-        if (!game) {
-            return res.status(404).json({ error: 'Game not found' });
-        }
-
-        // Authorization
-        if (game.user_id !== req.user.id) {
-            return res.status(403).json({ error: 'You can only abandon your own games' });
-        }
-
-        // Can only abandon active games
-        if (game.status !== 'playing') {
-            return res.status(400).json({ error: 'Can only abandon active games' });
-        }
-
-        // Mark game as lost (abandoned)
-        await completeGame(game.id, 'lost');
-
-        res.status(204).end();
-
-    } catch (error) {
-        console.error('Error abandoning game:', error);
-        res.status(500).json({ error: 'Database error while abandoning game' });
     }
 });
 

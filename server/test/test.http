@@ -1,31 +1,188 @@
-# Login Incorrect Credentials.
-POST http://localhost:3001/api/sessions
-content-type: application/json
+### Stuff Happens API Test File
+### Use this file in VS Code with the REST Client extension to test all endpoints
 
-{
-  "username": "guido.vanrossum@python.org",
-  "password": "testtest"
-}
+### Variables
+@baseUrl = http://localhost:3001/api
+@theme = university_life
 
 ###
+### Health Check
+GET {{baseUrl}}/health
 
-# Login Correct Credentials.
-POST http://localhost:3001/api/sessions
-content-type: application/json
+###
+### Authentication Tests
+###
+
+### Login with invalid credentials
+POST {{baseUrl}}/sessions
+Content-Type: application/json
 
 {
-  "username": "testuser",
+  "username": "invalid_user",
+  "password": "wrong_password"
+}
+
+### Login as user1
+POST {{baseUrl}}/sessions
+Content-Type: application/json
+
+{
+  "username": "user1",
   "password": "password"
 }
 
-###
+### Check current session
+GET {{baseUrl}}/sessions/current
 
-## Checking if user is still logged-in.
-GET http://localhost:3001/api/sessions/current
-
-###
-
-## Execute Log Out.
-DELETE http://localhost:3001/api/sessions/current
+### Logout
+DELETE {{baseUrl}}/sessions/current
 
 ###
+### Demo API Tests (Anonymous Users)
+###
+
+### Get game instructions
+GET {{baseUrl}}/demo/instructions
+
+### Get practice cards
+POST {{baseUrl}}/demo/practice-cards
+Content-Type: application/json
+
+{
+  "theme": "{{theme}}",
+  "count": 5
+}
+
+### Start demo game
+POST {{baseUrl}}/demo/start
+Content-Type: application/json
+
+{
+  "theme": "{{theme}}"
+}
+
+### Submit demo guess (replace with actual card IDs from demo start response)
+POST {{baseUrl}}/demo/guess
+Content-Type: application/json
+
+{
+  "targetCardId": 1,
+  "initialCardIds": [2, 3, 4],
+  "position": 1,
+  "timeElapsed": 15.5
+}
+
+###
+### Cards API Tests
+###
+
+### Get all cards
+GET {{baseUrl}}/cards
+
+### Get cards by theme
+GET {{baseUrl}}/cards/theme/{{theme}}
+
+### Get specific card
+GET {{baseUrl}}/cards/1
+
+### Get card without bad luck index (for gameplay)
+GET {{baseUrl}}/cards/1/without-index
+
+### Get random cards
+POST {{baseUrl}}/cards/random
+Content-Type: application/json
+
+{
+  "theme": "{{theme}}",
+  "count": 3,
+  "excludeIds": []
+}
+
+### Get multiple cards by IDs
+POST {{baseUrl}}/cards/by-ids
+Content-Type: application/json
+
+{
+  "ids": [1, 2, 3, 4, 5]
+}
+
+###
+### Games API Tests (Authenticated Users)
+### First login before running these tests
+###
+
+### Create new game
+POST {{baseUrl}}/games
+Content-Type: application/json
+
+{
+  "theme": "{{theme}}"
+}
+
+### Get current active game
+GET {{baseUrl}}/games/current
+
+### Get specific game details (replace 1 with actual game ID)
+GET {{baseUrl}}/games/1
+
+### Start next round (replace 1 with actual game ID)
+POST {{baseUrl}}/games/1/next-round
+Content-Type: application/json
+
+{}
+
+### Submit guess (replace with actual values from your game)
+POST {{baseUrl}}/games/1/guess
+Content-Type: application/json
+
+{
+  "gameCardId": 1,
+  "position": 2,
+  "timeElapsed": 12.3
+}
+
+### Get game history
+GET {{baseUrl}}/games/history
+
+### Abandon game (replace 1 with actual game ID)
+DELETE {{baseUrl}}/games/1
+
+###
+### Error Testing
+###
+
+### Try to access protected route without login
+GET {{baseUrl}}/games/current
+
+### Try invalid card ID
+GET {{baseUrl}}/cards/999999
+
+### Try invalid theme
+GET {{baseUrl}}/cards/theme/invalid_theme
+
+### Try demo route while logged in (should work - demo is for everyone)
+POST {{baseUrl}}/demo/start
+Content-Type: application/json
+
+{
+  "theme": "{{theme}}"
+}
+
+### Try to guess with invalid position
+POST {{baseUrl}}/demo/guess
+Content-Type: application/json
+
+{
+  "targetCardId": 1,
+  "initialCardIds": [2, 3, 4],
+  "position": 10,
+  "timeElapsed": 15.5
+}
+
+### Try to create game with invalid theme
+POST {{baseUrl}}/games
+Content-Type: application/json
+
+{
+  "theme": "invalid_theme"
+}

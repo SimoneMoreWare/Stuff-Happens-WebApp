@@ -299,3 +299,44 @@ export const deleteGameCards = (game_id) => {
         });
     });
 };
+
+/**
+ * Determina la posizione corretta di una carta in una lista ordinata
+ * @param {number} cardId - ID della carta da posizionare
+ * @param {number[]} existingCardIds - IDs delle carte già possedute
+ * @returns {Promise<number>} - Posizione corretta (0-based)
+ */
+export const getCorrectPosition = async (cardId, existingCardIds) => {
+    try {
+        // Ottieni la carta target
+        const targetCard = await getCardById(cardId);
+        if (!targetCard) {
+            throw new Error('Card not found');
+        }
+        
+        // Se non ci sono carte esistenti, la posizione è 0
+        if (existingCardIds.length === 0) {
+            return 0;
+        }
+        
+        // Ottieni le carte esistenti
+        const existingCards = await getCardsByIds(existingCardIds);
+        
+        // Ordina le carte esistenti per bad_luck_index
+        existingCards.sort((a, b) => a.bad_luck_index - b.bad_luck_index);
+        
+        // Trova la posizione corretta
+        let position = 0;
+        for (let i = 0; i < existingCards.length; i++) {
+            if (targetCard.bad_luck_index > existingCards[i].bad_luck_index) {
+                position = i + 1;
+            } else {
+                break;
+            }
+        }
+        
+        return position;
+    } catch (error) {
+        throw error;
+    }
+};

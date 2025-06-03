@@ -1,17 +1,17 @@
 import dayjs from 'dayjs';
 
 /**
- * Game model representing a game session
+ * GameCard model representing a card involved in a specific game
  */
-function Game(id, user_id, status, cards_collected, wrong_guesses, current_round, created_at, completed_at) {
+function GameCard(id, game_id, card_id, round_number, guessed_correctly, position_guessed, is_initial, played_at) {
     this.id = id;
-    this.user_id = user_id;              // NULL per utenti anonimi
-    this.status = status;                // 'playing', 'won', 'lost'
-    this.cards_collected = cards_collected; // Numero carte raccolte
-    this.wrong_guesses = wrong_guesses;   // Numero errori commessi
-    this.current_round = current_round;   // Round corrente
-    this.created_at = dayjs(created_at);
-    this.completed_at = completed_at ? dayjs(completed_at) : null;
+    this.game_id = game_id;                    // ID della partita
+    this.card_id = card_id;                    // ID della carta
+    this.round_number = round_number;          // Round in cui è stata presentata (0 per iniziali)
+    this.guessed_correctly = guessed_correctly; // true/false/null se non ancora giocata
+    this.position_guessed = position_guessed;  // Posizione indovinata dall'utente
+    this.is_initial = is_initial;              // Se è una delle 3 carte iniziali
+    this.played_at = played_at ? dayjs(played_at) : null; // Quando è stata giocata
 }
 
-export { Game };
+export { GameCard };

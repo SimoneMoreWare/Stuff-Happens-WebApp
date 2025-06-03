@@ -8,7 +8,11 @@ import morgan from 'morgan';
 import passport from 'passport';
 import session from 'express-session';
 import { configurePassport } from './config/passport.mjs';
-import authRoutes from './api/auth.mjs'; // Add this import
+// Import API routes
+import authRoutes from './api/auth.mjs';
+import cardsRoutes from './api/cards.mjs';
+import gamesRoutes from './api/games.mjs';
+import demoRoutes from './api/demo.mjs';
 
 // init express
 const app = new express();
@@ -38,7 +42,12 @@ app.use(session({
 }));
 app.use(passport.authenticate('session'));
 
-app.use('/api', authRoutes); 
+// API Routes
+app.use('/api', authRoutes);       // Authentication routes: /api/sessions/*
+app.use('/api/cards', cardsRoutes); // Cards routes: /api/cards/*
+app.use('/api/games', gamesRoutes); // Games routes: /api/games/*
+app.use('/api/demo', demoRoutes);   // Demo routes: /api/demo/*
+
 
 // activate the server
 app.listen(port, () => {

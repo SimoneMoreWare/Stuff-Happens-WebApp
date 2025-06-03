@@ -59,7 +59,7 @@ CREATE TABLE GameCards (
 INSERT INTO Users (username, email, password, salt) VALUES 
     ('user1', 'u1@p.it', '3fe983f6c4d87ad47e52d5c706c1b261002692570c5877861a0fc807e22e1609322894cb4b3e4f1b0a7047b899feed0541205ebbb0a497500cfac1acbf56c4ea', '1753382924'),
     ('user2', 'u2@p.it', 'd399e53b6515abf6e0d07cb2176c25b3aa05b3ea4561fe7fd9c4b1d0ed79537f69d5a436a9e038955c2087ea196237b2ce8aefe66cb69e0e03c9941f9d704dbb', '7796344101'),
-    ('testuser', 'u3@p.it', '3fe983f6c4d87ad47e52d5c706c1b261002692570c5877861a0fc807e22e1609322894cb4b3e4f1b0a7047b899feed0541205ebbb0a497500cfac1acbf56c4ea', '1753382924');
+    ('testuser', 'u3@p.it', '2ea46ac49fe8cb4ec4f30aa42e59c7d113ec531d52c5dce0d2a0f960efe86cfc3ac692ac33e1bb7c6637e3002559ec4f0f3d127ac86d7f22ebff285b03a4e413', '6432105316');
 
 -- Inserimento carte (tema: University Life) - almeno 50
 INSERT INTO Cards (name, image_url, bad_luck_index, theme) VALUES 

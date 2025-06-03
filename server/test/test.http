@@ -1,0 +1,31 @@
+# Login Incorrect Credentials.
+POST http://localhost:3001/api/sessions
+content-type: application/json
+
+{
+  "username": "guido.vanrossum@python.org",
+  "password": "testtest"
+}
+
+###
+
+# Login Correct Credentials.
+POST http://localhost:3001/api/sessions
+content-type: application/json
+
+{
+  "username": "testuser",
+  "password": "password"
+}
+
+###
+
+## Checking if user is still logged-in.
+GET http://localhost:3001/api/sessions/current
+
+###
+
+## Execute Log Out.
+DELETE http://localhost:3001/api/sessions/current
+
+###

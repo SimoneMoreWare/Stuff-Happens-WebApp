@@ -164,7 +164,7 @@ function GameBoard() {
             
             // Se ha già 3+ carte, inizia il prossimo round
             if (initialCards.length >= 3) {
-                await startNewRound(newGameData.id);
+                await startNewRound(newGameData.game?.id || newGameData.id);  
             } else {
                 // Caso strano - dovrebbe sempre avere 3 carte iniziali
                 console.warn('⚠️ Partita senza carte iniziali sufficienti, inizializzando comunque...');
@@ -178,14 +178,17 @@ function GameBoard() {
     
     const loadExistingGame = async (gameInfo) => {
         try {
-            // Assicurati che gameInfo abbia la struttura corretta
+            console.log('🔄 loadExistingGame INPUT:', gameInfo);
+            
             const gameId = gameInfo.id || gameInfo.game?.id;
+            console.log('🔍 Extracted gameId:', gameId);
+            
             if (!gameId) {
                 throw new Error('ID partita non trovato nella struttura dati');
             }
             
             const fullGameData = await API.getGameById(gameId);
-            console.log('🔄 Caricando partita esistente:', fullGameData);
+            console.log('📊 fullGameData ricevuto:', fullGameData);
             
             setGameData(fullGameData);
             setIsDemo(false);
@@ -211,10 +214,13 @@ function GameBoard() {
                 return;
             }
             
-            // Se in corso, carica il round corrente
-            await startNewRound(fullGameData.id);
+            // ✅ FIX: Usa la stessa variabile per log e chiamata
+            const actualGameId = fullGameData.game?.id || fullGameData.id;
+            console.log('🎯 Chiamando startNewRound con gameId:', actualGameId);
+            await startNewRound(actualGameId);
             
         } catch (err) {
+            console.error('❌ Errore in loadExistingGame:', err);
             throw err;
         }
     };
@@ -261,14 +267,23 @@ function GameBoard() {
             const roundData = await API.getNextRoundCard(gameId);
             console.log('🎴 Carta round ricevuta:', roundData);
             
+            const cardData = roundData.card || roundData.roundCard || roundData;
+
+            if (!cardData || !cardData.id) {
+                console.error('❌ Struttura dati carta invalida:', roundData);
+                throw new Error('Dati carta non validi ricevuti dal server');
+            }
+
             // Crea la carta target (senza bad_luck_index)
             const target = {
-                id: roundData.card.id,
-                name: roundData.card.name,
-                image_url: roundData.card.image_url,
-                theme: roundData.card.theme,
-                gameCardId: roundData.game_card_id // Importante per submit!
+                id: cardData.id,
+                name: cardData.name,
+                image_url: cardData.image_url,
+                theme: cardData.theme,
+                gameCardId: cardData.gameCardId || roundData.game_card_id || roundData.gameCardId // ✅ GIUSTO
             };
+            
+            console.log('🎯 Target card creata:', target);
             
             setTargetCard(target);
             setGameState('playing');
@@ -276,6 +291,7 @@ function GameBoard() {
             setGameStartTime(Date.now());
             
         } catch (err) {
+            console.error('❌ Errore in startNewRound:', err);
             if (err.type === 'GAME_NOT_ACTIVE') {
                 // Partita completata, ricarica stato
                 const updatedGame = await API.getGameById(gameId);
@@ -433,7 +449,7 @@ function GameBoard() {
             setTimerActive(false);
             
             try {
-                await startNewRound(gameData.id);
+                await startNewRound(gameData.game?.id || gameData.id);  
             } catch (err) {
                 console.error('Errore prossimo round:', err);
                 setError('Errore nel caricamento del prossimo round');
@@ -468,18 +484,32 @@ function GameBoard() {
     };
     
     const handleAbandonGame = async () => {
-        if (!isDemo && gameData?.id) {
+        console.log('🔴 handleAbandonGame chiamato');
+        console.log('🔍 isDemo:', isDemo);
+        console.log('🔍 gameData:', gameData);
+        
+        if (!isDemo && gameData?.game?.id) {  // 👈 CAMBIATO: gameData.game.id
             try {
-                await API.abandonGame(gameData.id);
+                const gameId = gameData.game.id;  // 👈 NUOVO: estrai l'ID corretto
+                console.log('🗑️ Chiamando abandonGame con ID:', gameId);
+                await API.abandonGame(gameId);
+                console.log('✅ Partita abbandonata con successo');
                 clearCurrentGame();
+                
+                // 👈 NUOVO: Reset completo dello stato locale
+                setGameData(null);
+                setInitialized(false);
+                setCurrentCards([]);
+                setGameState('loading');
+                
                 setMessage({ type: 'info', msg: 'Partita abbandonata' });
             } catch (err) {
-                console.error('Errore abbandono partita:', err);
+                console.error('❌ Errore abbandono partita:', err);
+                setMessage({ type: 'error', msg: 'Errore nell\'abbandonare la partita: ' + err.message });
             }
         }
         handleBackHome();
     };
-
     // ============================================================================
     // RENDER
     // ============================================================================

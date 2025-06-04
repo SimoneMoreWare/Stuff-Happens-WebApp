@@ -1,3 +1,5 @@
+import dayjs from 'dayjs';
+
 /**
  * User model representing a registered user
  */

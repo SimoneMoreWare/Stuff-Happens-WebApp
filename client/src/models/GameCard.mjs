@@ -1,3 +1,5 @@
+import dayjs from 'dayjs';
+
 /**
  * GameCard model representing a card involved in a specific game
  */

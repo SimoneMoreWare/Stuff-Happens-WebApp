@@ -57,6 +57,7 @@ function App() {
         
       } catch (error) {
         // Utente non autenticato - normale per accesso anonimo
+        // NON fare nulla per evitare loop infiniti
         setUser(null);
         setLoggedIn(false);
         setCurrentGame(null);
@@ -66,7 +67,7 @@ function App() {
     };
 
     checkAuth();
-  }, []);
+  }, []); // IMPORTANTE: array vuoto per eseguire solo una volta
 
   // ============================================================================
   // GESTIONE AUTENTICAZIONE
@@ -79,24 +80,35 @@ function App() {
    */
   const handleLogin = async (credentials) => {
     try {
+      console.log('🔐 Tentativo login con:', credentials); // DEBUG
       const userInfo = await API.logIn(credentials);
+      console.log('✅ Login riuscito, userInfo:', userInfo); // DEBUG
+      
       const newUser = new User(userInfo.id, userInfo.username, userInfo.email);
       
       setUser(newUser);
       setLoggedIn(true);
       
       // Controlla se l'utente ha una partita in corso
+      // IMPORTANTE: non far fallire il login se non ci sono partite!
       try {
         const gameData = await API.getCurrentGame();
         setCurrentGame(gameData);
+        console.log('🎮 Partita trovata:', gameData); // DEBUG
       } catch (gameError) {
+        console.log('ℹ️ Nessuna partita in corso (normale):', gameError.message); // DEBUG
         setCurrentGame(null);
+        // NON rilanciare l'errore - è normale non avere partite!
       }
       
       setMessage({ type: 'success', msg: `Benvenuto, ${newUser.username}!` });
+      console.log('🎉 Login completato con successo'); // DEBUG
       // Il redirect viene gestito dal componente LoginPage
       
     } catch (error) {
+      console.error('❌ Errore login:', error); // DEBUG
+      console.error('❌ Tipo errore:', typeof error); // DEBUG
+      console.error('❌ Contenuto errore:', error); // DEBUG
       throw error; // Rilancia l'errore per gestirlo nel form di login
     }
   };

@@ -9,8 +9,23 @@ function RoundResult({
     allCards,
     onContinue,
     onNewGame,
-    isDemo = false 
+    isDemo = false,
+    gameCompleted = false,
+    gameWon = false
 }) {
+    // Determina l'azione successiva in base allo stato del gioco
+    const getNextAction = () => {
+        if (isDemo) {
+            return 'demo';
+        } else if (gameCompleted) {
+            return gameWon ? 'won' : 'lost';
+        } else {
+            return 'continue';
+        }
+    };
+
+    const nextAction = getNextAction();
+
     return (
         <div className="round-result">
             {/* Alert principale con risultato */}
@@ -37,6 +52,31 @@ function RoundResult({
                         </>
                     )}
                 </p>
+
+                {/* Messaggio aggiuntivo per partite complete */}
+                {!isDemo && gameCompleted && (
+                    <div className="mt-3 pt-3 border-top">
+                        <h5 className={gameWon ? 'text-success' : 'text-danger'}>
+                            {gameWon ? (
+                                <>
+                                    <i className="bi bi-trophy-fill me-2"></i>
+                                    Partita Vinta! 🏆
+                                </>
+                            ) : (
+                                <>
+                                    <i className="bi bi-x-octagon-fill me-2"></i>
+                                    Partita Persa! 💀
+                                </>
+                            )}
+                        </h5>
+                        <p className="mb-0">
+                            {gameWon ? 
+                                'Congratulazioni! Hai raccolto tutte e 6 le carte!' : 
+                                'Peccato! Hai commesso 3 errori.'
+                            }
+                        </p>
+                    </div>
+                )}
             </Alert>
 
             {/* Mostra la carta con Bad Luck Index rivelato */}
@@ -51,7 +91,7 @@ function RoundResult({
                 </Col>
             </Row>
 
-            {/* Spiegazione dettagliata - Abbassata molto di più */}
+            {/* Spiegazione dettagliata */}
             <Row style={{ marginTop: '4rem' }}>
                 <Col>
                     <Alert variant="info" className="mb-4">
@@ -68,8 +108,10 @@ function RoundResult({
                             ) : (
                                 <>
                                     La posizione corretta era <strong>{correctPosition + 1}</strong> perché il suo indice 
-                                    di sfortuna ({targetCard.bad_luck_index}) la colloca {correctPosition === 0 ? 'all\'inizio' : 
-                                    correctPosition === allCards.length ? 'alla fine' : 'in mezzo'} rispetto alle altre carte.
+                                    di sfortuna ({targetCard.bad_luck_index}) la colloca {
+                                        correctPosition === 0 ? 'all\'inizio' : 
+                                        correctPosition === allCards.length ? 'alla fine' : 'in mezzo'
+                                    } rispetto alle altre carte.
                                 </>
                             )}
                         </p>
@@ -77,9 +119,9 @@ function RoundResult({
                 </Col>
             </Row>
 
-            {/* Pulsanti azione */}
+            {/* Pulsanti azione dinamici */}
             <div className="text-center">
-                {isDemo ? (
+                {nextAction === 'demo' && (
                     <div className="d-grid gap-2 d-md-flex justify-content-md-center">
                         <Button variant="primary" size="lg" onClick={onNewGame}>
                             <i className="bi bi-arrow-repeat me-2"></i>
@@ -90,11 +132,53 @@ function RoundResult({
                             Registrati per Partite Complete
                         </Button>
                     </div>
-                ) : (
-                    <Button variant="primary" size="lg" onClick={onContinue}>
-                        <i className="bi bi-arrow-right me-2"></i>
-                        Continua al Prossimo Round
-                    </Button>
+                )}
+
+                {nextAction === 'continue' && (
+                    <div className="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <Button variant="primary" size="lg" onClick={onContinue}>
+                            <i className="bi bi-arrow-right me-2"></i>
+                            Continua al Prossimo Round
+                        </Button>
+                        <Button variant="outline-secondary" onClick={onNewGame}>
+                            <i className="bi bi-arrow-repeat me-2"></i>
+                            Nuova Partita
+                        </Button>
+                    </div>
+                )}
+
+                {nextAction === 'won' && (
+                    <div className="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <Button variant="success" size="lg" onClick={onContinue}>
+                            <i className="bi bi-list-stars me-2"></i>
+                            Vedi Riassunto Vittoria
+                        </Button>
+                        <Button variant="primary" onClick={onNewGame}>
+                            <i className="bi bi-arrow-repeat me-2"></i>
+                            Nuova Partita
+                        </Button>
+                        <Button variant="outline-secondary" href="/profile">
+                            <i className="bi bi-person-lines-fill me-2"></i>
+                            Vai al Profilo
+                        </Button>
+                    </div>
+                )}
+
+                {nextAction === 'lost' && (
+                    <div className="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <Button variant="warning" size="lg" onClick={onContinue}>
+                            <i className="bi bi-list-task me-2"></i>
+                            Vedi Riassunto Partita
+                        </Button>
+                        <Button variant="primary" onClick={onNewGame}>
+                            <i className="bi bi-arrow-repeat me-2"></i>
+                            Nuova Partita
+                        </Button>
+                        <Button variant="outline-secondary" href="/profile">
+                            <i className="bi bi-person-lines-fill me-2"></i>
+                            Vai al Profilo
+                        </Button>
+                    </div>
                 )}
             </div>
         </div>

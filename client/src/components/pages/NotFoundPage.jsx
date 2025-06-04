@@ -1,4 +1,3 @@
-
 import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 import { Link } from 'react-router';
 
@@ -30,4 +29,4 @@ function NotFoundPage() {
   );
 }
 
-export default NotFoundPage;    
+export default NotFoundPage;

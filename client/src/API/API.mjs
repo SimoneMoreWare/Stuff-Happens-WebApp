@@ -58,7 +58,6 @@
 
 import { User } from "../models/User.mjs";
 import { Card } from "../models/Card.mjs";
-import { Game } from "../models/Game.mjs";
 
 // Base server URL - modify if different in production
 const SERVER_URL = 'http://localhost:3001';

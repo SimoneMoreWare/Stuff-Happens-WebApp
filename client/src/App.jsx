@@ -16,7 +16,7 @@ import Navbar from './components/layout/Navbar.jsx';
 import HomePage from './components/pages/HomePage.jsx';
 import LoginPage from './components/pages/LoginPage.jsx';
 import GamePage from './components/pages/GamePage.jsx';
-import ProfilePage from './components/pages/ProfilePage.jsx';
+import ProfilePage from './components/pages/ProfilePage/ProfilePage.jsx';
 import InstructionsPage from './components/pages/InstructionsPage.jsx';
 import NotFoundPage from './components/pages/NotFoundPage.jsx';
 

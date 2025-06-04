@@ -80,9 +80,7 @@ function App() {
    */
   const handleLogin = async (credentials) => {
     try {
-      console.log('🔐 Tentativo login con:', credentials); // DEBUG
       const userInfo = await API.logIn(credentials);
-      console.log('✅ Login riuscito, userInfo:', userInfo); // DEBUG
       
       const newUser = new User(userInfo.id, userInfo.username, userInfo.email);
       
@@ -94,21 +92,15 @@ function App() {
       try {
         const gameData = await API.getCurrentGame();
         setCurrentGame(gameData);
-        console.log('🎮 Partita trovata:', gameData); // DEBUG
       } catch (gameError) {
-        console.log('ℹ️ Nessuna partita in corso (normale):', gameError.message); // DEBUG
         setCurrentGame(null);
         // NON rilanciare l'errore - è normale non avere partite!
       }
       
       setMessage({ type: 'success', msg: `Benvenuto, ${newUser.username}!` });
-      console.log('🎉 Login completato con successo'); // DEBUG
       // Il redirect viene gestito dal componente LoginPage
       
     } catch (error) {
-      console.error('❌ Errore login:', error); // DEBUG
-      console.error('❌ Tipo errore:', typeof error); // DEBUG
-      console.error('❌ Contenuto errore:', error); // DEBUG
       throw error; // Rilancia l'errore per gestirlo nel form di login
     }
   };
@@ -131,7 +123,6 @@ function App() {
       // Il redirect viene gestito dal componente che chiama logout
       
     } catch (error) {
-      console.error('Errore durante logout:', error);
       setMessage({ type: 'warning', msg: 'Errore durante il logout, ma sei stato disconnesso' });
       
       // Anche in caso di errore, disconnetti l'utente localmente

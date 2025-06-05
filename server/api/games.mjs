@@ -406,7 +406,8 @@ router.post('/:id/guess', [
 
     try {
         const game = await getGameById(req.params.id);
-        
+        console.log('🎮 GUESS DEBUG - Game info:', { gameId: game.id, status: game.status, currentRound: game.current_round });
+        console.log('🎯 GUESS DEBUG - Received gameCardId:', gameCardId);
         if (!game) {
             return res.status(404).json({ error: 'Game not found' });
         }
@@ -454,7 +455,10 @@ router.post('/:id/guess', [
         
         // Get the card being guessed
         const gameCard = await getCurrentRoundCard(game.id, game.current_round);
+        console.log('🔍 GUESS DEBUG - Found gameCard:', gameCard);
+        console.log('🔍 GUESS DEBUG - gameCard.id vs received:', { foundId: gameCard?.id, receivedId: gameCardId });
         if (!gameCard || gameCard.id !== gameCardId) {
+                    console.log('❌ GUESS DEBUG - Mismatch!');
             return res.status(400).json({ error: 'Invalid game card for current round' });
         }
 
@@ -468,7 +472,9 @@ router.post('/:id/guess', [
         if (isCorrect) {
             // Correct guess - player gets the card
             await incrementCardsCollected(game.id);
-            
+            const cardDetails = await getCardsByIds([gameCard.card_id]);
+            const revealedCard = cardDetails[0];
+    
             // Check if game is won
             const updatedGame = await getGameById(game.id);
             if (updatedGame.cards_collected >= 6) {
@@ -481,24 +487,28 @@ router.post('/:id/guess', [
                 return res.json({
                     correct: true,
                     correctPosition,
-                    gameStatus: 'won',
-                    finalCards,
-                    message: 'Correct! You won the game!'
+                    gameStatus: 'playing',
+                    game: updatedGame,                    // 👈 AGGIUNGI
+                    revealed_card: revealedCard,          // 👈 AGGIUNGI
+                    message: 'Correct! You got the card.'
                 });
             }
 
-            await advanceRound(game.id);
+            // await advanceRound(game.id);
             return res.json({
                 correct: true,
                 correctPosition,
                 gameStatus: 'playing',
+                game: updatedGame,  // 👈 AGGIUNGI questo per sincronizzare stats
+                revealed_card: cardDetails, // 👈 AGGIUNGI carta completa
                 message: 'Correct! You got the card.'
             });
 
         } else {
             // Wrong guess
             await incrementWrongGuesses(game.id);
-            
+            const cardDetails = await getCardsByIds([gameCard.card_id]);
+            const revealedCard = cardDetails[0];
             // Check if game is lost
             const updatedGame = await getGameById(game.id);
             if (updatedGame.wrong_guesses >= 3) {
@@ -511,11 +521,13 @@ router.post('/:id/guess', [
                 });
             }
 
-            await advanceRound(game.id);
+            //await advanceRound(game.id);
             return res.json({
                 correct: false,
                 correctPosition,
                 gameStatus: 'playing',
+                game: updatedGame,           // 👈 AGGIUNGI  
+                revealed_card: revealedCard, // 👈 AGGIUNGI
                 message: 'Wrong guess! Try the next round.'
             });
         }

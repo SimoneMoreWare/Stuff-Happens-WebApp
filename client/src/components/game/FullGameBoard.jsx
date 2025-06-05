@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import { Container, Row, Col, Card, Alert, Button, Spinner, Badge, Modal } from 'react-bootstrap';
+import { Container, Row, Col, Card, Alert, Button, Spinner, Badge } from 'react-bootstrap';
 import { useNavigate } from 'react-router';
 import UserContext from '../../context/UserContext.jsx';
 import API from '../../API/API.mjs';
@@ -9,141 +9,112 @@ import Timer from './Timer.jsx';
 import PositionSelector from './PositionSelector.jsx';
 import RoundResult from './RoundResult.jsx';
 import GameSummary from './GameSummary.jsx';
+import GameStatus from './GameStatus.jsx';
 
 /**
- * FullGameBoard - Versione completamente riscritta
+ * FullGameBoard - Gestisce partite complete per utenti autenticati
  * 
- * PRINCIPI CHIAVE:
- * 1. ✅ UN SOLO useEffect con dependency array VUOTO
- * 2. ✅ Stati semplici senza oggetti complessi nelle dependencies
- * 3. ✅ Gestione errori chiara e lineare
- * 4. ✅ Flusso di gioco predicibile
- * 5. ✅ Reset pulito dello stato quando necessario
+ * FLUSSO DI GIOCO:
+ * 1. Verifica se utente ha partita in corso, altrimenti chiede di crearne una
+ * 2. Mostra 3 carte iniziali + stato partita
+ * 3. Per ogni round: mostra carta target, avvia timer, raccoglie guess
+ * 4. Aggiorna stato in base al risultato (carta vinta/persa)
+ * 5. Continua fino a vittoria (6 carte) o sconfitta (3 errori)
+ * 6. Mostra riassunto finale con statistiche
+ * 
+ * GESTIONE STATO:
+ * - gameState: 'loading' | 'no-game' | 'playing' | 'result' | 'game-over'
+ * - currentGame: oggetto partita dal server
+ * - currentCards: carte attualmente possedute
+ * - targetCard: carta del round corrente
+ * - roundResult: risultato ultimo round
  */
 function FullGameBoard() {
-    const { user, setMessage, currentGame, updateCurrentGame, clearCurrentGame } = useContext(UserContext);
+    const { user, setMessage, updateCurrentGame, clearCurrentGame } = useContext(UserContext);
     const navigate = useNavigate();
     
     // ============================================================================
-    // STATI PRINCIPALI - SEMPLIFICATI
+    // STATO LOCALE DEL COMPONENTE
     // ============================================================================
     
-    // Stati del gioco
-    const [gameState, setGameState] = useState('loading'); // loading, playing, result, finished, error
+    const [gameState, setGameState] = useState('loading'); // loading, no-game, playing, result, game-over
+    const [currentGame, setCurrentGame] = useState(null);
+    const [currentCards, setCurrentCards] = useState([]);
+    const [targetCard, setTargetCard] = useState(null);
+    const [currentRoundCard, setCurrentRoundCard] = useState(null); // Per il gameCardId
+    const [roundResult, setRoundResult] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     
-    // Dati di gioco
-    const [gameId, setGameId] = useState(null);
-    const [currentCards, setCurrentCards] = useState([]);
-    const [targetCard, setTargetCard] = useState(null);
-    const [gameResult, setGameResult] = useState(null);
-    
-    // Stats di gioco
-    const [currentRound, setCurrentRound] = useState(1);
-    const [cardsCollected, setCardsCollected] = useState(0);
-    const [wrongGuesses, setWrongGuesses] = useState(0);
-    
-    // Timer
+    // Timer state
     const [timerActive, setTimerActive] = useState(false);
-    const [gameStartTime, setGameStartTime] = useState(null);
-    
-    // Modal partita esistente
-    const [showExistingGameModal, setShowExistingGameModal] = useState(false);
-    const [existingGameId, setExistingGameId] = useState(null);
+    const [roundStartTime, setRoundStartTime] = useState(null);
     
     // ============================================================================
-    // INIZIALIZZAZIONE - UNA VOLTA SOLA
+    // INIZIALIZZAZIONE - Verifica partita esistente
     // ============================================================================
     
     useEffect(() => {
-        console.log('🚀 FullGameBoard: Inizializzazione UNICA');
-        initializeFullGame();
-    }, []); // 👈 DEPENDENCY ARRAY VUOTO - si esegue solo una volta
+        checkCurrentGame();
+    }, []); // Solo al mount
     
-    // ============================================================================
-    // FUNZIONE DI INIZIALIZZAZIONE
-    // ============================================================================
-    
-    const initializeFullGame = async () => {
+    const checkCurrentGame = async () => {
         try {
             setLoading(true);
             setError('');
             
-            console.log('🎮 Inizializzando partita completa...');
+            console.log('🎮 Checking for existing game...');
             
-            // STEP 1: Controlla se l'utente ha già una partita attiva
-            await checkForActiveGame();
+            try {
+                // Controlla se c'è una partita in corso
+                const gameData = await API.getCurrentGame();
+                console.log('📋 Found existing game:', gameData);
+                
+                setCurrentGame(gameData.game);
+                updateCurrentGame(gameData.game);
+                
+                // Carica le carte attualmente possedute
+                if (gameData.wonCards && gameData.wonCards.length > 0) {
+                    const wonCards = gameData.wonCards.map(c => 
+                        new CardModel(c.id, c.name, c.image_url, c.bad_luck_index, c.theme)
+                    );
+                    setCurrentCards(wonCards);
+                }
+                
+                // Controlla se la partita è già terminata
+                if (gameData.game.status !== 'playing') {
+                    setGameState('game-over');
+                    return;
+                }
+                
+                // Partita attiva - controlla se è da concludere
+                if (gameData.game.cards_collected >= 6) {
+                    // Vittoria!
+                    setGameState('game-over');
+                    return;
+                } else if (gameData.game.wrong_guesses >= 3) {
+                    // Sconfitta!
+                    setGameState('game-over');
+                    return;
+                }
+                
+                // Partita attiva - vai al prossimo round
+                setGameState('playing');
+                
+            } catch (gameError) {
+                // Nessuna partita in corso
+                console.log('ℹ️ No active game found');
+                setGameState('no-game');
+                setCurrentGame(null);
+                clearCurrentGame();
+            }
             
         } catch (err) {
-            console.error('❌ Errore inizializzazione:', err);
-            handleError(err);
+            console.error('❌ Error checking current game:', err);
+            setError('Errore nel caricamento della partita');
+            setGameState('no-game');
         } finally {
             setLoading(false);
-        }
-    };
-    
-    // ============================================================================
-    // CONTROLLO PARTITA ATTIVA
-    // ============================================================================
-    
-    const checkForActiveGame = async () => {
-        try {
-            // Prova a ottenere la partita corrente
-            const activeGameData = await API.getCurrentGame();
-            console.log('📂 Partita attiva trovata:', activeGameData);
-            
-            // Carica la partita esistente
-            await loadExistingGame(activeGameData);
-            
-        } catch (apiError) {
-            if (apiError.type === 'NO_ACTIVE_GAME') {
-                console.log('🆕 Nessuna partita attiva, creando nuova...');
-                await createAndStartNewGame();
-            } else {
-                throw apiError;
-            }
-        }
-    };
-    
-    // ============================================================================
-    // CARICAMENTO PARTITA ESISTENTE
-    // ============================================================================
-    
-    const loadExistingGame = async (gameData) => {
-        try {
-            console.log('📂 Caricando partita esistente...');
-            
-            // Estrai informazioni base
-            const game = gameData.game || gameData;
-            
-            setGameId(game.id);
-            setCurrentRound(game.current_round || 1);
-            setCardsCollected(game.cards_collected || 0);
-            setWrongGuesses(game.wrong_guesses || 0);
-            
-            // Controlla se la partita è completata
-            if (game.status !== 'playing') {
-                console.log('🏁 Partita completata:', game.status);
-                await handleCompletedGame(game, gameData);
-                return;
-            }
-            
-            // Carica le carte vinte finora
-            const wonCards = gameData.wonCards || gameData.initialCards || [];
-            const cardsArray = wonCards.map(c => 
-                new CardModel(c.id, c.name, c.image_url, c.bad_luck_index, c.theme)
-            ).sort((a, b) => a.bad_luck_index - b.bad_luck_index);
-            
-            setCurrentCards(cardsArray);
-            console.log('📋 Carte caricate:', cardsArray.length);
-            
-            // Avvia il prossimo round
-            await startNextRound(game.id);
-            
-        } catch (err) {
-            console.error('❌ Errore caricamento partita esistente:', err);
-            throw err;
         }
     };
     
@@ -151,129 +122,87 @@ function FullGameBoard() {
     // CREAZIONE NUOVA PARTITA
     // ============================================================================
     
-    const createAndStartNewGame = async () => {
+    const handleCreateNewGame = async () => {
         try {
-            console.log('🎮 Creando nuova partita...');
+            setLoading(true);
+            setError('');
             
-            const newGameData = await API.createGame();
-            console.log('✅ Nuova partita creata:', newGameData);
+            console.log('🆕 Creating new game...');
             
-            // Aggiorna context
-            updateCurrentGame(newGameData);
+            const gameData = await API.createGame('university_life');
+            console.log('✅ Game created:', gameData);
             
-            // Estrai dati base
-            const game = newGameData.game || newGameData;
+            setCurrentGame(gameData.game);
+            updateCurrentGame(gameData.game);
             
-            setGameId(game.id);
-            setCurrentRound(game.current_round || 1);
-            setCardsCollected(game.cards_collected || 0);
-            setWrongGuesses(game.wrong_guesses || 0);
-            
-            // Carica carte iniziali
-            const initialCards = newGameData.initialCards || [];
-            const cardsArray = initialCards.map(c => 
+            // Converti le carte iniziali
+            const initialCards = gameData.initialCards.map(c =>
                 new CardModel(c.id, c.name, c.image_url, c.bad_luck_index, c.theme)
-            ).sort((a, b) => a.bad_luck_index - b.bad_luck_index);
+            );
+            setCurrentCards(initialCards);
             
-            setCurrentCards(cardsArray);
-            console.log('📋 Carte iniziali caricate:', cardsArray.length);
-            
-            // Avvia primo round
-            await startNextRound(game.id);
+            setGameState('playing');
+            setMessage({ type: 'success', msg: 'Nuova partita creata!' });
             
         } catch (err) {
-            console.error('❌ Errore creazione partita:', err);
+            console.error('❌ Error creating game:', err);
             
             if (err.type === 'ACTIVE_GAME_EXISTS') {
-                // Mostra modal per partita esistente
-                setExistingGameId(err.activeGameId);
-                setShowExistingGameModal(true);
-                setError(`Hai già una partita in corso (ID: ${err.activeGameId})`);
+                // L'utente ha già una partita attiva
+                setError('Hai già una partita in corso. Completa quella prima di iniziarne una nuova.');
+                // Ricarica la partita esistente
+                checkCurrentGame();
             } else {
-                throw err;
+                setError(err.message || 'Errore nella creazione della partita');
             }
+        } finally {
+            setLoading(false);
         }
     };
     
     // ============================================================================
-    // AVVIA PROSSIMO ROUND
+    // GESTIONE ROUND - Avvio del prossimo round
     // ============================================================================
     
-    const startNextRound = async (currentGameId) => {
+    const startNextRound = async () => {
         try {
-            console.log(`🎯 Avviando round per partita ${currentGameId}`);
+            setError('');
+            setGameState('loading');
             
-            // DELAY PER EVITARE RACE CONDITIONS
-            await new Promise(resolve => setTimeout(resolve, 100));
+            console.log('🎯 Starting next round for game:', currentGame.id);
             
-            const roundData = await API.getNextRoundCard(currentGameId);
-            console.log('🎴 Dati round ricevuti:', roundData);
+            const roundData = await API.getNextRoundCard(currentGame.id);
+            console.log('🃏 Got round card:', roundData);
             
-            // Estrai carta del round con debug più dettagliato
-            const roundCard = roundData.roundCard || roundData;
+            // Imposta la carta del round (senza bad_luck_index)
+            const roundCard = {
+                id: roundData.roundCard.id,
+                name: roundData.roundCard.name,
+                image_url: roundData.roundCard.image_url,
+                theme: roundData.roundCard.theme
+            };
             
-            const extractedGameCardId = roundCard.gameCardId || roundCard.game_card_id || roundData.gameCardId;
-            console.log('🔍 GameCardId estratto:', extractedGameCardId);
-            console.log('🔍 Struttura roundCard completa:', JSON.stringify(roundCard, null, 2));
-            
-            if (!extractedGameCardId) {
-                console.error('❌ Nessun gameCardId trovato nei dati del round!');
-                throw new Error('GameCardId mancante nei dati del round');
-            }
-            
-            setTargetCard({
-                id: roundCard.id,
-                name: roundCard.name,
-                image_url: roundCard.image_url,
-                theme: roundCard.theme,
-                gameCardId: extractedGameCardId
-            });
-            
-            console.log('🎯 TargetCard configurata con gameCardId:', extractedGameCardId);
-            
-            // Avvia il gioco
+            setTargetCard(roundCard);
+            setCurrentRoundCard(roundData.roundCard); // Mantieni gameCardId per il submit
             setGameState('playing');
             setTimerActive(true);
-            setGameStartTime(Date.now());
+            setRoundStartTime(Date.now());
             
         } catch (err) {
-            console.error('❌ Errore avvio round:', err);
+            console.error('❌ Error starting round:', err);
             
             if (err.type === 'GAME_NOT_ACTIVE') {
-                // Partita completata - ricarica dati aggiornati
-                const updatedGameData = await API.getGameById(currentGameId);
-                await handleCompletedGame(updatedGameData.game, updatedGameData);
+                // La partita è terminata
+                setGameState('game-over');
             } else {
-                throw err;
+                setError(err.message || 'Errore nell\'avvio del round');
+                setGameState('playing');
             }
         }
     };
     
     // ============================================================================
-    // GESTIONE PARTITA COMPLETATA
-    // ============================================================================
-    
-    const handleCompletedGame = async (game, gameData) => {
-        console.log('🏁 Gestendo partita completata:', game.status);
-        
-        // Carica tutte le carte finali
-        const finalCards = gameData.wonCards || gameData.initialCards || [];
-        const cardsArray = finalCards.map(c => 
-            new CardModel(c.id, c.name, c.image_url, c.bad_luck_index, c.theme)
-        ).sort((a, b) => a.bad_luck_index - b.bad_luck_index);
-        
-        setCurrentCards(cardsArray);
-        setCurrentRound(game.current_round || 1);
-        setCardsCollected(game.cards_collected || 0);
-        setWrongGuesses(game.wrong_guesses || 0);
-        
-        // Imposta stato finale
-        setGameState('finished');
-        clearCurrentGame();
-    };
-    
-    // ============================================================================
-    // GESTIONE SELEZIONE POSIZIONE
+    // GESTIONE GUESS - Invio della posizione scelta
     // ============================================================================
     
     const handlePositionSelect = async (position) => {
@@ -281,235 +210,140 @@ function FullGameBoard() {
             setTimerActive(false);
             setGameState('loading');
             
-            const timeElapsed = gameStartTime ? Math.floor((Date.now() - gameStartTime) / 1000) : 0;
+            const timeElapsed = roundStartTime ? Math.floor((Date.now() - roundStartTime) / 1000) : 0;
             
-            console.log('🎯 Posizione selezionata:', position, 'Tempo:', timeElapsed);
+            console.log('🎯 Submitting guess:', {
+                gameId: currentGame.id,
+                gameCardId: currentRoundCard.gameCardId,
+                position,
+                timeElapsed
+            });
             
-            // Verifica gameCardId e aggiungi debug
-            console.log('🎯 DEBUG targetCard completo:', JSON.stringify(targetCard, null, 2));
-            console.log('🎯 gameId utilizzato:', gameId);
-            console.log('🎯 gameCardId inviato:', targetCard.gameCardId);
-            
-            if (!targetCard?.gameCardId) {
-                console.error('❌ GameCardId mancante!');
-                throw new Error('Errore: ID carta mancante. Riavviando round...');
-            }
-            
-            // Invia guess al server
             const result = await API.submitGameGuess(
-                gameId,
-                targetCard.gameCardId,
+                currentGame.id,
+                currentRoundCard.gameCardId,
                 position,
                 timeElapsed
             );
             
-            console.log('📊 Risultato guess:', result);
-            console.log('🔍 STRUTTURA COMPLETA result:', JSON.stringify(result, null, 2));
-            console.log('🔍 result.revealed_card:', result.revealed_card);
-            console.log('🔍 result.targetCard:', result.targetCard);
-            console.log('🔍 Tutte le chiavi in result:', Object.keys(result));
+            console.log('📊 Guess result:', result);
             
-            // FIX: Gestisci diverse strutture di risposta
-            const gameData = result.game || result.gameData || result;
-            
-            // Aggiorna stats di gioco - con fallback
-            if (gameData.cards_collected !== undefined) {
-                setCardsCollected(gameData.cards_collected);
-            }
-            if (gameData.wrong_guesses !== undefined) {
-                setWrongGuesses(gameData.wrong_guesses);
-            }
-            if (gameData.current_round !== undefined) {
-                setCurrentRound(gameData.current_round);
+            // Aggiorna stato locale partita
+            if (result.game) {
+                setCurrentGame(result.game);
+                updateCurrentGame(result.game);
             }
             
-            // Se ha indovinato, aggiungi la carta
-            if (result.correct) {
-                // Ottieni i dettagli della carta rivelata
-                const revealedCard = result.revealed_card || result.targetCard || result.finalCard;
+            // Aggiorna la carta target con bad_luck_index rivelato
+            if (result.revealed_card) {
+                const revealedCard = Array.isArray(result.revealed_card) ? result.revealed_card[0] : result.revealed_card;
+                const revealedCardModel = new CardModel(
+                    revealedCard.id,
+                    revealedCard.name,
+                    revealedCard.image_url,
+                    revealedCard.bad_luck_index,
+                    revealedCard.theme
+                );
+                setTargetCard(revealedCardModel);
                 
-                if (revealedCard) {
-                    const newCard = new CardModel(
-                        revealedCard.id,
-                        revealedCard.name,
-                        revealedCard.image_url,
-                        revealedCard.bad_luck_index,
-                        revealedCard.theme
-                    );
-                    
-                    const updatedCards = [...currentCards, newCard].sort((a, b) => a.bad_luck_index - b.bad_luck_index);
-                    setCurrentCards(updatedCards);
-                    
-                    // Aggiorna target card con bad_luck_index rivelato
-                    setTargetCard(prev => ({
-                        ...prev,
-                        bad_luck_index: revealedCard.bad_luck_index
-                    }));
-                } else {
-                    console.warn('⚠️ Carta rivelata non trovata nella risposta');
-                    // Usa il targetCard esistente senza bad_luck_index
-                }
-            } else {
-                // Anche per risposte sbagliate, potremmo avere la carta rivelata
-                const revealedCard = result.revealed_card || result.targetCard;
-                if (revealedCard && revealedCard.bad_luck_index !== undefined) {
-                    setTargetCard(prev => ({
-                        ...prev,
-                        bad_luck_index: revealedCard.bad_luck_index
-                    }));
+                // Se la risposta è corretta, aggiungi la carta alla collezione
+                if (result.correct) {
+                    setCurrentCards(prev => {
+                        const newCards = [...prev, revealedCardModel];
+                        newCards.sort((a, b) => a.bad_luck_index - b.bad_luck_index);
+                        return newCards;
+                    });
                 }
             }
             
-            // Imposta risultato del round
-            setGameResult({
+            // Imposta il risultato del round
+            setRoundResult({
                 isCorrect: result.correct,
-                correctPosition: result.correct_position,
+                correctPosition: result.correctPosition,
                 guessedPosition: position,
-                explanation: result.explanation || (result.correct ? 'Corretto!' : 'Sbagliato!')
+                explanation: result.message,
+                gameStatus: result.gameStatus
             });
-            
-            // Controlla se partita completata - con struttura flessibile
-            const gameStatus = gameData.status || result.gameStatus || result.status;
-            if (gameStatus && gameStatus !== 'playing') {
-                console.log('🏁 Partita completata:', gameStatus);
-                clearCurrentGame();
-            } else if (gameData.id) {
-                updateCurrentGame(gameData);
-            }
             
             setGameState('result');
             
         } catch (err) {
-            console.error('❌ Errore submit guess:', err);
-            setError(err.message || 'Errore nell\'invio della risposta');
+            console.error('❌ Error submitting guess:', err);
+            setError('Errore nell\'invio della risposta. Riprova.');
             setGameState('playing');
             setTimerActive(true);
         }
     };
     
     // ============================================================================
-    // GESTIONE TIMER
+    // GESTIONE TIMER - Tempo scaduto
     // ============================================================================
     
     const handleTimeUp = () => {
-        console.log('⏰ Tempo scaduto!');
+        console.log('⏰ Time up! Auto-submitting random position...');
+        // Simula selezione posizione random come penalità
         const randomPosition = Math.floor(Math.random() * (currentCards.length + 1));
         handlePositionSelect(randomPosition);
     };
     
     // ============================================================================
-    // NAVIGAZIONE
+    // NAVIGAZIONE TRA STATI DEL GIOCO
     // ============================================================================
     
-    const handleContinue = async () => {
-        // Controlla se la partita è completata
-        if (cardsCollected >= 6 || wrongGuesses >= 3) {
-            setGameState('finished');
-            return;
-        }
-        
-        console.log('🔄 Continuando con prossimo round...');
-        
-        // SEMPRE resetta stato e richiedi nuova carta
-        setGameState('loading');
-        setTargetCard(null);
-        setGameResult(null);
-        setTimerActive(false);
-        
-        try {
-            // IMPORTANTE: Richiedi sempre una nuova carta per il nuovo round
-            await startNextRound(gameId);
-        } catch (err) {
-            console.error('❌ Errore continua:', err);
-            setError('Errore nel caricamento del prossimo round');
-            setGameState('error');
+    const handleContinueAfterResult = () => {
+        if (roundResult?.gameStatus === 'playing') {
+            // Continua al prossimo round
+            setRoundResult(null);
+            setTargetCard(null);
+            setCurrentRoundCard(null);
+            startNextRound();
+        } else {
+            // Partita terminata
+            setGameState('game-over');
         }
     };
     
-    const handleNewGame = async () => {
-        console.log('🔄 Avviando nuova partita...');
-        
-        // Reset completo
-        clearCurrentGame();
-        resetAllState();
-        
-        // Ricrea partita
-        await createAndStartNewGame();
-    };
-    
-    const resetAllState = () => {
+    const handleNewGame = () => {
+        // Reset completo dello stato
         setGameState('loading');
-        setGameId(null);
+        setCurrentGame(null);
         setCurrentCards([]);
         setTargetCard(null);
-        setGameResult(null);
-        setCurrentRound(1);
-        setCardsCollected(0);
-        setWrongGuesses(0);
+        setCurrentRoundCard(null);
+        setRoundResult(null);
         setTimerActive(false);
         setError('');
+        clearCurrentGame();
+        
+        // Crea nuova partita
+        handleCreateNewGame();
     };
     
     const handleBackHome = () => {
         navigate('/');
     };
     
+    const handleViewProfile = () => {
+        navigate('/profile');
+    };
+    
+    // ============================================================================
+    // ABBANDONA PARTITA
+    // ============================================================================
+    
     const handleAbandonGame = async () => {
-        if (gameId) {
-            try {
-                await API.abandonGame(gameId);
-                clearCurrentGame();
-                setMessage({ type: 'info', msg: 'Partita abbandonata' });
-            } catch (err) {
-                console.error('❌ Errore abbandono:', err);
-                setMessage({ type: 'error', msg: 'Errore nell\'abbandonare la partita' });
-            }
+        if (!currentGame || !window.confirm('Sei sicuro di voler abbandonare questa partita?')) {
+            return;
         }
-        handleBackHome();
-    };
-    
-    // ============================================================================
-    // GESTIONE ERRORI
-    // ============================================================================
-    
-    const handleError = (err) => {
-        console.error('❌ Gestendo errore:', err);
-        setError(err.message || 'Errore sconosciuto');
-        setGameState('error');
-    };
-    
-    // ============================================================================
-    // GESTIONE MODAL PARTITA ESISTENTE
-    // ============================================================================
-    
-    const handleContinueExistingGame = async () => {
-        setShowExistingGameModal(false);
-        setLoading(true);
-        setError('');
         
         try {
-            const gameData = await API.getGameById(existingGameId);
-            await loadExistingGame(gameData);
-        } catch (err) {
-            handleError(err);
-        } finally {
-            setLoading(false);
-        }
-    };
-    
-    const handleAbandonExistingGame = async () => {
-        setShowExistingGameModal(false);
-        setLoading(true);
-        setError('');
-        
-        try {
-            await API.abandonGame(existingGameId);
+            await API.abandonGame(currentGame.id);
             clearCurrentGame();
-            await createAndStartNewGame();
+            setMessage({ type: 'info', msg: 'Partita abbandonata' });
+            setGameState('no-game');
         } catch (err) {
-            handleError(err);
-        } finally {
-            setLoading(false);
+            console.error('❌ Error abandoning game:', err);
+            setError('Errore nell\'abbandono della partita');
         }
     };
     
@@ -528,7 +362,7 @@ function FullGameBoard() {
         );
     }
     
-    if (gameState === 'error') {
+    if (error) {
         return (
             <Container>
                 <Alert variant="danger" className="text-center">
@@ -538,8 +372,8 @@ function FullGameBoard() {
                         <Button variant="primary" onClick={handleBackHome}>
                             Torna alla Home
                         </Button>
-                        <Button variant="secondary" onClick={() => window.location.reload()}>
-                            Ricarica Pagina
+                        <Button variant="secondary" onClick={checkCurrentGame}>
+                            Ricarica
                         </Button>
                     </div>
                 </Alert>
@@ -555,158 +389,222 @@ function FullGameBoard() {
                     <div className="d-flex justify-content-between align-items-center">
                         <Button 
                             variant="outline-secondary" 
-                            onClick={handleAbandonGame}
+                            onClick={handleBackHome}
                             className="d-flex align-items-center"
                         >
                             <i className="bi bi-arrow-left me-2"></i>
-                            Abbandona Partita
+                            Home
                         </Button>
                         
                         <div className="text-center">
                             <h2 className="mb-1">
-                                <i className="bi bi-controller me-2"></i>
+                                <i className="bi bi-trophy me-2"></i>
                                 Partita Completa
                             </h2>
-                            <div className="d-flex gap-3 justify-content-center">
-                                <Badge bg="primary">Round {currentRound}</Badge>
-                                <Badge bg="success">Carte: {cardsCollected}/6</Badge>
-                                <Badge bg="danger">Errori: {wrongGuesses}/3</Badge>
-                            </div>
+                            <p className="text-muted mb-0">
+                                Benvenuto, {user?.username}!
+                            </p>
                         </div>
                         
-                        <div style={{ width: '120px' }}></div>
+                        <Button 
+                            variant="outline-primary" 
+                            onClick={handleViewProfile}
+                            className="d-flex align-items-center"
+                        >
+                            <i className="bi bi-person-lines-fill me-2"></i>
+                            Profilo
+                        </Button>
                     </div>
                 </Col>
             </Row>
             
-            {/* Stato Playing - Gioco attivo */}
-            {gameState === 'playing' && (
+            {/* Stato: Nessuna partita */}
+            {gameState === 'no-game' && (
+                <Row className="justify-content-center">
+                    <Col md={8}>
+                        <Card className="text-center shadow">
+                            <Card.Body className="p-5">
+                                <div className="mb-4">
+                                    <i className="bi bi-controller display-1 text-primary"></i>
+                                </div>
+                                <h3 className="mb-3">Nessuna Partita Attiva</h3>
+                                <p className="text-muted mb-4">
+                                    Non hai partite in corso. Creane una nuova per iniziare a giocare!
+                                </p>
+                                <Button 
+                                    variant="primary" 
+                                    size="lg" 
+                                    onClick={handleCreateNewGame}
+                                    className="d-flex align-items-center mx-auto"
+                                >
+                                    <i className="bi bi-plus-circle me-2"></i>
+                                    Nuova Partita
+                                </Button>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                </Row>
+            )}
+            
+            {/* Stato: Gioco attivo */}
+            {gameState === 'playing' && currentGame && (
                 <>
-                    {/* Timer */}
-                    <Row className="mb-4">
-                        <Col md={6} className="mx-auto">
-                            <Timer 
-                                duration={30}
-                                isActive={timerActive}
-                                onTimeUp={handleTimeUp}
-                            />
-                        </Col>
-                    </Row>
-                    
-                    {/* Layout a due colonne */}
+                    {/* Stato partita */}
                     <Row className="mb-4">
                         <Col md={4}>
-                            <div className="text-center mb-3">
-                                <h4>Carta da Posizionare:</h4>
-                            </div>
-                            {targetCard && (
-                                <CardDisplay 
-                                    card={targetCard} 
-                                    showBadLuckIndex={false}
-                                    isTarget={true}
-                                />
-                            )}
+                            <GameStatus 
+                                currentRound={currentGame.current_round}
+                                cardsCollected={currentGame.cards_collected}
+                                wrongGuesses={currentGame.wrong_guesses}
+                                isDemo={false}
+                            />
                         </Col>
-                        
                         <Col md={8}>
-                            <div className="text-center mb-3">
-                                <h5>Le Tue Carte (ordinate per Bad Luck Index):</h5>
-                            </div>
-                            <Row className="g-3">
-                                {currentCards.map((card, index) => (
-                                    <Col key={card.id} md={4}>
-                                        <div className="text-center mb-2">
-                                            <Badge bg="secondary">Posizione {index + 1}</Badge>
-                                        </div>
-                                        <CardDisplay 
-                                            card={card} 
-                                            showBadLuckIndex={true}
-                                        />
-                                    </Col>
-                                ))}
-                            </Row>
-                        </Col>
-                    </Row>
-                    
-                    {/* Selettore posizione */}
-                    <Row className="mt-5 mb-4">
-                        <Col md={10} className="mx-auto">
-                            <Card className="border-primary shadow">
-                                <Card.Header className="bg-primary text-white text-center">
-                                    <h5 className="mb-0">
-                                        <i className="bi bi-cursor me-2"></i>
-                                        Dove vuoi posizionare la carta?
-                                    </h5>
-                                </Card.Header>
-                                <Card.Body className="p-4">
-                                    <PositionSelector 
-                                        cards={currentCards}
-                                        onPositionSelect={handlePositionSelect}
-                                        disabled={!timerActive}
-                                    />
+                            <Card className="text-center">
+                                <Card.Body>
+                                    <h5 className="mb-3">Le Tue Carte ({currentCards.length})</h5>
+                                    {currentCards.length > 0 ? (
+                                        <Row className="g-2">
+                                            {currentCards.map((card, index) => (
+                                                <Col key={card.id} md={4}>
+                                                    <div className="text-center mb-2">
+                                                        <Badge bg="secondary">#{index + 1}</Badge>
+                                                    </div>
+                                                    <CardDisplay 
+                                                        card={card} 
+                                                        showBadLuckIndex={true}
+                                                        className="h-100"
+                                                    />
+                                                </Col>
+                                            ))}
+                                        </Row>
+                                    ) : (
+                                        <p className="text-muted">Nessuna carta ancora raccolta</p>
+                                    )}
                                 </Card.Body>
                             </Card>
                         </Col>
                     </Row>
+                    
+                    {/* Bottone per iniziare il round */}
+                    {!targetCard && (
+                        <Row className="mb-4">
+                            <Col className="text-center">
+                                <Card className="border-primary">
+                                    <Card.Body className="p-4">
+                                        <h4 className="mb-3">
+                                            Round {currentGame.current_round}
+                                        </h4>
+                                        <p className="text-muted mb-4">
+                                            Clicca per ricevere la prossima carta da posizionare
+                                        </p>
+                                        <Button 
+                                            variant="primary" 
+                                            size="lg" 
+                                            onClick={startNextRound}
+                                            className="d-flex align-items-center mx-auto"
+                                        >
+                                            <i className="bi bi-play-circle me-2"></i>
+                                            Inizia Round
+                                        </Button>
+                                    </Card.Body>
+                                </Card>
+                            </Col>
+                        </Row>
+                    )}
+                    
+                    {/* Round attivo con timer */}
+                    {targetCard && (
+                        <>
+                            {/* Timer */}
+                            <Row className="mb-4">
+                                <Col md={6} className="mx-auto">
+                                    <Timer 
+                                        duration={30}
+                                        isActive={timerActive}
+                                        onTimeUp={handleTimeUp}
+                                    />
+                                </Col>
+                            </Row>
+                            
+                            {/* Layout: Carta target + Selettore posizione */}
+                            <Row className="mb-4">
+                                <Col md={4}>
+                                    <div className="text-center mb-3">
+                                        <h4>Carta da Posizionare:</h4>
+                                    </div>
+                                    <CardDisplay 
+                                        card={targetCard} 
+                                        showBadLuckIndex={false}
+                                        isTarget={true}
+                                    />
+                                </Col>
+                                <Col md={8}>
+                                    <Card className="border-primary shadow">
+                                        <Card.Header className="bg-primary text-white text-center">
+                                            <h5 className="mb-0">
+                                                <i className="bi bi-cursor me-2"></i>
+                                                Dove vuoi posizionare questa carta?
+                                            </h5>
+                                        </Card.Header>
+                                        <Card.Body className="p-4">
+                                            <PositionSelector 
+                                                cards={currentCards}
+                                                onPositionSelect={handlePositionSelect}
+                                                disabled={!timerActive}
+                                            />
+                                        </Card.Body>
+                                    </Card>
+                                </Col>
+                            </Row>
+                            
+                            {/* Bottone abbandona partita */}
+                            <Row>
+                                <Col className="text-center">
+                                    <Button 
+                                        variant="outline-danger" 
+                                        onClick={handleAbandonGame}
+                                        className="d-flex align-items-center mx-auto"
+                                    >
+                                        <i className="bi bi-x-circle me-2"></i>
+                                        Abbandona Partita
+                                    </Button>
+                                </Col>
+                            </Row>
+                        </>
+                    )}
                 </>
             )}
             
-            {/* Stato Result */}
-            {gameState === 'result' && gameResult && (
+            {/* Stato: Risultato round */}
+            {gameState === 'result' && roundResult && (
                 <RoundResult 
-                    isCorrect={gameResult.isCorrect}
+                    isCorrect={roundResult.isCorrect}
                     targetCard={targetCard}
-                    correctPosition={gameResult.correctPosition}
-                    guessedPosition={gameResult.guessedPosition}
+                    correctPosition={roundResult.correctPosition}
+                    guessedPosition={roundResult.guessedPosition}
                     allCards={currentCards}
-                    onContinue={handleContinue}
+                    onContinue={handleContinueAfterResult}
                     onNewGame={handleNewGame}
                     isDemo={false}
-                    gameCompleted={cardsCollected >= 6 || wrongGuesses >= 3}
-                    gameWon={cardsCollected >= 6}
+                    gameCompleted={roundResult.gameStatus !== 'playing'}
+                    gameWon={roundResult.gameStatus === 'won'}
                 />
             )}
             
-            {/* Stato Finished */}
-            {gameState === 'finished' && (
+            {/* Stato: Partita terminata */}
+            {gameState === 'game-over' && currentGame && (
                 <GameSummary 
-                    gameWon={cardsCollected >= 6}
+                    gameWon={currentGame.status === 'won'}
                     finalCards={currentCards}
-                    totalRounds={currentRound}
-                    cardsCollected={cardsCollected}
-                    wrongGuesses={wrongGuesses}
+                    totalRounds={currentGame.current_round}
+                    cardsCollected={currentGame.cards_collected}
+                    wrongGuesses={currentGame.wrong_guesses}
                     onNewGame={handleNewGame}
                     onBackHome={handleBackHome}
                     isDemo={false}
                 />
             )}
-            
-            {/* Modal partita esistente */}
-            <Modal show={showExistingGameModal} onHide={() => setShowExistingGameModal(false)}>
-                <Modal.Header closeButton>
-                    <Modal.Title>Partita Esistente Trovata</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <p>Hai già una partita in corso (ID: {existingGameId}). Cosa vuoi fare?</p>
-                    <ul>
-                        <li><strong>Continua:</strong> Riprendi la partita esistente</li>
-                        <li><strong>Abbandona:</strong> Elimina la partita e iniziane una nuova</li>
-                    </ul>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowExistingGameModal(false)}>
-                        Annulla
-                    </Button>
-                    <Button variant="success" onClick={handleContinueExistingGame}>
-                        <i className="bi bi-play-circle me-2"></i>
-                        Continua Partita
-                    </Button>
-                    <Button variant="warning" onClick={handleAbandonExistingGame}>
-                        <i className="bi bi-trash me-2"></i>
-                        Abbandona e Crea Nuova
-                    </Button>
-                </Modal.Footer>
-            </Modal>
         </Container>
     );
 }

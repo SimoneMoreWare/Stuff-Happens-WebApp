@@ -470,45 +470,46 @@ router.post('/:id/guess', [
         await updateGuess(gameCardId, isCorrect, position);
 
         if (isCorrect) {
-            // Correct guess - player gets the card
-            await incrementCardsCollected(game.id);
-            const cardDetails = await getCardsByIds([gameCard.card_id]);
-            const revealedCard = cardDetails[0];
+    // Correct guess - player gets the card
+    await incrementCardsCollected(game.id);
+    const cardDetails = await getCardsByIds([gameCard.card_id]);
+    const revealedCard = cardDetails[0];
+
+    // Check if game is won
+    const updatedGame = await getGameById(game.id);
+    if (updatedGame.cards_collected >= 6) {
+        await completeGame(game.id, 'won');
+        
+        return res.json({
+            correct: true,
+            correctPosition,
+            gameStatus: 'won',  // 👈 CAMBIATO da 'playing'
+            game: updatedGame,
+            revealed_card: revealedCard,
+            message: 'Correct! You got the card and won the game!'
+        });
+    }
     
-            // Check if game is won
-            const updatedGame = await getGameById(game.id);
-            if (updatedGame.cards_collected >= 6) {
-                await completeGame(game.id, 'won');
-                
-                // Get complete card details for the final result
-                const allWonCardIds = await getWonCardIds(game.id);
-                const finalCards = await getCardsByIds(allWonCardIds);
-                
-                return res.json({
-                    correct: true,
-                    correctPosition,
-                    gameStatus: 'playing',
-                    game: updatedGame,                    // 👈 AGGIUNGI
-                    revealed_card: revealedCard,          // 👈 AGGIUNGI
-                    message: 'Correct! You got the card.'
-                });
-            }
-
-            // await advanceRound(game.id);
-            return res.json({
-                correct: true,
-                correctPosition,
-                gameStatus: 'playing',
-                game: updatedGame,  // 👈 AGGIUNGI questo per sincronizzare stats
-                revealed_card: cardDetails, // 👈 AGGIUNGI carta completa
-                message: 'Correct! You got the card.'
-            });
-
+    // 👈 AGGIUNGI QUESTA RIGA
+    await advanceRound(game.id);
+    
+    // Ottieni il gioco aggiornato con il nuovo round
+    const finalUpdatedGame = await getGameById(game.id);
+    
+    return res.json({
+        correct: true,
+        correctPosition,
+        gameStatus: 'playing',
+        game: finalUpdatedGame,  // 👈 MODIFICA: usa finalUpdatedGame
+        revealed_card: revealedCard,
+        message: 'Correct! You got the card.'
+    });
         } else {
             // Wrong guess
             await incrementWrongGuesses(game.id);
             const cardDetails = await getCardsByIds([gameCard.card_id]);
             const revealedCard = cardDetails[0];
+            
             // Check if game is lost
             const updatedGame = await getGameById(game.id);
             if (updatedGame.wrong_guesses >= 3) {
@@ -517,24 +518,31 @@ router.post('/:id/guess', [
                     correct: false,
                     correctPosition,
                     gameStatus: 'lost',
+                    game: updatedGame,
+                    revealed_card: revealedCard,
                     message: 'Wrong guess! Game over.'
                 });
             }
-
-            //await advanceRound(game.id);
+            
+            // 👈 AGGIUNGI QUESTA RIGA
+            await advanceRound(game.id);
+            
+            // Ottieni il gioco aggiornato con il nuovo round
+            const finalUpdatedGame = await getGameById(game.id);
+            
             return res.json({
                 correct: false,
                 correctPosition,
                 gameStatus: 'playing',
-                game: updatedGame,           // 👈 AGGIUNGI  
-                revealed_card: revealedCard, // 👈 AGGIUNGI
+                game: finalUpdatedGame,  // 👈 MODIFICA: usa finalUpdatedGame
+                revealed_card: revealedCard,
                 message: 'Wrong guess! Try the next round.'
             });
         }
 
     } catch (error) {
         console.error('Error processing guess:', error);
-        res.status(500).json({ error: 'Database error while processing guess' });
+        res.status(500).json({ error: 'Database error while processing guess' });            
     }
 });
 

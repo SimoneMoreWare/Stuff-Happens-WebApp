@@ -46,7 +46,7 @@ function InstructionsPage() {
                                     </p>
                                 </Col>
                                 <Col md={4} className="text-center">
-                                    <div className="bg-light rounded p-3">
+                                    <div className="bg-body-secondary rounded p-3">
                                         <div className="display-6 text-success mb-2">6</div>
                                         <small className="text-muted">Carte per Vincere</small>
                                         
@@ -269,7 +269,7 @@ function InstructionsPage() {
                                     </Alert>
                                 </Col>
                                 <Col md={4}>
-                                    <div className="bg-light rounded p-3 text-center">
+                                    <div className="bg-body-secondary rounded p-3 text-center">
                                         <h6 className="text-primary mb-3">Posizioni Possibili</h6>
                                         <div className="d-grid gap-2">
                                             <Button variant="outline-secondary" size="sm">↑ Prima delle chiavi</Button>

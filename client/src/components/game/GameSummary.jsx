@@ -49,25 +49,25 @@ function GameSummary({
                         <Card.Body>
                             <Row className="text-center">
                                 <Col md={3} className="mb-3">
-                                    <div className="bg-light rounded p-3">
+                                    <div className="bg-body-secondary rounded p-3">
                                         <div className="display-6 text-primary mb-1">{totalRounds}</div>
                                         <small className="text-muted">Round Giocati</small>
                                     </div>
                                 </Col>
                                 <Col md={3} className="mb-3">
-                                    <div className="bg-light rounded p-3">
+                                    <div className="bg-body-secondary rounded p-3">
                                         <div className="display-6 text-success mb-1">{cardsCollected}</div>
                                         <small className="text-muted">Carte Raccolte</small>
                                     </div>
                                 </Col>
                                 <Col md={3} className="mb-3">
-                                    <div className="bg-light rounded p-3">
+                                    <div className="bg-body-secondary rounded p-3">
                                         <div className="display-6 text-danger mb-1">{wrongGuesses}</div>
                                         <small className="text-muted">Errori Commessi</small>
                                     </div>
                                 </Col>
                                 <Col md={3} className="mb-3">
-                                    <div className="bg-light rounded p-3">
+                                    <div className="bg-body-secondary rounded p-3">
                                         <div className="display-6 text-warning mb-1">
                                             {totalRounds > 0 ? Math.round(((totalRounds - wrongGuesses) / totalRounds) * 100) : 0}%
                                         </div>
@@ -173,7 +173,7 @@ function GameSummary({
             {/* Pulsanti di azione finale */}
             <Row>
                 <Col>
-                    <Card className="bg-light text-center">
+                    <Card className="bg-body-secondary text-center">
                         <Card.Body className="p-4">
                             <h4 className="mb-3">Cosa vuoi fare ora?</h4>
                             <div className="d-grid gap-2 d-md-flex justify-content-md-center">

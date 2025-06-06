@@ -25,7 +25,7 @@ function CardDisplay({ card, showBadLuckIndex = true, isTarget = false, classNam
                 )}
                 
                 {imageError ? (
-                    <div className="d-flex align-items-center justify-content-center h-100 bg-light">
+                    <div className="d-flex align-items-center justify-content-center h-100 bg-body-secondary">
                         <div className="text-center text-muted">
                             <i className="bi bi-image" style={{ fontSize: '3rem' }}></i>
                             <p className="mt-2 mb-0">Immagine non disponibile</p>

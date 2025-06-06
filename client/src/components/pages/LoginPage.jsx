@@ -58,7 +58,7 @@ function LoginPage() {
             {/* Sezione informativa per utenti non registrati */}
             <Row className="mt-5">
                 <Col>
-                    <Card className="border-0 bg-light">
+                    <Card className="border-0 bg-body-secondary">
                         <Card.Body className="text-center p-4">
                             <h5 className="text-primary mb-3">
                                 <i className="bi bi-question-circle me-2"></i>

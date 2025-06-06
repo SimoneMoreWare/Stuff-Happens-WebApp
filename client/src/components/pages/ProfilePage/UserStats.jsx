@@ -34,25 +34,25 @@ function UserStats({ user, gameHistory, loading = false }) {
             <Card.Body className="p-4">
                 <Row className="text-center">
                     <Col md={3} className="mb-3">
-                        <div className="bg-light rounded p-3">
+                        <div className="bg-body-secondary rounded p-3">
                             <div className="display-6 text-primary mb-1">{totalGames}</div>
                             <small className="text-muted">Partite Giocate</small>
                         </div>
                     </Col>
                     <Col md={3} className="mb-3">
-                        <div className="bg-light rounded p-3">
+                        <div className="bg-body-secondary rounded p-3">
                             <div className="display-6 text-success mb-1">{wonGames}</div>
                             <small className="text-muted">Vittorie</small>
                         </div>
                     </Col>
                     <Col md={3} className="mb-3">
-                        <div className="bg-light rounded p-3">
+                        <div className="bg-body-secondary rounded p-3">
                             <div className="display-6 text-danger mb-1">{lostGames}</div>
                             <small className="text-muted">Sconfitte</small>
                         </div>
                     </Col>
                     <Col md={3} className="mb-3">
-                        <div className="bg-light rounded p-3">
+                        <div className="bg-body-secondary rounded p-3">
                             <div className="display-6 text-warning mb-1">{averageCards}</div>
                             <small className="text-muted">Carte Medie</small>
                         </div>
@@ -77,19 +77,7 @@ function UserStats({ user, gameHistory, loading = false }) {
                 </Row>
 
                 {/* Info account */}
-                <Row className="mt-4 pt-3 border-top">
-                    <Col>
-                        <h6 className="text-muted mb-3">Informazioni Account</h6>
-                        <div className="d-flex justify-content-between mb-2">
-                            <span>Email:</span>
-                            <span className="text-muted">{user?.email}</span>
-                        </div>
-                        <div className="d-flex justify-content-between">
-                            <span>ID Utente:</span>
-                            <span className="text-muted">#{user?.id}</span>
-                        </div>
-                    </Col>
-                </Row>
+                
             </Card.Body>
         </Card>
     );

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Card, Badge, Button, Collapse, Row, Col, ListGroup } from 'react-bootstrap';
-import CardDisplay from '../../game/CardDisplay.jsx'; 
 import dayjs from 'dayjs';
 import 'dayjs/locale/it';
 
@@ -34,6 +33,10 @@ function GameHistoryItem({ game, index }) {
         if (minutes < 1) return 'meno di 1 minuto';
         return `${minutes} minuti`;
     };
+
+    // Separa le carte iniziali da quelle dei round
+    const initialCards = game.cards ? game.cards.filter(card => card.is_initial) : [];
+    const roundCards = game.cards ? game.cards.filter(card => !card.is_initial) : [];
 
     return (
         <Card className="mb-3 border-start border-4" 
@@ -90,47 +93,114 @@ function GameHistoryItem({ game, index }) {
                     </Button>
                 </div>
 
-                {/* Dettagli espandibili */}
+                {/* Dettagli espandibili - CRONOLOGIA SECONDO SPECIFICHE */}
                 <Collapse in={expanded}>
                     <div className="mt-3 pt-3 border-top">
                         {game.cards && game.cards.length > 0 ? (
                             <>
-                                <h6 className="mb-3">
-                                    <i className="bi bi-card-list me-2"></i>
-                                    Carte della Partita ({game.cards.length})
-                                </h6>
-                                <Row className="g-2">
-                                    {game.cards
-                                        .sort((a, b) => a.bad_luck_index - b.bad_luck_index) // Ordina per bad luck index
-                                        .map((card, cardIndex) => (
-                                        <Col key={cardIndex} md={4} lg={3}>
-                                            <div className="text-center mb-2">
-                                                <Badge bg={card.is_initial ? "secondary" : (card.guessed_correctly ? "success" : "danger")}>
-                                                    {card.is_initial ? "Iniziale" : `Round ${card.round_number}`}
-                                                </Badge>
-                                            </div>
-                                            <CardDisplay 
-                                                card={{
-                                                    id: card.id,
-                                                    name: card.name,
-                                                    image_url: card.image_url,
-                                                    bad_luck_index: card.bad_luck_index,
-                                                    theme: card.theme
-                                                }}
-                                                showBadLuckIndex={true}
-                                                className="h-100"
-                                            />
-                                        </Col>
-                                    ))}
-                                </Row>
+                                {/* CARTE INIZIALI - Non associate a nessun round */}
+                                {initialCards.length > 0 && (
+                                    <div className="mb-4">
+                                        <h6 className="mb-3">
+                                            <i className="bi bi-card-heading me-2"></i>
+                                            Carte Iniziali ({initialCards.length})
+                                        </h6>
+                                        <ListGroup variant="flush">
+                                            {initialCards
+                                                .sort((a, b) => a.bad_luck_index - b.bad_luck_index)
+                                                .map((card, cardIndex) => (
+                                                <ListGroup.Item key={cardIndex} className="d-flex align-items-center py-2">
+                                                    <Badge bg="secondary" className="me-3">
+                                                        Iniziale
+                                                    </Badge>
+                                                    <span className="flex-grow-1">
+                                                        {card.name}
+                                                    </span>
+                                                </ListGroup.Item>
+                                            ))}
+                                        </ListGroup>
+                                    </div>
+                                )}
+
+                                {/* ROUND GIOCATI - Con indicazione vinti/persi */}
+                                {roundCards.length > 0 && (
+                                    <div className="mb-3">
+                                        <h6 className="mb-3">
+                                            <i className="bi bi-play-circle me-2"></i>
+                                            Cronologia Round ({roundCards.length})
+                                        </h6>
+                                        <ListGroup variant="flush">
+                                            {roundCards
+                                                .sort((a, b) => a.round_number - b.round_number)
+                                                .map((card, cardIndex) => (
+                                                <ListGroup.Item key={cardIndex} className="d-flex align-items-center py-2">
+                                                    <Badge 
+                                                        bg={card.guessed_correctly ? "success" : "danger"} 
+                                                        className="me-3"
+                                                    >
+                                                        Round {card.round_number}
+                                                    </Badge>
+                                                    <span className="flex-grow-1">
+                                                        {card.name}
+                                                    </span>
+                                                    <Badge 
+                                                        bg={card.guessed_correctly ? "outline-success" : "outline-danger"}
+                                                        text={card.guessed_correctly ? "success" : "danger"}
+                                                    >
+                                                        {card.guessed_correctly ? (
+                                                            <>
+                                                                <i className="bi bi-check-circle me-1"></i>
+                                                                Vinta
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <i className="bi bi-x-circle me-1"></i>
+                                                                Persa
+                                                            </>
+                                                        )}
+                                                    </Badge>
+                                                </ListGroup.Item>
+                                            ))}
+                                        </ListGroup>
+                                    </div>
+                                )}
+
+                                {/* RIEPILOGO SECONDO SPECIFICHE */}
+                                <div className="mt-4 pt-3 border-top">
+                                    <h6 className="mb-3">
+                                        <i className="bi bi-trophy me-2"></i>
+                                        Riepilogo Finale
+                                    </h6>
+                                    <p className="small text-muted mb-3">
+                                        Esito: <strong>{game.status === 'won' ? 'Vittoria' : 'Sconfitta'}</strong> - 
+                                        Carte raccolte: <strong>{game.cards_collected || 0}/6</strong>
+                                    </p>
+                                    
+                                    {/* Mostra solo le carte vinte nel riepilogo con tutti i dettagli */}
+                                    {game.cards && game.cards.filter(c => c.guessed_correctly || c.is_initial).length > 0 && (
+                                        <div className="small text-muted">
+                                            <strong>Carte in possesso al termine della partita:</strong>
+                                            <ul className="mt-2 mb-0">
+                                                {game.cards
+                                                    .filter(c => c.guessed_correctly || c.is_initial)
+                                                    .sort((a, b) => a.bad_luck_index - b.bad_luck_index)
+                                                    .map((card, idx) => (
+                                                    <li key={idx}>
+                                                        <strong>{card.name}</strong>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
                             </>
                         ) : (
                             <div className="text-muted text-center py-3">
                                 <i className="bi bi-info-circle me-2"></i>
                                 Nessun dettaglio disponibile per questa partita
-                                        </div>
-                                    )}
-                                </div>
+                            </div>
+                        )}
+                    </div>
                 </Collapse>
             </Card.Body>
         </Card>

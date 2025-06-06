@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Card, Badge, Button, Collapse, Row, Col, ListGroup } from 'react-bootstrap';
+import CardDisplay from '../../game/CardDisplay.jsx'; 
 import dayjs from 'dayjs';
 import 'dayjs/locale/it';
 
@@ -92,56 +93,44 @@ function GameHistoryItem({ game, index }) {
                 {/* Dettagli espandibili */}
                 <Collapse in={expanded}>
                     <div className="mt-3 pt-3 border-top">
-                        {game.game_cards && game.game_cards.length > 0 ? (
+                        {game.cards && game.cards.length > 0 ? (
                             <>
                                 <h6 className="mb-3">
                                     <i className="bi bi-card-list me-2"></i>
-                                    Carte della Partita
+                                    Carte della Partita ({game.cards.length})
                                 </h6>
-                                <ListGroup variant="flush">
-                                    {game.game_cards.map((gameCard, cardIndex) => (
-                                        <ListGroup.Item key={cardIndex} className="px-0">
-                                            <div className="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <strong>{gameCard.card?.name || 'Carta sconosciuta'}</strong>
-                                                    {gameCard.is_initial && (
-                                                        <Badge bg="secondary" className="ms-2">Iniziale</Badge>
-                                                    )}
-                                                </div>
-                                                <div className="text-end">
-                                                    {gameCard.guessed_correctly !== null ? (
-                                                        gameCard.guessed_correctly ? (
-                                                            <Badge bg="success">
-                                                                <i className="bi bi-check-lg me-1"></i>
-                                                                Round {gameCard.round_number}
-                                                            </Badge>
-                                                        ) : (
-                                                            <Badge bg="danger">
-                                                                <i className="bi bi-x-lg me-1"></i>
-                                                                Round {gameCard.round_number}
-                                                            </Badge>
-                                                        )
-                                                    ) : (
-                                                        <Badge bg="light" text="dark">Non giocata</Badge>
-                                                    )}
-                                                </div>
+                                <Row className="g-2">
+                                    {game.cards
+                                        .sort((a, b) => a.bad_luck_index - b.bad_luck_index) // Ordina per bad luck index
+                                        .map((card, cardIndex) => (
+                                        <Col key={cardIndex} md={4} lg={3}>
+                                            <div className="text-center mb-2">
+                                                <Badge bg={card.is_initial ? "secondary" : (card.guessed_correctly ? "success" : "danger")}>
+                                                    {card.is_initial ? "Iniziale" : `Round ${card.round_number}`}
+                                                </Badge>
                                             </div>
-                                            {gameCard.card?.bad_luck_index && (
-                                                <small className="text-muted">
-                                                    Bad Luck Index: {gameCard.card.bad_luck_index}
-                                                </small>
-                                            )}
-                                        </ListGroup.Item>
+                                            <CardDisplay 
+                                                card={{
+                                                    id: card.id,
+                                                    name: card.name,
+                                                    image_url: card.image_url,
+                                                    bad_luck_index: card.bad_luck_index,
+                                                    theme: card.theme
+                                                }}
+                                                showBadLuckIndex={true}
+                                                className="h-100"
+                                            />
+                                        </Col>
                                     ))}
-                                </ListGroup>
+                                </Row>
                             </>
                         ) : (
                             <div className="text-muted text-center py-3">
                                 <i className="bi bi-info-circle me-2"></i>
                                 Nessun dettaglio disponibile per questa partita
-                            </div>
-                        )}
-                    </div>
+                                        </div>
+                                    )}
+                                </div>
                 </Collapse>
             </Card.Body>
         </Card>

@@ -73,42 +73,41 @@ function InstructionsPage() {
                         <Card.Body className="p-4">
                             <Row>
                                 <Col md={6}>
-                                    <h5 className="text-primary mb-3">🎯 Setup Iniziale</h5>
-                                    <ListGroup variant="flush" className="mb-4">
-                                        <ListGroup.Item className="d-flex align-items-center">
-                                            <Badge bg="primary" className="me-3">1</Badge>
-                                            Ricevi <strong>3 carte iniziali</strong> ordinate automaticamente
-                                        </ListGroup.Item>
-                                        <ListGroup.Item className="d-flex align-items-center">
-                                            <Badge bg="primary" className="me-3">2</Badge>
-                                            Vedi <strong>nome e immagine</strong> di ogni carta
-                                        </ListGroup.Item>
-                                        <ListGroup.Item className="d-flex align-items-center">
-                                            <Badge bg="primary" className="me-3">3</Badge>
-                                            Conosci il <strong>Bad Luck Index</strong> delle tue carte
-                                        </ListGroup.Item>
-                                    </ListGroup>
-
-                                    <h5 className="text-success mb-3">🎮 Ogni Round</h5>
-                                    <ListGroup variant="flush">
-                                        <ListGroup.Item className="d-flex align-items-center">
-                                            <Badge bg="success" className="me-3">1</Badge>
-                                            Ti viene mostrata una <strong>nuova situazione</strong>
-                                        </ListGroup.Item>
-                                        <ListGroup.Item className="d-flex align-items-center">
-                                            <Badge bg="success" className="me-3">2</Badge>
-                                            Vedi <strong>solo nome e immagine</strong> (non l'indice!)
-                                        </ListGroup.Item>
-                                        <ListGroup.Item className="d-flex align-items-center">
-                                            <Badge bg="success" className="me-3">3</Badge>
-                                            Hai <strong>30 secondi</strong> per decidere la posizione
-                                        </ListGroup.Item>
-                                        <ListGroup.Item className="d-flex align-items-center">
-                                            <Badge bg="success" className="me-3">4</Badge>
-                                            Clicca dove pensi che vada nella sequenza
-                                        </ListGroup.Item>
-                                    </ListGroup>
-                                </Col>
+                                <h5 className="text-primary mb-3">🎯 Setup Iniziale</h5>
+                                <ListGroup variant="flush" className="mb-4">
+                                    <ListGroup.Item className="d-flex align-items-center">
+                                        <Badge bg="primary" className="me-3">1</Badge>
+                                        Ricevi&nbsp;<b>3 carte iniziali</b>&nbsp;ordinate automaticamente
+                                    </ListGroup.Item>
+                                    <ListGroup.Item className="d-flex align-items-center">
+                                        <Badge bg="primary" className="me-3">2</Badge>
+                                        Vedi&nbsp;<strong>nome e immagine</strong>&nbsp;di ogni carta
+                                    </ListGroup.Item>
+                                    <ListGroup.Item className="d-flex align-items-center">
+                                        <Badge bg="primary" className="me-3">3</Badge>
+                                        Conosci il&nbsp;<strong>Bad Luck Index</strong>&nbsp;delle tue carte
+                                    </ListGroup.Item>
+                                </ListGroup>
+                                <h5 className="text-success mb-3">🎮 Ogni Round</h5>
+                                <ListGroup variant="flush">
+                                    <ListGroup.Item className="d-flex align-items-center">
+                                        <Badge bg="success" className="me-3">1</Badge>
+                                        Ti viene mostrata una&nbsp;<strong>nuova situazione</strong>
+                                    </ListGroup.Item>
+                                    <ListGroup.Item className="d-flex align-items-center">
+                                        <Badge bg="success" className="me-3">2</Badge>
+                                        Vedi&nbsp;<strong>solo nome e immagine</strong>&nbsp;(non l'indice!)
+                                    </ListGroup.Item>
+                                    <ListGroup.Item className="d-flex align-items-center">
+                                        <Badge bg="success" className="me-3">3</Badge>
+                                        Hai&nbsp;<strong>30 secondi</strong>&nbsp;per decidere la posizione
+                                    </ListGroup.Item>
+                                    <ListGroup.Item className="d-flex align-items-center">
+                                        <Badge bg="success" className="me-3">4</Badge>
+                                        Clicca dove pensi che vada nella sequenza
+                                    </ListGroup.Item>
+                                </ListGroup>
+                            </Col>
                                 <Col md={6}>
                                     <Alert variant="info" className="mb-4">
                                         <h6 className="alert-heading">
@@ -383,7 +382,7 @@ function InstructionsPage() {
                                         </Link>
                                         <Link to="/login" className="btn btn-light btn-lg">
                                             <i className="bi bi-person-plus me-2"></i>
-                                            Registrati per Partite Complete
+                                            Accedi per Partite Complete
                                         </Link>
                                     </>
                                 )}

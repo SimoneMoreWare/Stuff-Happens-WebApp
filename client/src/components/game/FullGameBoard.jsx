@@ -529,19 +529,8 @@ function FullGameBoard() {
                                 </Col>
                             </Row>
                             
-                            {/* Layout: Carta target + Selettore posizione */}
                             <Row className="mb-4">
-                                <Col md={4}>
-                                    <div className="text-center mb-3">
-                                        <h4>Carta da Posizionare:</h4>
-                                    </div>
-                                    <CardDisplay 
-                                        card={targetCard} 
-                                        showBadLuckIndex={false}
-                                        isTarget={true}
-                                    />
-                                </Col>
-                                <Col md={8}>
+                                <Col md={12}>
                                     <Card className="border-primary shadow">
                                         <Card.Header className="bg-primary text-white text-center">
                                             <h5 className="mb-0">
@@ -550,6 +539,19 @@ function FullGameBoard() {
                                             </h5>
                                         </Card.Header>
                                         <Card.Body className="p-4">
+                                            {/* Carta target in piccolo sopra */}
+                                            <div className="text-center mb-4">
+                                                <h6>Carta da Posizionare:</h6>
+                                                <div style={{ maxWidth: '200px', margin: '0 auto' }}>
+                                                    <CardDisplay 
+                                                        card={targetCard} 
+                                                        showBadLuckIndex={false}
+                                                        isTarget={true}
+                                                    />
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Selettore posizione */}
                                             <PositionSelector 
                                                 cards={currentCards}
                                                 onPositionSelect={handlePositionSelect}

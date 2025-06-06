@@ -78,6 +78,7 @@ function FullGameBoard() {
                     const wonCards = gameData.wonCards.map(c => 
                         new CardModel(c.id, c.name, c.image_url, c.bad_luck_index, c.theme)
                     );
+                    wonCards.sort((a, b) => a.bad_luck_index - b.bad_luck_index);
                     setCurrentCards(wonCards);
                 }
                 
@@ -139,6 +140,7 @@ function FullGameBoard() {
             const initialCards = gameData.initialCards.map(c =>
                 new CardModel(c.id, c.name, c.image_url, c.bad_luck_index, c.theme)
             );
+            initialCards.sort((a, b) => a.bad_luck_index - b.bad_luck_index);
             setCurrentCards(initialCards);
             
             setGameState('playing');

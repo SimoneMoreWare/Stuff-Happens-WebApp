@@ -8,6 +8,7 @@ import CardDisplay from './CardDisplay.jsx';
 import Timer from './Timer.jsx';
 import PositionSelector from './PositionSelector.jsx';
 import RoundResult from './RoundResult.jsx';
+import GameSummary from './GameSummary.jsx';
 
 function DemoGameBoard() {
     const { setMessage } = useContext(UserContext);
@@ -20,6 +21,14 @@ function DemoGameBoard() {
     const [gameResult, setGameResult] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    
+    // ✅ NUOVO: Stati per il riepilogo finale
+    const [finalCards, setFinalCards] = useState([]);
+    const [gameStats, setGameStats] = useState({
+        totalRounds: 1, // Demo ha sempre 1 round
+        cardsCollected: 0,
+        wrongGuesses: 0
+    });
     
     // Timer state
     const [timerActive, setTimerActive] = useState(false);
@@ -41,6 +50,14 @@ function DemoGameBoard() {
             setLoading(true);
             setError('');
             timeoutHandledRef.current = false;
+            
+            // ✅ Reset completo stati
+            setFinalCards([]);
+            setGameStats({
+                totalRounds: 1,
+                cardsCollected: 0,
+                wrongGuesses: 0
+            });
             
             console.log('🎮 Avviando partita demo...');
             
@@ -105,10 +122,26 @@ function DemoGameBoard() {
             );
             setTargetCard(revealedCard);
             
+            // ✅ AGGIORNA STATISTICHE
+            const isCorrect = result.correct;
+            const newStats = {
+                totalRounds: 1,
+                cardsCollected: isCorrect ? 1 : 0,
+                wrongGuesses: isCorrect ? 0 : 1
+            };
+            setGameStats(newStats);
+            
+            // ✅ SE VINTA: aggiungi carta alle finalCards
+            if (isCorrect) {
+                setFinalCards([revealedCard]);
+            } else {
+                setFinalCards([]);
+            }
+            
             // Usa i dati dal server
             setGameResult({
                 isCorrect: result.correct,
-                isTimeout: result.timeUp, // ⬅️ Dal backend
+                isTimeout: result.timeUp,
                 correctPosition: result.correctPosition,
                 guessedPosition: result.timeUp ? undefined : position,
                 explanation: result.message
@@ -164,6 +197,14 @@ function DemoGameBoard() {
             );
             setTargetCard(revealedCard);
             
+            // ✅ AGGIORNA STATISTICHE (timeout = errore)
+            setGameStats({
+                totalRounds: 1,
+                cardsCollected: 0,
+                wrongGuesses: 1
+            });
+            setFinalCards([]); // Nessuna carta vinta
+            
             // Usa i dati dal server
             setGameResult({
                 isCorrect: result.correct, // false
@@ -184,19 +225,40 @@ function DemoGameBoard() {
     };
     
     // ============================================================================
-    // NAVIGAZIONE
+    // ✅ NUOVE FUNZIONI PER GESTIRE IL FLUSSO
     // ============================================================================
     
-    const handleNewGame = () => {
+    // Vai dal risultato del round al summary finale
+    const handleShowSummary = () => {
+        console.log('🏁 Mostrando riepilogo demo con carte:', finalCards.length);
+        setGameState('summary');
+    };
+    
+    // Inizia nuova demo dal summary
+    const handleNewGameFromSummary = () => {
         setGameState('loading');
         setCurrentCards([]);
         setTargetCard(null);
         setGameResult(null);
+        setFinalCards([]);
         setTimerActive(false);
         setError('');
         timeoutHandledRef.current = false;
         
         startDemoGame();
+    };
+    
+    // Torna alla home dal summary
+    const handleBackHomeFromSummary = () => {
+        navigate('/');
+    };
+    
+    // ============================================================================
+    // NAVIGAZIONE (per compatibilità)
+    // ============================================================================
+    
+    const handleNewGame = () => {
+        handleNewGameFromSummary();
     };
     
     const handleBackHome = () => {
@@ -239,33 +301,35 @@ function DemoGameBoard() {
     
     return (
         <Container className="py-4">
-            {/* Header del gioco */}
-            <Row className="mb-4">
-                <Col className="text-center">
-                    <div className="d-flex justify-content-between align-items-center">
-                        <Button 
-                            variant="outline-secondary" 
-                            onClick={handleBackHome}
-                            className="d-flex align-items-center"
-                        >
-                            <i className="bi bi-arrow-left me-2"></i>
-                            Torna alla Home
-                        </Button>
-                        
-                        <div className="text-center">
-                            <h2 className="mb-1">
-                                <i className="bi bi-controller me-2"></i>
-                                Modalità Demo
-                            </h2>
-                            <p className="text-muted mb-0">
-                                Prova il gioco senza registrarti
-                            </p>
+            {/* Header del gioco - Solo per playing e result */}
+            {(gameState === 'playing' || gameState === 'result') && (
+                <Row className="mb-4">
+                    <Col className="text-center">
+                        <div className="d-flex justify-content-between align-items-center">
+                            <Button 
+                                variant="outline-secondary" 
+                                onClick={handleBackHome}
+                                className="d-flex align-items-center"
+                            >
+                                <i className="bi bi-arrow-left me-2"></i>
+                                Torna alla Home
+                            </Button>
+                            
+                            <div className="text-center">
+                                <h2 className="mb-1">
+                                    <i className="bi bi-controller me-2"></i>
+                                    Modalità Demo
+                                </h2>
+                                <p className="text-muted mb-0">
+                                    Prova il gioco senza registrarti
+                                </p>
+                            </div>
+                            
+                            <div style={{ width: '120px' }}></div>
                         </div>
-                        
-                        <div style={{ width: '120px' }}></div>
-                    </div>
-                </Col>
-            </Row>
+                    </Col>
+                </Row>
+            )}
             
             {/* Stato Playing */}
             {gameState === 'playing' && (
@@ -339,20 +403,34 @@ function DemoGameBoard() {
                 </>
             )}
             
-            {/* Stato Result */}
+            {/* ✅ Stato Result - MODIFICATO per andare al summary */}
             {gameState === 'result' && gameResult && (
                 <RoundResult 
                     isCorrect={gameResult.isCorrect}
-                    isTimeout={gameResult.isTimeout} // ⬅️ IMPORTANTE
+                    isTimeout={gameResult.isTimeout}
                     targetCard={targetCard}
                     correctPosition={gameResult.correctPosition}
                     guessedPosition={gameResult.guessedPosition}
                     allCards={currentCards}
-                    onContinue={handleNewGame}
+                    onContinue={handleShowSummary} // ✅ IMPORTANTE: va al summary
                     onNewGame={handleNewGame}
                     isDemo={true}
-                    gameCompleted={false}
+                    gameCompleted={true} // ✅ Demo è sempre "completata" dopo 1 round
                     gameWon={gameResult.isCorrect}
+                />
+            )}
+            
+            {/* ✅ NUOVO: Stato Summary */}
+            {gameState === 'summary' && (
+                <GameSummary 
+                    gameWon={gameStats.cardsCollected > 0}
+                    finalCards={finalCards} // Array delle carte vinte (0 o 1 per demo)
+                    totalRounds={gameStats.totalRounds}
+                    cardsCollected={gameStats.cardsCollected}
+                    wrongGuesses={gameStats.wrongGuesses}
+                    onNewGame={handleNewGameFromSummary}
+                    onBackHome={handleBackHomeFromSummary}
+                    isDemo={true}
                 />
             )}
         </Container>

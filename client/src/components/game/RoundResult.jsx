@@ -19,23 +19,27 @@ function RoundResult({
        isTimeout,
        correctPosition,
        guessedPosition,
-       targetCardName: targetCard?.name
+       targetCardName: targetCard?.name,
+       isDemo,
+       gameCompleted
    });
-
+   
    // ✅ LOGICA CORRETTA: Mostra dettagli solo se indovinato
    const shouldShowCardDetails = isCorrect;
    
-   // Determina l'azione successiva in base allo stato del gioco
+   // ✅ MODIFICATO: Determina l'azione successiva in base allo stato del gioco
    const getNextAction = () => {
        if (isDemo) {
-           return 'demo';
+           // ✅ DEMO: Sempre vai al summary dopo il round
+           return 'demo_to_summary';
        } else if (gameCompleted) {
-           return gameWon ? 'won' : 'lost';
+           // ✅ PARTITA COMPLETA: vai al summary
+           return gameWon ? 'won_to_summary' : 'lost_to_summary';
        } else {
+           // ✅ PARTITA IN CORSO: continua prossimo round
            return 'continue';
        }
    };
-
    const nextAction = getNextAction();
 
    return (
@@ -68,7 +72,32 @@ function RoundResult({
                    )}
                </p>
 
-               {/* Messaggio aggiuntivo per partite complete */}
+               {/* ✅ MODIFICATO: Messaggio per demo completata */}
+               {isDemo && (
+                   <div className="mt-3 pt-3 border-top">
+                       <h5 className={isCorrect ? 'text-success' : 'text-warning'}>
+                           {isCorrect ? (
+                               <>
+                                   <i className="bi bi-star-fill me-2"></i>
+                                   Demo Completata! ⭐
+                               </>
+                           ) : (
+                               <>
+                                   <i className="bi bi-info-circle-fill me-2"></i>
+                                   Demo Completata 📝
+                               </>
+                           )}
+                       </h5>
+                       <p className="mb-0">
+                           {isCorrect ? 
+                               'Ottimo lavoro! Hai capito come funziona il gioco.' : 
+                               'Non preoccuparti! Adesso sai come funziona.'
+                           }
+                       </p>
+                   </div>
+               )}
+
+               {/* ✅ MODIFICATO: Messaggio per partite complete */}
                {!isDemo && gameCompleted && (
                    <div className="mt-3 pt-3 border-top">
                        <h5 className={gameWon ? 'text-success' : 'text-danger'}>
@@ -94,7 +123,7 @@ function RoundResult({
                )}
            </Alert>
 
-           {/* ✅ OPZIONE 3: Mostra carta SOLO se vinta */}
+           {/* ✅ CONFERMATO: Mostra carta SOLO se vinta */}
            {shouldShowCardDetails && (
                <Row className="justify-content-center mb-4">
                    <Col md={4}>
@@ -108,7 +137,7 @@ function RoundResult({
                </Row>
            )}
 
-           {/* ✅ SPIEGAZIONE MODIFICATA */}
+           {/* ✅ SPIEGAZIONE CONFERMATA */}
            <Row style={{ marginTop: '4rem' }}>
                <Col>
                    <Alert variant="info" className="mb-4">
@@ -144,21 +173,23 @@ function RoundResult({
                </Col>
            </Row>
 
-           {/* Pulsanti azione dinamici */}
+           {/* ✅ MODIFICATO: Pulsanti azione dinamici */}
            <div className="text-center">
-               {nextAction === 'demo' && (
+               {/* ✅ DEMO: Vai al riepilogo */}
+               {nextAction === 'demo_to_summary' && (
                    <div className="d-grid gap-2 d-md-flex justify-content-md-center">
-                       <Button variant="primary" size="lg" onClick={onNewGame}>
-                           <i className="bi bi-arrow-repeat me-2"></i>
-                           Prova Ancora
+                       <Button variant="primary" size="lg" onClick={onContinue}>
+                           <i className="bi bi-list-stars me-2"></i>
+                           Vedi Riepilogo Demo
                        </Button>
-                       <Button variant="success" size="lg" href="/login">
-                           <i className="bi bi-person-plus me-2"></i>
-                           Registrati per Partite Complete
+                       <Button variant="outline-secondary" onClick={onNewGame}>
+                           <i className="bi bi-arrow-repeat me-2"></i>
+                           Nuova Demo
                        </Button>
                    </div>
                )}
 
+               {/* ✅ PARTITA IN CORSO: Continua */}
                {nextAction === 'continue' && (
                    <div className="d-grid gap-2 d-md-flex justify-content-md-center">
                        <Button variant="primary" size="lg" onClick={onContinue}>
@@ -172,11 +203,12 @@ function RoundResult({
                    </div>
                )}
 
-               {nextAction === 'won' && (
+               {/* ✅ PARTITA VINTA: Vai al riepilogo */}
+               {nextAction === 'won_to_summary' && (
                    <div className="d-grid gap-2 d-md-flex justify-content-md-center">
                        <Button variant="success" size="lg" onClick={onContinue}>
                            <i className="bi bi-list-stars me-2"></i>
-                           Vedi Riassunto Vittoria
+                           Vedi Riepilogo Vittoria
                        </Button>
                        <Button variant="primary" onClick={onNewGame}>
                            <i className="bi bi-arrow-repeat me-2"></i>
@@ -189,11 +221,12 @@ function RoundResult({
                    </div>
                )}
 
-               {nextAction === 'lost' && (
+               {/* ✅ PARTITA PERSA: Vai al riepilogo */}
+               {nextAction === 'lost_to_summary' && (
                    <div className="d-grid gap-2 d-md-flex justify-content-md-center">
                        <Button variant="warning" size="lg" onClick={onContinue}>
                            <i className="bi bi-list-task me-2"></i>
-                           Vedi Riassunto Partita
+                           Vedi Riepilogo Partita
                        </Button>
                        <Button variant="primary" onClick={onNewGame}>
                            <i className="bi bi-arrow-repeat me-2"></i>

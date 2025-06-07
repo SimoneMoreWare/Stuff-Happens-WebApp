@@ -425,7 +425,7 @@ function DemoGameBoard() {
                 <GameSummary 
                     gameWon={gameStats.cardsCollected > 0}
                     finalCards={finalCards} // Array delle carte vinte (0 o 1 per demo)
-                    allInvolvedCards={[...currentCards, ...(targetCard ? [targetCard] : [])]} // ✅ TUTTE le carte coinvolte nella demo
+                    allInvolvedCards={[...currentCards, ...(gameResult?.isCorrect && targetCard ? [targetCard] : [])]} // ✅ Target SOLO se vinta
                     totalRounds={gameStats.totalRounds}
                     cardsCollected={gameStats.cardsCollected}
                     wrongGuesses={gameStats.wrongGuesses}

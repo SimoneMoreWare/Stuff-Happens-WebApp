@@ -111,22 +111,21 @@ function GameSummary({
                         <Card.Header className="bg-primary text-white">
                             <h4 className="mb-0">
                                 <i className="bi bi-collection me-2"></i>
-                                {isDemo ? 'Carte Coinvolte nella Demo' : 'Le Tue Carte'} ({isDemo && allInvolvedCards ? allInvolvedCards.length : finalCards.length})
+                                {isDemo ? 'Carte in Tuo Possesso' : 'Le Tue Carte'} ({isDemo && allInvolvedCards ? allInvolvedCards.length : finalCards.length})
                             </h4>
                         </Card.Header>
                         <Card.Body>
-                            {/* ✅ DEMO: Mostra tutte le carte coinvolte */}
+                            {/* ✅ DEMO: Mostra solo le carte effettivamente in possesso */}
                             {isDemo && allInvolvedCards && allInvolvedCards.length > 0 ? (
                                 <>
                                     <p className="text-muted mb-4">
-                                        Ecco tutte le carte coinvolte nella demo:
+                                        Ecco tutte le carte che possiedi al termine della demo:
                                     </p>
-                                    <Row className="g-3 mb-4 pb-4">
+                                    <Row className="g-3 pb-4 mb-4">
                                         {allInvolvedCards.map((card, index) => {
-                                            // ✅ Determina se è una carta iniziale o la carta target
+                                            // ✅ Determina se è una carta iniziale o la carta target vinta
                                             const isInitialCard = index < 3;
-                                            const isTargetCard = index === 3;
-                                            const wasWon = finalCards.some(wonCard => wonCard.id === card.id);
+                                            const isTargetCard = index === 3; // Solo se presente, è stata vinta
                                             
                                             return (
                                                 <Col key={card.id} md={6} lg={3}>
@@ -134,9 +133,7 @@ function GameSummary({
                                                         {isInitialCard ? (
                                                             <Badge bg="info">Carta Iniziale #{index + 1}</Badge>
                                                         ) : isTargetCard ? (
-                                                            <Badge bg={wasWon ? 'success' : 'danger'}>
-                                                                Carta Target {wasWon ? '(Vinta)' : '(Persa)'}
-                                                            </Badge>
+                                                            <Badge bg="success">Carta Vinta!</Badge>
                                                         ) : (
                                                             <Badge bg="secondary">#{index + 1}</Badge>
                                                         )}
@@ -144,7 +141,7 @@ function GameSummary({
                                                     <CardDisplay 
                                                         card={card} 
                                                         showBadLuckIndex={true}
-                                                        className={`h-100 ${isTargetCard ? (wasWon ? 'border-success' : 'border-danger') : 'border-info'}`}
+                                                        className={`h-100 ${isTargetCard ? 'border-success' : 'border-info'}`}
                                                     />
                                                 </Col>
                                             );
@@ -158,8 +155,12 @@ function GameSummary({
                                             Spiegazione Demo
                                         </h6>
                                         <p className="mb-0">
-                                            <strong>Carte Iniziali:</strong> Le prime 3 carte che avevi in possesso all'inizio, ordinate per Bad Luck Index crescente.<br/>
-                                            <strong>Carta Target:</strong> La carta che dovevi posizionare. {gameWon ? 'L\'hai vinta indovinando la posizione corretta!' : 'Non sei riuscito a indovinare la posizione corretta.'}
+                                            <strong>Carte Iniziali:</strong> Le 3 carte che avevi in possesso all'inizio, ordinate per Bad Luck Index crescente.<br/>
+                                            {allInvolvedCards.length > 3 ? (
+                                                <><strong>Carta Vinta:</strong> La carta target che sei riuscito a posizionare correttamente!</>
+                                            ) : (
+                                                <><strong>Risultato:</strong> Non sei riuscito a vincere la carta target, ma le 3 carte iniziali rimangono tue.</>
+                                            )}
                                         </p>
                                     </Alert>
                                 </>
@@ -186,17 +187,14 @@ function GameSummary({
                                     </Row>
                                 </>
                             ) : (
-                                // ✅ IMPORTANTE: Anche se 0 carte, mostra il riepilogo come da specifiche
+                                // ✅ CASO IMPOSSIBILE per demo (ha sempre almeno 3 carte iniziali)
                                 <div className="text-center py-5">
                                     <div className="display-1 text-muted mb-3">
                                         <i className="bi bi-collection"></i>
                                     </div>
                                     <h5 className="text-muted mb-3">Nessuna Carta Raccolta</h5>
                                     <p className="text-muted mb-0">
-                                        {isDemo ? 
-                                            'Non sei riuscito a indovinare la posizione corretta nella demo.' :
-                                            'Non sei riuscito a raccogliere nessuna carta in questa partita.'
-                                        }
+                                        Non sei riuscito a raccogliere nessuna carta in questa partita.
                                     </p>
                                 </div>
                             )}

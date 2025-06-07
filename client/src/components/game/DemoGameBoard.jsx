@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useRef } from 'react';
 import { Container, Row, Col, Card, Alert, Button, Spinner, Badge } from 'react-bootstrap';
 import { useNavigate } from 'react-router';
 import UserContext from '../../context/UserContext.jsx';
@@ -8,23 +8,13 @@ import CardDisplay from './CardDisplay.jsx';
 import Timer from './Timer.jsx';
 import PositionSelector from './PositionSelector.jsx';
 import RoundResult from './RoundResult.jsx';
-import GameSummary from './GameSummary.jsx';
 
-/**
- * Componente separato per gestire SOLO le partite demo per utenti anonimi
- * 
- * Questa separazione migliora:
- * - Leggibilità del codice
- * - Manutenibilità 
- * - Debug
- * - Performance (meno re-render)
- */
 function DemoGameBoard() {
     const { setMessage } = useContext(UserContext);
     const navigate = useNavigate();
     
     // Stati locali per la demo
-    const [gameState, setGameState] = useState('loading'); // loading, playing, result, finished
+    const [gameState, setGameState] = useState('loading');
     const [currentCards, setCurrentCards] = useState([]);
     const [targetCard, setTargetCard] = useState(null);
     const [gameResult, setGameResult] = useState(null);
@@ -35,18 +25,22 @@ function DemoGameBoard() {
     const [timerActive, setTimerActive] = useState(false);
     const [gameStartTime, setGameStartTime] = useState(null);
     
+    // Protezione per Strict Mode
+    const timeoutHandledRef = useRef(false);
+    
     // ============================================================================
-    // INIZIALIZZAZIONE DEMO - SEMPLIFICATA
+    // INIZIALIZZAZIONE DEMO
     // ============================================================================
     
     useEffect(() => {
         startDemoGame();
-    }, []); // 👈 DEPENDENCY VUOTA - si esegue solo una volta
+    }, []);
     
     const startDemoGame = async () => {
         try {
             setLoading(true);
             setError('');
+            timeoutHandledRef.current = false;
             
             console.log('🎮 Avviando partita demo...');
             
@@ -111,11 +105,13 @@ function DemoGameBoard() {
             );
             setTargetCard(revealedCard);
             
+            // Usa i dati dal server
             setGameResult({
                 isCorrect: result.correct,
+                isTimeout: result.timeUp, // ⬅️ Dal backend
                 correctPosition: result.correctPosition,
-                guessedPosition: position,
-                explanation: result.explanation
+                guessedPosition: result.timeUp ? undefined : position,
+                explanation: result.message
             });
             setGameState('result');
             
@@ -131,11 +127,60 @@ function DemoGameBoard() {
     // GESTIONE TIMER
     // ============================================================================
     
-    const handleTimeUp = () => {
+    const handleTimeUp = async () => {
+        if (timeoutHandledRef.current || !timerActive || gameState !== 'playing') {
+            console.log('⏰ Timer already handled or game not active');
+            return;
+        }
+        
+        timeoutHandledRef.current = true;
         console.log('⏰ Tempo scaduto in demo!');
-        // Simula selezione posizione random come penalità
-        const randomPosition = Math.floor(Math.random() * (currentCards.length + 1));
-        handlePositionSelect(randomPosition);
+        
+        try {
+            setTimerActive(false);
+            setGameState('loading');
+            
+            const timeElapsed = gameStartTime ? Math.floor((Date.now() - gameStartTime) / 1000) : 0;
+            
+            console.log('🎯 Demo timeout - submitting with timeElapsed:', timeElapsed);
+            
+            // Invia timeout con timeElapsed che triggerà isTimeUp nel server
+            const result = await API.submitDemoGuess(
+                targetCard.id,
+                currentCards.map(c => c.id),
+                0, // Posizione fittizia
+                Math.max(timeElapsed, 31) // Assicurati che sia > 30 per timeout
+            );
+            
+            console.log('📊 Demo Timeout Response:', result);
+            
+            // Aggiorna targetCard con bad_luck_index rivelato
+            const revealedCard = new CardModel(
+                targetCard.id,
+                targetCard.name,
+                targetCard.image_url,
+                result.targetCard.bad_luck_index,
+                targetCard.theme
+            );
+            setTargetCard(revealedCard);
+            
+            // Usa i dati dal server
+            setGameResult({
+                isCorrect: result.correct, // false
+                isTimeout: result.timeUp, // true
+                correctPosition: result.correctPosition,
+                guessedPosition: undefined,
+                explanation: result.message
+            });
+            setGameState('result');
+            
+        } catch (err) {
+            console.error('Errore demo timeout:', err);
+            setError('Errore nella gestione del timeout. Riprova.');
+            setGameState('playing');
+            setTimerActive(true);
+            timeoutHandledRef.current = false;
+        }
     };
     
     // ============================================================================
@@ -143,15 +188,14 @@ function DemoGameBoard() {
     // ============================================================================
     
     const handleNewGame = () => {
-        // Reset dello stato per nuova demo
         setGameState('loading');
         setCurrentCards([]);
         setTargetCard(null);
         setGameResult(null);
         setTimerActive(false);
         setError('');
+        timeoutHandledRef.current = false;
         
-        // Avvia nuova demo
         startDemoGame();
     };
     
@@ -218,12 +262,12 @@ function DemoGameBoard() {
                             </p>
                         </div>
                         
-                        <div style={{ width: '120px' }}></div> {/* Spacer */}
+                        <div style={{ width: '120px' }}></div>
                     </div>
                 </Col>
             </Row>
             
-            {/* Stato Playing - Gioco attivo */}
+            {/* Stato Playing */}
             {gameState === 'playing' && (
                 <>
                     {/* Timer */}
@@ -237,9 +281,8 @@ function DemoGameBoard() {
                         </Col>
                     </Row>
                     
-                    {/* Layout a due colonne: Carta target + Carte attuali */}
+                    {/* Layout a due colonne */}
                     <Row className="mb-4">
-                        {/* Colonna sinistra: Carta da posizionare */}
                         <Col md={4}>
                             <div className="text-center mb-3">
                                 <h4>Carta da Posizionare:</h4>
@@ -251,7 +294,6 @@ function DemoGameBoard() {
                             />
                         </Col>
                         
-                        {/* Colonna destra: Le tue carte attuali */}
                         <Col md={8}>
                             <div className="text-center mb-3">
                                 <h5>Le Tue Carte (ordinate per Bad Luck Index):</h5>
@@ -297,18 +339,19 @@ function DemoGameBoard() {
                 </>
             )}
             
-            {/* Stato Result - Mostra risultato */}
+            {/* Stato Result */}
             {gameState === 'result' && gameResult && (
                 <RoundResult 
                     isCorrect={gameResult.isCorrect}
+                    isTimeout={gameResult.isTimeout} // ⬅️ IMPORTANTE
                     targetCard={targetCard}
                     correctPosition={gameResult.correctPosition}
                     guessedPosition={gameResult.guessedPosition}
                     allCards={currentCards}
-                    onContinue={handleNewGame} // In demo, "continua" = nuova demo
+                    onContinue={handleNewGame}
                     onNewGame={handleNewGame}
                     isDemo={true}
-                    gameCompleted={false} // Demo è sempre single-round
+                    gameCompleted={false}
                     gameWon={gameResult.isCorrect}
                 />
             )}

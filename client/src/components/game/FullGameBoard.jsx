@@ -73,7 +73,7 @@ function DraggableTargetCard({ card, position }) {
         className={`card shadow-sm ${isDragging ? 'border-warning border-3' : ''}`} 
         style={{ 
           cursor: 'grab', 
-          height: '320px', 
+          height: '240px', 
           width: '160px',
           display: 'flex',
           flexDirection: 'column'
@@ -126,7 +126,7 @@ function StaticHandCard({ card, position, isDraggedOver }) {
       <div 
         className="card shadow-sm" 
         style={{ 
-          height: '240px', 
+          height: '340px', 
           width: '160px',
           display: 'flex',
           flexDirection: 'column'
@@ -136,13 +136,9 @@ function StaticHandCard({ card, position, isDraggedOver }) {
           <CardDisplay 
             card={card} 
             showBadLuckIndex={true}
+            fixedHeight={true}
           />
         </div>
-      </div>
-      <div className="text-center mt-1">
-        <small className="text-muted" style={{ fontSize: '10px' }}>
-          Bad Luck: <strong>{card.bad_luck_index}</strong>
-        </small>
       </div>
     </div>
   );
@@ -730,9 +726,9 @@ function FullGameBoard() {
                            >
                                <i className="bi bi-arrow-left me-2"></i>
                                Home
-                           </Button>
-                           
-                           <div className="text-center">
+                           </Button> 
+
+                            <div className="text-center" style={{ marginLeft: '130px' }}>
                                <h2 className="mb-1">
                                    <i className="bi bi-trophy me-2"></i>
                                    Partita Completa
@@ -743,6 +739,7 @@ function FullGameBoard() {
                            </div>
                            
                            <div className="d-flex gap-2">
+                            
                                {/* Bottone abbandona partita - solo se in gioco */}
                                {gameState === 'playing' && currentGame && (
                                    <Button 
@@ -827,10 +824,10 @@ function FullGameBoard() {
                                </Col>
                            </Row>
                        ) : (
-                           /* ✅ AREA DRAG & DROP PRINCIPALE - CONTAINER ALLARGATO */
-                           <div className="px-3">
+                           /* ✅ AREA DRAG & DROP PRINCIPALE - CONTAINER OTTIMIZZATO */
+                           <div className="px-0">
                                {/* Istruzioni */}
-                               <div className="text-center mb-4">
+                               <div className="text-center mb-3">
                                    <h5>
                                        <i className="bi bi-cursor me-2"></i>
                                        Trascina la carta Target nella posizione corretta
@@ -840,18 +837,18 @@ function FullGameBoard() {
                                    </small>
                                </div>
                                
-                               {/* Layout orizzontale con drag & drop - UNA RIGA SEMPRE ALLARGATA */}
+                               {/* Layout orizzontale con drag & drop - OTTIMIZZATO PER 6+ CARTE */}
                                <SortableContext 
                                    items={allItems.map(item => item.id)}
                                    strategy={horizontalListSortingStrategy}
                                >
                                    <div 
-                                       className="d-flex align-items-start gap-3 p-5" 
+                                       className="d-flex justify-content-center align-items-start gap-2 p-4" 
                                        style={{ 
-                                           minHeight: '400px',
+                                           minHeight: '340px',
                                            width: '100%',
                                            background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                                           borderRadius: '25px',
+                                           borderRadius: '20px',
                                            border: '3px solid #dee2e6',
                                            boxShadow: 'inset 0 4px 8px rgba(0,0,0,0.1)',
                                            overflowX: 'hidden',

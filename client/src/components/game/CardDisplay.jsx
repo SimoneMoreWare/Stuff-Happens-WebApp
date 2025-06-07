@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card, Badge, Spinner } from 'react-bootstrap';
 
-function CardDisplay({ card, showBadLuckIndex = true, isTarget = false, className = "" }) {
+function CardDisplay({ card, showBadLuckIndex = true, isTarget = false, className = "", fixedHeight = false }) {
     const [imageLoading, setImageLoading] = useState(true);
     const [imageError, setImageError] = useState(false);
 
@@ -16,8 +16,14 @@ function CardDisplay({ card, showBadLuckIndex = true, isTarget = false, classNam
 
     return (
         <Card className={`h-100 shadow-sm ${isTarget ? 'border-warning border-3' : ''} ${className}`}>
-            {/* Immagine della carta */}
-            <div className="position-relative" style={{ height: '200px', overflow: 'hidden' }}>
+            {/* Immagine della carta - PIÙ PICCOLA PER DARE SPAZIO AL TESTO */}
+            <div 
+                className="position-relative" 
+                style={{ 
+                    height: fixedHeight ? '180px' : '220px', 
+                    overflow: 'hidden' 
+                }}
+            >
                 {imageLoading && (
                     <div className="position-absolute top-50 start-50 translate-middle">
                         <Spinner animation="border" size="sm" />
@@ -27,8 +33,7 @@ function CardDisplay({ card, showBadLuckIndex = true, isTarget = false, classNam
                 {imageError ? (
                     <div className="d-flex align-items-center justify-content-center h-100 bg-body-secondary">
                         <div className="text-center text-muted">
-                            <i className="bi bi-image" style={{ fontSize: '3rem' }}></i>
-                            <p className="mt-2 mb-0">Immagine non disponibile</p>
+                            <i className="bi bi-image" style={{ fontSize: '1.5rem' }}></i>
                         </div>
                     </div>
                 ) : (
@@ -41,41 +46,50 @@ function CardDisplay({ card, showBadLuckIndex = true, isTarget = false, classNam
                         style={{ display: imageLoading ? 'none' : 'block' }}
                     />
                 )}
-
-                {/* Badge per carta target */}
-                {isTarget && (
-                    <div className="position-absolute top-0 end-0 m-2">
-                        <Badge bg="warning" className="d-flex align-items-center">
-                            <i className="bi bi-bullseye me-1"></i>
-                            Da Posizionare
-                        </Badge>
-                    </div>
-                )}
             </div>
 
-            {/* Corpo della carta */}
-            <Card.Body className="p-3">
-                <Card.Title className="h6 mb-2">{card.name}</Card.Title>
+            {/* Corpo della carta - PIÙ SPAZIO PER IL TESTO */}
+            <Card.Body 
+                className="p-2 d-flex flex-column justify-content-between"
+                style={{ height: '130px', overflow: 'hidden' }}
+            >
+                {/* Titolo carta - PIÙ RIGHE E PIÙ LEGGIBILE */}
+                <Card.Title 
+                    className="small mb-2 text-center"
+                    style={{ 
+                        fontSize: '11px', 
+                        lineHeight: '1.3',
+                        maxHeight: '5em',
+                        overflow: 'hidden',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 4,
+                        WebkitBoxOrient: 'vertical',
+                        wordWrap: 'break-word',
+                        hyphens: 'auto'
+                    }}
+                    title={card.name}
+                >
+                    {card.name}
+                </Card.Title>
                 
-                {/* Bad Luck Index (visibile solo se richiesto) */}
-                {showBadLuckIndex && card.bad_luck_index !== undefined && (
-                    <div className="d-flex align-items-center justify-content-between">
-                        <small className="text-muted">Bad Luck Index:</small>
+                {/* Badge centrale - solo se necessario */}
+                <div className="text-center mt-auto">
+                    {showBadLuckIndex && card.bad_luck_index !== undefined ? (
                         <Badge 
                             bg={getBadLuckColor(card.bad_luck_index)} 
-                            className="fs-6"
+                            style={{ fontSize: '12px', padding: '4px 8px' }}
                         >
                             {card.bad_luck_index}
                         </Badge>
-                    </div>
-                )}
-
-                {/* Placeholder per carte target */}
-                {isTarget && !showBadLuckIndex && (
-                    <div className="text-center">
-                        <Badge bg="secondary">Indice Nascosto</Badge>
-                    </div>
-                )}
+                    ) : isTarget ? (
+                        <Badge 
+                            bg="secondary" 
+                            style={{ fontSize: '11px', padding: '3px 6px' }}
+                        >
+                            ?
+                        </Badge>
+                    ) : null}
+                </div>
             </Card.Body>
         </Card>
     );

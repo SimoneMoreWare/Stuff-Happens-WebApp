@@ -171,10 +171,10 @@ function GameSummary({
                                     <p className="text-muted mb-4">
                                         Ecco tutte le carte che sei riuscito a raccogliere, ordinate dal Bad Luck Index più basso al più alto:
                                     </p>
-                                    <Row className="g-3">
+                                    <Row className="g-3 mb-4 pb-4">
                                         {finalCards.map((card, index) => (
-                                            <Col key={card.id} md={4} lg={3}>
-                                                <div className="text-center mb-2">
+                                            <Col key={card.id} md={4} lg={3} className="mb-4">
+                                                <div className="text-center mb-2 ">
                                                     <Badge bg="secondary">#{index + 1}</Badge>
                                                 </div>
                                                 <CardDisplay 

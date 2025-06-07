@@ -4,6 +4,7 @@ import CardDisplay from './CardDisplay.jsx';
 function GameSummary({ 
     gameWon, 
     finalCards, 
+    allInvolvedCards, // ✅ NUOVO: tutte le carte coinvolte (per demo)
     totalRounds, 
     cardsCollected, 
     wrongGuesses,
@@ -103,28 +104,75 @@ function GameSummary({
                 </Col>
             </Row>
 
-            {/* ✅ IMPORTANTE: Carte raccolte - SEMPRE MOSTRATE secondo specifiche */}
+            {/* ✅ IMPORTANTE: Carte raccolte/coinvolte - SEMPRE MOSTRATE secondo specifiche */}
             <Row className="mb-5">
                 <Col>
                     <Card className="shadow-sm">
                         <Card.Header className="bg-primary text-white">
                             <h4 className="mb-0">
                                 <i className="bi bi-collection me-2"></i>
-                                {isDemo ? 'La Tua Carta Demo' : 'Le Tue Carte'} ({finalCards.length})
+                                {isDemo ? 'Carte Coinvolte nella Demo' : 'Le Tue Carte'} ({isDemo && allInvolvedCards ? allInvolvedCards.length : finalCards.length})
                             </h4>
                         </Card.Header>
                         <Card.Body>
-                            {finalCards && finalCards.length > 0 ? (
+                            {/* ✅ DEMO: Mostra tutte le carte coinvolte */}
+                            {isDemo && allInvolvedCards && allInvolvedCards.length > 0 ? (
                                 <>
                                     <p className="text-muted mb-4">
-                                        {isDemo ? 
-                                            'Ecco la carta che sei riuscito a indovinare nella demo:' :
-                                            'Ecco tutte le carte che sei riuscito a raccogliere, ordinate dal Bad Luck Index più basso al più alto:'
-                                        }
+                                        Ecco tutte le carte coinvolte nella demo:
+                                    </p>
+                                    <Row className="g-3 mb-4 pb-4">
+                                        {allInvolvedCards.map((card, index) => {
+                                            // ✅ Determina se è una carta iniziale o la carta target
+                                            const isInitialCard = index < 3;
+                                            const isTargetCard = index === 3;
+                                            const wasWon = finalCards.some(wonCard => wonCard.id === card.id);
+                                            
+                                            return (
+                                                <Col key={card.id} md={6} lg={3}>
+                                                    <div className="text-center mb-2">
+                                                        {isInitialCard ? (
+                                                            <Badge bg="info">Carta Iniziale #{index + 1}</Badge>
+                                                        ) : isTargetCard ? (
+                                                            <Badge bg={wasWon ? 'success' : 'danger'}>
+                                                                Carta Target {wasWon ? '(Vinta)' : '(Persa)'}
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge bg="secondary">#{index + 1}</Badge>
+                                                        )}
+                                                    </div>
+                                                    <CardDisplay 
+                                                        card={card} 
+                                                        showBadLuckIndex={true}
+                                                        className={`h-100 ${isTargetCard ? (wasWon ? 'border-success' : 'border-danger') : 'border-info'}`}
+                                                    />
+                                                </Col>
+                                            );
+                                        })}
+                                    </Row>
+                                    
+                                    {/* ✅ SPIEGAZIONE PER DEMO */}
+                                    <Alert variant="info" className="mt-4 pt-4">
+                                        <h6 className="alert-heading">
+                                            <i className="bi bi-info-circle me-2"></i>
+                                            Spiegazione Demo
+                                        </h6>
+                                        <p className="mb-0">
+                                            <strong>Carte Iniziali:</strong> Le prime 3 carte che avevi in possesso all'inizio, ordinate per Bad Luck Index crescente.<br/>
+                                            <strong>Carta Target:</strong> La carta che dovevi posizionare. {gameWon ? 'L\'hai vinta indovinando la posizione corretta!' : 'Non sei riuscito a indovinare la posizione corretta.'}
+                                        </p>
+                                    </Alert>
+                                </>
+                            ) : 
+                            /* ✅ PARTITE COMPLETE: Comportamento originale */
+                            finalCards && finalCards.length > 0 ? (
+                                <>
+                                    <p className="text-muted mb-4">
+                                        Ecco tutte le carte che sei riuscito a raccogliere, ordinate dal Bad Luck Index più basso al più alto:
                                     </p>
                                     <Row className="g-3">
                                         {finalCards.map((card, index) => (
-                                            <Col key={card.id} md={isDemo ? 6 : 4} lg={isDemo ? 4 : 3} className="mx-auto">
+                                            <Col key={card.id} md={4} lg={3}>
                                                 <div className="text-center mb-2">
                                                     <Badge bg="secondary">#{index + 1}</Badge>
                                                 </div>

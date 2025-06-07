@@ -624,6 +624,32 @@ const submitGameGuess = async (gameId, gameCardId, position, timeElapsed = 0) =>
   }
 };
 
+/**
+ * Submit a timeout for the current round card
+ * 
+ * @param {number} gameId - ID of the game
+ * @param {number} gameCardId - ID of the GameCard
+ * @returns {Promise<Object>} - Result of the timeout
+ */
+const submitGameTimeout = async (gameId, gameCardId) => {
+  const response = await fetch(`${SERVER_URL}/api/games/${gameId}/timeout`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({ gameCardId }),
+  });
+  
+  if (response.ok) {
+    const result = await response.json();
+    return result;
+  } else {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Error processing timeout");
+  }
+};
+
 // ==============================================================================
 // EXPORTED API OBJECT
 // ==============================================================================
@@ -664,7 +690,8 @@ const API = {
   getGameById,
   abandonGame,
   getNextRoundCard,
-  submitGameGuess
+  submitGameGuess,
+  submitGameTimeout
 };
 
 export default API;

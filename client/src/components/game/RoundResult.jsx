@@ -3,6 +3,7 @@ import CardDisplay from './CardDisplay.jsx';
 
 function RoundResult({ 
     isCorrect, 
+    isTimeout = false, // ⬅️ NUOVO PROP
     targetCard, 
     correctPosition, 
     guessedPosition, 
@@ -13,6 +14,13 @@ function RoundResult({
     gameCompleted = false,
     gameWon = false
 }) {
+    console.log('🎯 RoundResult props:', {
+        isCorrect,
+        isTimeout,
+        correctPosition,
+        guessedPosition,
+        targetCardName: targetCard?.name
+    });
     // Determina l'azione successiva in base allo stato del gioco
     const getNextAction = () => {
         if (isDemo) {
@@ -28,23 +36,26 @@ function RoundResult({
 
     return (
         <div className="round-result">
-            {/* Alert principale con risultato */}
-            <Alert variant={isCorrect ? 'success' : 'danger'} className="text-center mb-4">
+            <Alert variant={isCorrect ? 'success' : (isTimeout ? 'warning' : 'danger')} className="text-center mb-4">
                 <div className="display-6 mb-3">
                     {isCorrect ? (
                         <i className="bi bi-check-circle-fill text-success"></i>
+                    ) : isTimeout ? (
+                        <i className="bi bi-clock-fill text-warning"></i>
                     ) : (
                         <i className="bi bi-x-circle-fill text-danger"></i>
                     )}
                 </div>
                 
                 <h4 className="alert-heading">
-                    {isCorrect ? '🎉 Corretto!' : '😞 Sbagliato!'}
+                    {isCorrect ? '🎉 Corretto!' : isTimeout ? '⏰ Tempo Scaduto!' : '😞 Sbagliato!'}
                 </h4>
                 
                 <p className="mb-0">
                     {isCorrect ? (
                         <>Hai indovinato la posizione! La carta è stata aggiunta alla tua collezione.</>
+                    ) : isTimeout ? (
+                        <>Il tempo è scaduto! Non hai fatto una scelta in tempo.</>
                     ) : (
                         <>
                             Hai scelto la posizione <strong>{guessedPosition + 1}</strong>, 
@@ -105,12 +116,21 @@ function RoundResult({
                         <p className="mb-0">
                             {isCorrect ? (
                                 <>Perfetto! Hai capito che questa situazione doveva essere posizionata in quella posizione.</>
+                            ) : isTimeout ? (
+                                <>
+                                    {/* ⬅️ MESSAGGIO SPECIFICO PER TIMEOUT */}
+                                    La posizione corretta era <strong>{correctPosition + 1}</strong> perché il suo indice 
+                                    di sfortuna ({targetCard.bad_luck_index}) la colloca {
+                                        correctPosition === 0 ? 'all\'inizio' : 
+                                        correctPosition === allCards?.length ? 'alla fine' : 'in mezzo'
+                                    } rispetto alle altre carte. Peccato non aver fatto in tempo!
+                                </>
                             ) : (
                                 <>
                                     La posizione corretta era <strong>{correctPosition + 1}</strong> perché il suo indice 
                                     di sfortuna ({targetCard.bad_luck_index}) la colloca {
                                         correctPosition === 0 ? 'all\'inizio' : 
-                                        correctPosition === allCards.length ? 'alla fine' : 'in mezzo'
+                                        correctPosition === allCards?.length ? 'alla fine' : 'in mezzo'
                                     } rispetto alle altre carte.
                                 </>
                             )}

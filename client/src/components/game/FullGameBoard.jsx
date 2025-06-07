@@ -281,12 +281,112 @@ function FullGameBoard() {
    // GESTIONE TIMER - Tempo scaduto
    // ============================================================================
    
-   const handleTimeUp = () => {
-       console.log('⏰ Time up! Auto-submitting random position...');
-       // Simula selezione posizione random come penalità
-       const randomPosition = Math.floor(Math.random() * (currentCards.length + 1));
-       handlePositionSelect(randomPosition);
-   };
+   const handleTimeUp = async () => {
+        // Protezione multipla
+        if (!currentRoundCard || !timerActive || gameState !== 'playing') {
+            console.log('⏰ Timer already handled, no round card, or wrong game state');
+            return;
+        }
+        
+        console.log('⏰ Time expired! Submitting timeout...');
+        
+        try {
+            setTimerActive(false);
+            setGameState('loading');
+            
+            const gameId = currentGame.id;
+            const gameCardId = currentRoundCard.gameCardId;
+            
+            console.log('🎯 Sending timeout for:', { gameId, gameCardId });
+            
+            const result = await API.submitGameTimeout(gameId, gameCardId);
+            
+            console.log('📊 Timeout result:', result);
+            console.log('📊 Timeout result:', result);
+            // ⬅️ AGGIUNGI QUESTO LOG SPECIFICO
+            console.log('🔍 DEBUG correctPosition:', result.correctPosition);
+            console.log('🔍 DEBUG isTimeout:', result.isTimeout);
+        
+            // Aggiorna stato locale partita
+            if (result.game) {
+                setCurrentGame(result.game);
+                updateCurrentGame(result.game);
+            }
+            
+            // Aggiorna la carta target con bad_luck_index rivelato
+            if (result.revealed_card) {
+                const revealedCard = Array.isArray(result.revealed_card) ? result.revealed_card[0] : result.revealed_card;
+                const revealedCardModel = new CardModel(
+                    revealedCard.id,
+                    revealedCard.name,
+                    revealedCard.image_url,
+                    revealedCard.bad_luck_index,
+                    revealedCard.theme
+                );
+                setTargetCard(revealedCardModel);
+            }
+            
+            // ⬅️ FIX: Imposta il risultato del round per TIMEOUT con correctPosition
+            setRoundResult({
+                isCorrect: false,
+                isTimeout: result.isTimeout || true, // ⬅️ ASSICURATI CHE SIA TRUE
+                correctPosition: result.correctPosition, // ⬅️ DIRETTAMENTE DAL RESULT
+                // guessedPosition: non serve per timeout - sarà undefined
+                explanation: result.message,
+                gameStatus: result.gameStatus
+            });
+            console.log('🎯 Setting roundResult with:', {
+                isCorrect: false,
+                isTimeout: result.isTimeout || true,
+                correctPosition: result.correctPosition,
+                gameStatus: result.gameStatus
+            });
+            setGameState('result');
+        } catch (err) {
+            console.error('❌ Error submitting timeout:', err);
+            
+            // ⬅️ GESTIONE ERRORE INTELLIGENTE
+            if (err.message && (
+                err.message.includes('Invalid game card') || 
+                err.message.includes('Card already processed') ||
+                err.message.includes('Card already played')
+            )) {
+                console.log('🔄 Card already processed by previous call, continuing...');
+                
+                // La carta è già stata processata dalla prima chiamata Strict Mode
+                // Invece di mostrare errore, controlla lo stato del gioco
+                try {
+                    const gameData = await API.getCurrentGame();
+                    
+                    if (gameData.game.current_round > currentGame.current_round) {
+                        // Il round è già avanzato, vai al prossimo
+                        console.log('✅ Round already advanced, continuing to next round');
+                        setCurrentGame(gameData.game);
+                        updateCurrentGame(gameData.game);
+                        setRoundResult(null);
+                        setTargetCard(null);
+                        setCurrentRoundCard(null);
+                        setGameState('playing');
+                    } else {
+                        // Mostra errore generico
+                        setError('Errore nella gestione del timeout. Riprova.');
+                        setGameState('playing');
+                        setTimerActive(true);
+                    }
+                } catch (reloadErr) {
+                    console.error('❌ Error reloading game state:', reloadErr);
+                    setError('Errore nella gestione del timeout. Riprova.');
+                    setGameState('playing');
+                    setTimerActive(true);
+                }
+            } else {
+                // Altri tipi di errore
+                setError('Errore nella gestione del timeout. Riprova.');
+                setGameState('playing');
+                setTimerActive(true);
+            }
+        }
+    };
    
    // ============================================================================
    // NAVIGAZIONE TRA STATI DEL GIOCO
@@ -591,19 +691,30 @@ function FullGameBoard() {
            
            {/* Stato: Risultato round */}
            {gameState === 'result' && roundResult && (
-               <RoundResult 
-                   isCorrect={roundResult.isCorrect}
-                   targetCard={targetCard}
-                   correctPosition={roundResult.correctPosition}
-                   guessedPosition={roundResult.guessedPosition}
-                   allCards={currentCards}
-                   onContinue={handleContinueAfterResult}
-                   onNewGame={handleNewGame}
-                   isDemo={false}
-                   gameCompleted={roundResult.gameStatus !== 'playing'}
-                   gameWon={roundResult.gameStatus === 'won'}
-               />
-           )}
+                <>
+                    {/* ⬅️ AGGIUNGI QUESTO LOG */}
+                    {console.log('🔧 About to render RoundResult with:', {
+                        isCorrect: roundResult.isCorrect,
+                        isTimeout: roundResult.isTimeout,
+                        correctPosition: roundResult.correctPosition,
+                        guessedPosition: roundResult.guessedPosition
+                    })}
+                    
+                    <RoundResult 
+                        isCorrect={roundResult.isCorrect}
+                        isTimeout={roundResult.isTimeout} // ⬅️ ASSICURATI CHE CI SIA!
+                        targetCard={targetCard}
+                        correctPosition={roundResult.correctPosition}
+                        guessedPosition={roundResult.guessedPosition}
+                        allCards={currentCards}
+                        onContinue={handleContinueAfterResult}
+                        onNewGame={handleNewGame}
+                        isDemo={false}
+                        gameCompleted={roundResult.gameStatus !== 'playing'}
+                        gameWon={roundResult.gameStatus === 'won'}
+                    />
+                </>
+            )}
            
             {/* Stato: Partita terminata */}
             {gameState === 'game-over' && currentGame && (

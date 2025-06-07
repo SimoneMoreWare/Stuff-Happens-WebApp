@@ -66,6 +66,7 @@ export const updateGuess = (gameCardId, guessed_correctly, position_guessed) => 
             WHERE id = ?
         `;
         
+        // position_guessed può essere null per timeout
         db.run(query, [guessed_correctly, position_guessed, now, gameCardId], function (err) {
             if (err) {
                 reject(err);

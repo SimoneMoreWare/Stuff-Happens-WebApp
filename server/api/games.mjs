@@ -546,4 +546,92 @@ router.post('/:id/guess', [
     }
 });
 
+/**
+ * POST /api/games/:id/timeout - Handle timeout for current round
+ */
+router.post('/:id/timeout', [
+    param('id').isInt({ min: 1 }).withMessage('Game ID must be a positive integer'),
+    body('gameCardId').isInt({ min: 1 }).withMessage('Game card ID must be a positive integer')
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(422).json({ errors: errors.array() });
+    }
+    
+    const { gameCardId } = req.body;
+    
+    try {
+        const game = await getGameById(req.params.id);
+        
+        if (!game || game.status !== 'playing') {
+            return res.status(400).json({ error: 'Game is not active' });
+        }
+        
+        // Authorization
+        if (req.isAuthenticated() && game.user_id !== req.user.id) {
+            return res.status(403).json({ error: 'You can only play your own games' });
+        }
+        
+        const gameCard = await getCurrentRoundCard(game.id, game.current_round);
+        
+        if (!gameCard || gameCard.id !== gameCardId || gameCard.guessed_correctly !== null) {
+            return res.status(400).json({ 
+                error: 'Card already processed or invalid',
+                gameStatus: 'playing',
+                shouldAdvance: true 
+            });
+        }
+        
+        // ⬅️ CALCOLA LA POSIZIONE CORRETTA per la risposta
+        const wonCardIds = await getWonCardIds(game.id);
+        const correctPosition = await getCorrectPosition(gameCard.card_id, wonCardIds);
+        
+        // Mark as timeout
+        await updateGuess(gameCardId, false, null);
+        await incrementWrongGuesses(game.id);
+        
+        // Get card details for response
+        const cardDetails = await getCardsByIds([gameCard.card_id]);
+        const revealedCard = cardDetails[0];
+        
+        // Check if game is lost
+        const updatedGame = await getGameById(game.id);
+        if (updatedGame.wrong_guesses >= 3) {
+            await completeGame(game.id, 'lost');
+            return res.json({
+                correct: false,
+                isTimeout: true,
+                correctPosition, // ⬅️ INCLUDI QUESTO
+                gameStatus: 'lost',
+                game: updatedGame,
+                revealed_card: revealedCard,
+                message: `Tempo scaduto! La carta "${revealedCard.name}" aveva un Bad Luck Index di ${revealedCard.bad_luck_index}. Partita terminata.`
+            });
+        }
+        console.log('🔍 TIMEOUT DEBUG - correctPosition calculated:', correctPosition);
+        console.log('🔍 TIMEOUT DEBUG - revealed card:', revealedCard.name);
+    
+        // Continue to next round
+        await advanceRound(game.id);
+        const finalUpdatedGame = await getGameById(game.id);
+    
+        const responseData = {
+            correct: false,
+            isTimeout: true,
+            correctPosition, // ⬅️ QUESTO DEVE ESSERE UN NUMERO
+            gameStatus: 'playing',
+            game: finalUpdatedGame,
+            revealed_card: revealedCard,
+            message: `Tempo scaduto! La carta "${revealedCard.name}" aveva un Bad Luck Index di ${revealedCard.bad_luck_index}. Prossimo round!`
+        };
+        
+        console.log('🔍 TIMEOUT DEBUG - response data:', responseData);
+        
+        return res.json(responseData);
+        
+    } catch (error) {
+        console.error('Error processing timeout:', error);
+        res.status(500).json({ error: 'Database error while processing timeout' });
+    }
+});
 export default router;

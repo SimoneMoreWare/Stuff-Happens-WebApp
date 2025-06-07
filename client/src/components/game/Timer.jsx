@@ -1,20 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ProgressBar, Alert } from 'react-bootstrap';
 
 function Timer({ duration = 30, onTimeUp, isActive = false, onReset }) {
     const [timeLeft, setTimeLeft] = useState(duration);
     const [isRunning, setIsRunning] = useState(false);
-
+    const timeUpCalledRef = useRef(false); // ⬅️ AGGIUNGI QUESTO
+    
     useEffect(() => {
         if (isActive && !isRunning) {
             setTimeLeft(duration);
             setIsRunning(true);
+            timeUpCalledRef.current = false; // ⬅️ RESET FLAG
         } else if (!isActive) {
             setIsRunning(false);
             setTimeLeft(duration);
+            timeUpCalledRef.current = false; // ⬅️ RESET FLAG
         }
     }, [isActive, duration]);
-
+    
     useEffect(() => {
         let intervalId;
         
@@ -23,22 +26,24 @@ function Timer({ duration = 30, onTimeUp, isActive = false, onReset }) {
                 setTimeLeft(time => {
                     if (time <= 1) {
                         setIsRunning(false);
-                        // NON chiamare onTimeUp qui direttamente!
-                        // Usa setTimeout per chiamarla nel prossimo tick
-                        setTimeout(() => onTimeUp(), 0);
+                        // ⬅️ CHIAMATA PROTETTA
+                        if (!timeUpCalledRef.current) {
+                            timeUpCalledRef.current = true;
+                            setTimeout(() => onTimeUp(), 0);
+                        }
                         return 0;
                     }
                     return time - 1;
                 });
             }, 1000);
         }
-
+        
         return () => clearInterval(intervalId);
     }, [isRunning, timeLeft, onTimeUp]);
-
+    
     const percentage = ((duration - timeLeft) / duration) * 100;
     const variant = timeLeft <= 5 ? 'danger' : timeLeft <= 10 ? 'warning' : 'success';
-
+    
     return (
         <div className="timer-container">
             <div className="d-flex justify-content-between align-items-center mb-2">
@@ -57,7 +62,7 @@ function Timer({ duration = 30, onTimeUp, isActive = false, onReset }) {
                 className="mb-2"
                 style={{ height: '8px' }}
             />
-
+            
             {timeLeft <= 5 && timeLeft > 0 && (
                 <Alert variant="danger" className="mb-0 py-2">
                     <i className="bi bi-exclamation-triangle-fill me-2"></i>

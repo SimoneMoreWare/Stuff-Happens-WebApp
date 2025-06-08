@@ -8,25 +8,6 @@ function AppNavbar() {
   const { user, loggedIn, currentGame, handleLogout } = useContext(UserContext);
   const location = useLocation();
   const navigate = useNavigate();
-  
-  // ============================================================================
-  // DARK MODE STATE
-  // ============================================================================
-  
-  const [darkMode, setDarkMode] = useState(false);
-
-  useEffect(() => {
-    // Gestione dark mode tramite Bootstrap data-bs-theme
-    if (darkMode) {
-      document.documentElement.setAttribute("data-bs-theme", "dark");
-    } else {
-      document.documentElement.removeAttribute("data-bs-theme");
-    }
-  }, [darkMode]);
-
-  const toggleDarkMode = () => {
-    setDarkMode(oldMode => !oldMode);
-  };
 
   // ============================================================================
   // HELPER FUNCTIONS
@@ -114,21 +95,7 @@ function AppNavbar() {
 
           {/* Right Side Controls */}
           <Nav className="align-items-center">
-            {/* Dark Mode Toggle */}
-            <Button 
-              variant="outline-light" 
-              size="sm" 
-              onClick={toggleDarkMode}
-              className="me-3"
-              title={darkMode ? "Modalità chiara" : "Modalità scura"}
-            >
-              {darkMode ? (
-                <i className="bi bi-sun-fill"></i>
-              ) : (
-                <i className="bi bi-moon-fill"></i>
-              )}
-            </Button>
-
+            
             {/* Authentication Section */}
             {loggedIn ? (
               // ========== UTENTE AUTENTICATO ==========

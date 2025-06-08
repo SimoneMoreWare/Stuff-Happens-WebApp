@@ -49,6 +49,28 @@ function RoundResult({
     
     return (
         <Container className="py-4">
+            {/* ✅ PULSANTE CONTINUA IN CIMA - SOLO PER PARTITE COMPLETE NON DEMO */}
+            {!isDemo && !gameCompleted && (
+                <Row className="mb-4">
+                    <Col className="text-center">
+                        <Card className="bg-primary text-white shadow-lg">
+                            <Card.Body className="py-3">
+                                <h5 className="mb-3">Pronto per il prossimo round?</h5>
+                                <Button 
+                                    variant="light" 
+                                    size="lg"
+                                    onClick={onContinue}
+                                    className="d-flex align-items-center mx-auto"
+                                >
+                                    <i className="bi bi-arrow-right me-2"></i>
+                                    Continua al Prossimo Round
+                                </Button>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                </Row>
+            )}
+
             {/* ✅ RISULTATO PRINCIPALE */}
             <Row className="mb-4">
                 <Col className="text-center">
@@ -275,19 +297,6 @@ function RoundResult({
                             {/* ✅ GESTIONE PER PARTITE COMPLETE */}
                             {!isDemo && (
                                 <div className="d-grid gap-2 d-md-flex justify-content-md-center">
-                                    {/* Se partita NON completata = continua al prossimo round */}
-                                    {!gameCompleted && (
-                                        <Button 
-                                            variant="primary" 
-                                            size="lg"
-                                            onClick={onContinue}
-                                            className="d-flex align-items-center"
-                                        >
-                                            <i className="bi bi-arrow-right me-2"></i>
-                                            Continua al Prossimo Round
-                                        </Button>
-                                    )}
-                                    
                                     {/* Se partita COMPLETATA = vai al riepilogo finale */}
                                     {gameCompleted && (
                                         <Button 

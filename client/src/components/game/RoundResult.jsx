@@ -74,6 +74,31 @@ function RoundResult({
                 </Row>
             )}
             
+            {/* 🏆 NOTIFICA VITTORIA/SCONFITTA - QUANDO GIOCO COMPLETATO */}
+            {!isDemo && gameCompleted && (
+                <Row className="mb-4">
+                    <Col className="text-center">
+                        <Alert 
+                            variant={gameWon ? 'success' : 'danger'} 
+                            className="shadow-lg border-0 p-4"
+                        >
+                            <div className="display-1 mb-3">
+                                {gameWon ? '🏆' : '😔'}
+                            </div>
+                            <Alert.Heading as="h1" className="mb-3">
+                                {gameWon ? 'VITTORIA!' : 'PARTITA FINITA'}
+                            </Alert.Heading>
+                            <p className="lead mb-0">
+                                {gameWon ? 
+                                    'Complimenti! Hai raccolto tutte le 6 carte e completato il gioco!' :
+                                    'Hai commesso 3 errori. La partita è terminata, ma hai fatto del tuo meglio!'
+                                }
+                            </p>
+                        </Alert>
+                    </Col>
+                </Row>
+            )}
+            
             {/* ✅ SEZIONE PRINCIPALE - RISULTATO CHIARO E SEMPLICE */}
             <Row className="mb-4">
                 <Col className="text-center">
@@ -89,8 +114,8 @@ function RoundResult({
                                 {getMainMessage()}
                             </p>
                             
-                            {/* ✅ INFORMAZIONE ESSENZIALE SOLO SE NECESSARIA */}
-                            {!isTimeout && (
+                            {/* ✅ INFORMAZIONE ESSENZIALE SOLO SE NECESSARIA E NON COMPLETATA */}
+                            {!isTimeout && !gameCompleted && (
                                 <div className={`p-3 bg-${themeColor === 'warning' ? 'light' : themeColor}-subtle rounded`}>
                                     <small className="text-muted">
                                         <strong>La tua scelta:</strong> Posizione {guessedPosition}
@@ -178,14 +203,14 @@ function RoundResult({
                             <div className="mb-3">
                                 {!isDemo && gameCompleted && (
                                     <Button 
-                                        variant={themeColor}
+                                        variant={gameWon ? 'success' : 'primary'}
                                         size="lg"
                                         onClick={onContinue}
                                         className="px-5 py-3 shadow"
                                         style={{ fontSize: '1.2rem' }}
                                     >
-                                        <i className="bi bi-trophy me-2"></i>
-                                        Vedi Risultati Finali
+                                        <i className={`bi ${gameWon ? 'bi-trophy' : 'bi-chart-bar'} me-2`}></i>
+                                        {gameWon ? 'Celebra la Vittoria!' : 'Vedi il Tuo Punteggio'}
                                     </Button>
                                 )}
                                 

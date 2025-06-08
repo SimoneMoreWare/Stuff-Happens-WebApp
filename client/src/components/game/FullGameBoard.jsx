@@ -728,7 +728,7 @@ function FullGameBoard() {
                                Home
                            </Button> 
 
-                            <div className="text-center" style={{ marginLeft: '130px' }}>
+                            <div className="text-center">
                                <h2 className="mb-1">
                                    <i className="bi bi-trophy me-2"></i>
                                    Partita Completa
@@ -739,20 +739,7 @@ function FullGameBoard() {
                            </div>
                            
                            <div className="d-flex gap-2">
-                            
-                               {/* Bottone abbandona partita - solo se in gioco */}
-                               {gameState === 'playing' && currentGame && (
-                                   <Button 
-                                       variant="outline-danger" 
-                                       size="sm"
-                                       onClick={handleAbandonGame}
-                                       className="d-flex align-items-center"
-                                   >
-                                       <i className="bi bi-x-circle me-2"></i>
-                                       Abbandona
-                                   </Button>
-                               )}
-                               
+                                             
                                <Button 
                                    variant="outline-primary" 
                                    onClick={handleViewProfile}
@@ -762,6 +749,7 @@ function FullGameBoard() {
                                    Profilo
                                </Button>
                            </div>
+                                                
                        </div>
                    </Col>
                </Row>
@@ -903,6 +891,7 @@ function FullGameBoard() {
                                        </Card.Body>
                                    </Card>
                                </div>
+                               
                            </div>
                        )}
                        
@@ -939,24 +928,51 @@ function FullGameBoard() {
                                    <Col md={6}>
                                        {/* Timer minimale */}
                                        {targetCard && (
-                                           <Card className="border-warning shadow-sm mb-3">
-                                               <Card.Body className="p-3">
-                                                   <h6 className="text-warning mb-2">
-                                                       <i className="bi bi-stopwatch me-2"></i>
-                                                       Timer
-                                                   </h6>
-                                                   <Timer 
-                                                       duration={30}
-                                                       isActive={timerActive}
-                                                       onTimeUp={handleTimeUp}
-                                                   />
-                                               </Card.Body>
-                                           </Card>
-                                       )}
+                                        <Card className="border-warning shadow-sm mb-3 pb-3">
+                                            <Card.Body className="p-3 d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h6 className="text-warning mb-0">
+                                                        <i className="bi bi-stopwatch me-2"></i>
+                                                        Timer
+                                                    </h6>
+                                                    <Timer 
+                                                        duration={30}
+                                                        isActive={timerActive}
+                                                        onTimeUp={handleTimeUp}
+                                                    />
+                                                </div>
+                                               
+                                            </Card.Body>
+                                            {/* Bottone abbandona partita - solo se in gioco */}
+                                            
+                                        </Card>
+                                    )}
+                                    
                                    </Col>
+                                   
                                </Row>
+                               <div className="text-center">
+                                {gameState === 'playing' && currentGame && (
+                                     <Button 
+                                                    variant="outline-danger" 
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        if(window.confirm('Sei sicuro di voler abbandonare la partita? Tutti i progressi andranno persi.')) {
+                                                            handleAbandonGame();
+                                                        }
+                                                    }}
+                                                    className="d-flex align-items-center"
+                                                    title="Abbandona la partita corrente"
+                                                >
+                                                    <i className="bi bi-door-open me-1"></i>
+                                                    Abbandona
+                                                </Button>
+                                            )}           
+                                </div>
                            </Col>
+                           
                        </Row>
+                       
                    </>
                )}
                

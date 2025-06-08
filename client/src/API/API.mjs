@@ -521,14 +521,16 @@ const getCurrentGame = async () => {
   const response = await fetch(SERVER_URL + '/api/games/current', {
     credentials: 'include',
   });
-  
   if (response.ok) {
     const gameData = await response.json();
-    
-    // ✅ AGGIUNGI CONVERSIONE URL PER LE CARTE VINTE
     return {
       ...gameData,
       wonCards: gameData.wonCards ? gameData.wonCards.map(c => ({
+        ...c,
+        image_url: c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`
+      })) : [],
+      // ✅ AGGIUNGI: Tutte le carte con informazioni complete
+      allCards: gameData.allCards ? gameData.allCards.map(c => ({
         ...c,
         image_url: c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`
       })) : []

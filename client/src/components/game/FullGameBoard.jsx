@@ -201,6 +201,9 @@ function FullGameBoard() {
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState('');
    
+   // ✅ AGGIUNGI QUESTO NUOVO STATO
+   const [allGameCards, setAllGameCards] = useState([]); // Carte complete con is_initial
+
    // Timer state
    const [timerActive, setTimerActive] = useState(false);
    const [roundStartTime, setRoundStartTime] = useState(null);
@@ -236,97 +239,146 @@ function FullGameBoard() {
    }, []);
    
    const checkCurrentGame = async () => {
-       try {
-           setLoading(true);
-           setError('');
-           
-           console.log('🎮 Checking for existing game...');
-           
-           try {
-               const gameData = await API.getCurrentGame();
-               console.log('📋 Found existing game:', gameData);
-               
-               setCurrentGame(gameData.game);
-               updateCurrentGame(gameData.game);
-               
-               if (gameData.wonCards && gameData.wonCards.length > 0) {
-                   const wonCards = gameData.wonCards.map(c => 
-                       new CardModel(c.id, c.name, c.image_url, c.bad_luck_index, c.theme)
-                   );
-                   wonCards.sort((a, b) => a.bad_luck_index - b.bad_luck_index);
-                   setCurrentCards(wonCards);
-               }
-               
-               if (gameData.game.status !== 'playing') {
-                   setGameState('game-over');
-                   return;
-               }
-               
-               if (gameData.game.cards_collected >= 6) {
-                   setGameState('game-over');
-                   return;
-               } else if (gameData.game.wrong_guesses >= 3) {
-                   setGameState('game-over');
-                   return;
-               }
-               
-               setGameState('playing');
-               
-           } catch (gameError) {
-               console.log('ℹ️ No active game found');
-               setGameState('no-game');
-               setCurrentGame(null);
-               clearCurrentGame();
-           }
-           
-       } catch (err) {
-           console.error('❌ Error checking current game:', err);
-           setError('Errore nel caricamento della partita');
-           setGameState('no-game');
-       } finally {
-           setLoading(false);
-       }
-   };
+        try {
+            setLoading(true);
+            setError('');
+            
+            console.log('🎮 Checking for existing game...');
+            
+            try {
+                const gameData = await API.getCurrentGame();
+                console.log('📋 Found existing game:', gameData);
+                
+                setCurrentGame(gameData.game);
+                updateCurrentGame(gameData.game);
+                
+                // ✅ SISTEMARE: Ricostruire allGameCards completo
+                let allGameCardsData = [];
+                
+                if (gameData.allCards && gameData.allCards.length > 0) {
+                    // Se il backend restituisce già tutto
+                    allGameCardsData = gameData.allCards;
+                    console.log('📊 Using allCards from backend:', gameData.allCards);
+                } else {
+                    // ✅ FALLBACK: Ricostruire da wonCards
+                    if (gameData.wonCards && gameData.wonCards.length > 0) {
+                        // Identifica le carte iniziali e quelle vinte
+                        const wonCards = gameData.wonCards;
+                        
+                        // Le prime 3 per bad_luck_index sono probabilmente le iniziali
+                        // Le altre sono state vinte
+                        const sortedByIndex = [...wonCards].sort((a, b) => a.bad_luck_index - b.bad_luck_index);
+                        
+                        // ✅ LOGICA: Se abbiamo 6 carte e 3 errori = 3 iniziali + 3 vinte
+                        const totalCards = gameData.game.cards_collected;
+                        const roundsPlayed = gameData.game.current_round - 1;
+                        const cardsWon = totalCards - 3; // Carte vinte = totali - 3 iniziali
+                        
+                        allGameCardsData = sortedByIndex.map((card, index) => ({
+                            ...card,
+                            is_initial: index < 3, // Prime 3 = iniziali
+                            round_number: index < 3 ? 0 : index - 2, // Round delle vinte
+                            guessed_correctly: index < 3 ? null : true // Solo le vinte hanno guessed_correctly
+                        }));
+                        
+                        console.log('🔄 Reconstructed allGameCards:', allGameCardsData);
+                    }
+                }
+                
+                setAllGameCards(allGameCardsData);
+                
+                if (gameData.wonCards && gameData.wonCards.length > 0) {
+                    const wonCards = gameData.wonCards.map(c => 
+                        new CardModel(c.id, c.name, c.image_url, c.bad_luck_index, c.theme)
+                    );
+                    wonCards.sort((a, b) => a.bad_luck_index - b.bad_luck_index);
+                    setCurrentCards(wonCards);
+                }
+                
+                if (gameData.game.status !== 'playing') {
+                    setGameState('game-over');
+                    return;
+                }
+                
+                if (gameData.game.cards_collected >= 6) {
+                    setGameState('game-over');
+                    return;
+                } else if (gameData.game.wrong_guesses >= 3) {
+                    setGameState('game-over');
+                    return;
+                }
+                
+                setGameState('playing');
+                
+            } catch (gameError) {
+                console.log('ℹ️ No active game found');
+                setGameState('no-game');
+                setCurrentGame(null);
+                setAllGameCards([]);
+                clearCurrentGame();
+            }
+            
+        } catch (err) {
+            console.error('❌ Error checking current game:', err);
+            setError('Errore nel caricamento della partita');
+            setGameState('no-game');
+        } finally {
+            setLoading(false);
+        }
+    };
    
    // ============================================================================
    // CREAZIONE NUOVA PARTITA
    // ============================================================================
    
    const handleCreateNewGame = async () => {
-       try {
-           setLoading(true);
-           setError('');
-           
-           console.log('🆕 Creating new game...');
-           
-           const gameData = await API.createGame('university_life');
-           console.log('✅ Game created:', gameData);
-           
-           setCurrentGame(gameData.game);
-           updateCurrentGame(gameData.game);
-           
-           const initialCards = gameData.initialCards.map(c =>
-               new CardModel(c.id, c.name, c.image_url, c.bad_luck_index, c.theme)
-           );
-           initialCards.sort((a, b) => a.bad_luck_index - b.bad_luck_index);
-           setCurrentCards(initialCards);
-           
-           setGameState('playing');
-           setMessage({ type: 'success', msg: 'Nuova partita creata!' });
-           
-       } catch (err) {
-           console.error('❌ Error creating game:', err);
-           
-           if (err.type === 'ACTIVE_GAME_EXISTS') {
-               setError('Hai già una partita in corso. Completa quella prima di iniziarne una nuova.');
-               checkCurrentGame();
-           } else {
-               setError(err.message || 'Errore nella creazione della partita');
-           }
-       } finally {
-           setLoading(false);
-       }
-   };
+        try {
+            setLoading(true);
+            setError('');
+            
+            console.log('🆕 Creating new game...');
+            
+            const gameData = await API.createGame('university_life');
+            console.log('✅ Game created:', gameData);
+            
+            setCurrentGame(gameData.game);
+            updateCurrentGame(gameData.game);
+            
+            const initialCards = gameData.initialCards.map(c =>
+                new CardModel(c.id, c.name, c.image_url, c.bad_luck_index, c.theme)
+            );
+            initialCards.sort((a, b) => a.bad_luck_index - b.bad_luck_index);
+            setCurrentCards(initialCards);
+            
+            // ✅ AGGIUNGI: Crea allGameCards con le carte iniziali
+            const allGameCardsData = gameData.initialCards.map(c => ({
+                id: c.id,
+                name: c.name,
+                image_url: c.image_url,
+                bad_luck_index: c.bad_luck_index,
+                theme: c.theme,
+                is_initial: true, // Queste sono le carte iniziali
+                round_number: 0,
+                guessed_correctly: null
+            }));
+            setAllGameCards(allGameCardsData);
+            
+            setGameState('playing');
+            setMessage({ type: 'success', msg: 'Nuova partita creata!' });
+            
+        } catch (err) {
+            console.error('❌ Error creating game:', err);
+            
+            if (err.type === 'ACTIVE_GAME_EXISTS') {
+                setError('Hai già una partita in corso. Completa quella prima di iniziarne una nuova.');
+                checkCurrentGame();
+            } else {
+                setError(err.message || 'Errore nella creazione della partita');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
    
    // ============================================================================
    // GESTIONE ROUND - Con setup drag & drop
@@ -486,24 +538,36 @@ function FullGameBoard() {
            }
            
            if (result.revealed_card) {
-               const revealedCard = Array.isArray(result.revealed_card) ? result.revealed_card[0] : result.revealed_card;
-               const revealedCardModel = new CardModel(
-                   revealedCard.id,
-                   revealedCard.name,
-                   revealedCard.image_url,
-                   revealedCard.bad_luck_index,
-                   revealedCard.theme
-               );
-               setTargetCard(revealedCardModel);
-               
-               if (result.correct) {
-                   setCurrentCards(prev => {
-                       const newCards = [...prev, revealedCardModel];
-                       newCards.sort((a, b) => a.bad_luck_index - b.bad_luck_index);
-                       return newCards;
-                   });
-               }
-           }
+                const revealedCard = Array.isArray(result.revealed_card) ? result.revealed_card[0] : result.revealed_card;
+                const revealedCardModel = new CardModel(
+                    revealedCard.id,
+                    revealedCard.name,
+                    revealedCard.image_url,
+                    revealedCard.bad_luck_index,
+                    revealedCard.theme
+                );
+                setTargetCard(revealedCardModel);
+                
+                if (result.correct) {
+                    setCurrentCards(prev => {
+                        const newCards = [...prev, revealedCardModel];
+                        newCards.sort((a, b) => a.bad_luck_index - b.bad_luck_index);
+                        return newCards;
+                    });
+                    
+                    // ✅ AGGIUNGI: Aggiorna anche allGameCards
+                    setAllGameCards(prev => [...prev, {
+                        id: revealedCard.id,
+                        name: revealedCard.name,
+                        image_url: revealedCard.image_url,
+                        bad_luck_index: revealedCard.bad_luck_index,
+                        theme: revealedCard.theme,
+                        is_initial: false,
+                        round_number: currentGame.current_round,
+                        guessed_correctly: true
+                    }]);
+                }
+            }
            
            setRoundResult({
                isCorrect: result.correct,
@@ -631,19 +695,20 @@ function FullGameBoard() {
    };
    
    const handleNewGame = () => {
-       setGameState('loading');
-       setCurrentGame(null);
-       setCurrentCards([]);
-       setTargetCard(null);
-       setCurrentRoundCard(null);
-       setRoundResult(null);
-       setAllItems([]); // Reset drag & drop
-       setTimerActive(false);
-       setError('');
-       clearCurrentGame();
-       
-       handleCreateNewGame();
-   };
+        setGameState('loading');
+        setCurrentGame(null);
+        setCurrentCards([]);
+        setTargetCard(null);
+        setCurrentRoundCard(null);
+        setRoundResult(null);
+        setAllItems([]);
+        setAllGameCards([]); // ✅ AGGIUNGI
+        setTimerActive(false);
+        setError('');
+        clearCurrentGame();
+        
+        handleCreateNewGame();
+    };
    
    const handleBackHome = () => {
        navigate('/');
@@ -1004,17 +1069,27 @@ function FullGameBoard() {
                
                {/* Stato: Partita terminata */}
                {gameState === 'game-over' && currentGame && (
-                   <GameSummary 
-                       gameWon={currentGame.cards_collected >= 6 && currentGame.wrong_guesses < 3}
-                       finalCards={currentCards}
-                       totalRounds={currentGame.current_round}
-                       cardsCollected={currentGame.cards_collected}
-                       wrongGuesses={currentGame.wrong_guesses}
-                       onNewGame={handleNewGame}
-                       onBackHome={handleBackHome}
-                       isDemo={false}
-                   />
-               )}
+                    <>
+                        {console.log('🔧 Game state for summary:', {
+                            current_round: currentGame.current_round,
+                            cards_collected: currentGame.cards_collected,
+                            wrong_guesses: currentGame.wrong_guesses,
+                            status: currentGame.status
+                        })}
+                        
+                        <GameSummary 
+                            gameWon={currentGame.cards_collected >= 6 && currentGame.wrong_guesses < 3}
+                            finalCards={currentCards}
+                            allGameCards={allGameCards}
+                            totalRounds={currentGame.cards_collected + currentGame.wrong_guesses}
+                            cardsCollected={currentGame.cards_collected}
+                            wrongGuesses={currentGame.wrong_guesses}
+                            onNewGame={handleNewGame}
+                            onBackHome={handleBackHome}
+                            isDemo={false}
+                        />
+                    </>
+                )}
            </Container>
        </DndContext>
    );

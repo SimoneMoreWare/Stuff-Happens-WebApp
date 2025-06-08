@@ -1,5 +1,4 @@
-import React from 'react';
-import { Container, Row, Col, Card, Button, Alert, Badge, ListGroup } from 'react-bootstrap';
+import { Container, Row, Col, Card, Alert, Button, Badge } from 'react-bootstrap';
 import CardDisplay from './CardDisplay.jsx';
 
 function RoundResult({ 
@@ -12,367 +11,339 @@ function RoundResult({
     onContinue, 
     onNewGame, 
     onBackHome,
-    isDemo = false, 
-    gameCompleted = false, 
+    isDemo = false,
+    gameCompleted = false,
     gameWon = false 
 }) {
     
-    // ✅ LOGIC per determinare i messaggi e azioni secondo le specifiche del prof
-    const getMainMessage = () => {
-        if (isDemo) {
-            if (isTimeout) {
-                return {
-                    title: "Tempo Scaduto! ⏰",
-                    subtitle: "Non hai fatto in tempo a posizionare la carta",
-                    variant: "warning"
-                };
-            }
-            return {
-                title: isCorrect ? "Perfetto! ⭐" : "Non Proprio! 📝",
-                subtitle: isCorrect ? 
-                    "Hai capito come funziona il gioco!" : 
-                    "Adesso sai come si gioca. Prova ancora!",
-                variant: isCorrect ? "success" : "info"
-            };
+    // ✅ CALCOLI E LOGICA
+    const getResultTitle = () => {
+        if (isTimeout) {
+            return isDemo ? 'Tempo Scaduto!' : 'Tempo Scaduto!';
+        }
+        return isCorrect ? 'Carta Vinta!' : 'Carta Persa!';
+    };
+    
+    const getResultMessage = () => {
+        if (isTimeout) {
+            return isDemo ? 
+                'Il tempo è scaduto prima che tu potessi posizionare la carta.' :
+                'Il tempo è scaduto! Hai perso questa carta e accumulato un errore.';
+        }
+        
+        if (isCorrect) {
+            return isDemo ?
+                'Perfetto! Hai capito come funziona il gioco e vinto la carta.' :
+                'Ottimo lavoro! Hai posizionato correttamente la carta e l\'hai aggiunta alla tua collezione.';
         } else {
-            // Partita completa
-            if (isTimeout) {
-                return {
-                    title: "Tempo Scaduto! ⏰",
-                    subtitle: `Round ${isCorrect ? 'vinto' : 'perso'} - Tempo scaduto`,
-                    variant: "warning"
-                };
-            }
-            
-            if (gameCompleted) {
-                return {
-                    title: gameWon ? "Partita Vinta! 🏆" : "Partita Persa 💀",
-                    subtitle: gameWon ? 
-                        "Congratulazioni! Hai completato la sfida!" : 
-                        "Peccato! Hai raggiunto il limite di errori.",
-                    variant: gameWon ? "success" : "danger"
-                };
-            } else {
-                return {
-                    title: isCorrect ? "Round Vinto! ⭐" : "Round Perso 📝",
-                    subtitle: isCorrect ? 
-                        "Ottimo! Continua così." : 
-                        "Non scoraggiarti, continua a giocare!",
-                    variant: isCorrect ? "success" : "warning"
-                };
-            }
+            return isDemo ?
+                'Non è la posizione corretta, ma ora sai come funziona il gioco!' :
+                'Peccato! La posizione non era corretta. Hai perso questa carta e accumulato un errore.';
         }
     };
     
-    const message = getMainMessage();
-    
-    // ✅ DETERMINA i pulsanti da mostrare secondo il prof
-    const getActionButtons = () => {
-        if (isDemo) {
-            // Demo: solo "Nuova Demo" e "Torna alla Home" secondo prof
-            return (
-                <div className="d-grid gap-2 d-md-flex justify-content-md-center">
-                    <Button 
-                        variant="primary" 
-                        size="lg" 
-                        onClick={onNewGame}
-                        className="d-flex align-items-center"
-                    >
-                        <i className="bi bi-arrow-repeat me-2"></i>
-                        Nuova Demo
-                    </Button>
-                    
-                    <Button 
-                        variant="outline-secondary" 
-                        size="lg"
-                        onClick={onBackHome}
-                        className="d-flex align-items-center"
-                    >
-                        <i className="bi bi-house me-2"></i>
-                        Torna alla Home
-                    </Button>
-                </div>
-            );
-        } else {
-            // Partita completa: logica esistente
-            if (gameCompleted) {
-                return (
-                    <div className="d-grid gap-2 d-md-flex justify-content-md-center">
-                        <Button 
-                            variant="primary" 
-                            size="lg" 
-                            onClick={onContinue}
-                            className="d-flex align-items-center"
-                        >
-                            <i className="bi bi-list-check me-2"></i>
-                            Mostra Riepilogo
-                        </Button>
-                        
-                        <Button 
-                            variant="outline-primary" 
-                            size="lg"
-                            onClick={onNewGame}
-                            className="d-flex align-items-center"
-                        >
-                            <i className="bi bi-arrow-repeat me-2"></i>
-                            Nuova Partita
-                        </Button>
-                        
-                        <Button 
-                            variant="outline-secondary" 
-                            size="lg"
-                            onClick={onBackHome}
-                            className="d-flex align-items-center"
-                        >
-                            <i className="bi bi-house me-2"></i>
-                            Home
-                        </Button>
-                    </div>
-                );
-            } else {
-                return (
-                    <div className="d-grid gap-2 d-md-flex justify-content-md-center">
-                        <Button 
-                            variant="primary" 
-                            size="lg" 
-                            onClick={onContinue}
-                            className="d-flex align-items-center"
-                        >
-                            <i className="bi bi-play-fill me-2"></i>
-                            Continua Partita
-                        </Button>
-                        
-                        <Button 
-                            variant="outline-primary" 
-                            size="lg"
-                            onClick={onNewGame}
-                            className="d-flex align-items-center"
-                        >
-                            <i className="bi bi-arrow-repeat me-2"></i>
-                            Nuova Partita
-                        </Button>
-                        
-                        <Button 
-                            variant="outline-secondary" 
-                            size="lg"
-                            onClick={onBackHome}
-                            className="d-flex align-items-center"
-                        >
-                            <i className="bi bi-house me-2"></i>
-                            Home
-                        </Button>
-                    </div>
-                );
-            }
-        }
+    const getAlertVariant = () => {
+        if (isTimeout) return 'warning';
+        return isCorrect ? 'success' : 'danger';
     };
-
+    
     return (
         <Container className="py-4">
-            {/* ✅ Header principale con risultato */}
-            <Row className="mb-5">
+            {/* ✅ RISULTATO PRINCIPALE */}
+            <Row className="mb-4">
                 <Col className="text-center">
-                    <div className={`display-3 mb-3 text-${message.variant}`}>
-                        {isDemo ? (
-                            <i className="bi bi-controller"></i>
-                        ) : isCorrect ? (
-                            <i className="bi bi-check-circle-fill"></i>
-                        ) : (
-                            <i className="bi bi-x-circle-fill"></i>
-                        )}
-                    </div>
-                    <h1 className={`display-4 fw-bold text-${message.variant}`}>
-                        {message.title}
-                    </h1>
-                    <p className="lead text-muted mb-4">
-                        {message.subtitle}
-                    </p>
-                </Col>
-            </Row>
-
-            {/* ✅ Carta Target Rivelata - SOLO se vinta */}
-            {isCorrect && (
-                <Row className="mb-5">
-                    <Col>
-                        <Card className="shadow-sm">
-                            <Card.Header className={`bg-${message.variant} text-white text-center`}>
-                                <h4 className="mb-0">
-                                    <i className="bi bi-eye me-2"></i>
-                                    Carta Target Vinta
-                                </h4>
-                            </Card.Header>
-                            <Card.Body>
-                                <Row className="justify-content-center">
-                                    <Col md={6} lg={4} className="mx-auto">
-                                        <div className="text-center mb-3">
-                                            <Badge bg="success" className="fs-6 p-2">
-                                                Carta Vinta!
-                                            </Badge>
-                                        </div>
-                                        <CardDisplay 
-                                            card={targetCard} 
-                                            showBadLuckIndex={true}
-                                            className="border-3 border-success"
-                                        />
-                                        <div className="text-center mt-3">
-                                            <h5 className="mb-1">Bad Luck Index</h5>
-                                            <Badge bg="dark" className="fs-5 p-2">
-                                                {targetCard.bad_luck_index}
-                                            </Badge>
-                                        </div>
-                                    </Col>
-                                </Row>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                </Row>
-            )}
-
-            {/* ✅ Spiegazione del Risultato - STRETTA secondo prof */}
-            <Row className="mb-5">
-                <Col>
-                    <Alert variant={message.variant} className="shadow-sm">
-                        <h5 className="alert-heading">
-                            <i className="bi bi-info-circle me-2"></i>
-                            Risultato Round
-                        </h5>
-                        
-                        {isCorrect ? (
-                            // ✅ SOLO se vinto: mostra dettagli completi
-                            <div>
-                                <p className="mb-3">
-                                    <strong>La tua scelta:</strong> Posizione {guessedPosition + 1}
-                                    <br />
-                                    <strong>Posizione corretta:</strong> Posizione {correctPosition + 1}
-                                </p>
-                                <p className="mb-0">
-                                    <i className="bi bi-check-circle text-success me-2"></i>
-                                    <strong>Perfetto!</strong> Hai posizionato correttamente la carta basandoti sul Bad Luck Index.
-                                </p>
-                            </div>
-                        ) : isTimeout ? (
-                            // ✅ TIMEOUT: Nessuna informazione sulla carta
-                            <p className="mb-0">
-                                <i className="bi bi-clock text-warning me-2"></i>
-                                <strong>Tempo scaduto!</strong> Non hai fatto in tempo a posizionare la carta. 
-                                La carta è stata scartata e non sarà più disponibile.
-                            </p>
-                        ) : (
-                            // 🚨 SBAGLIATO: NESSUNA informazione secondo prof ("does not see ANY info")
-                            <p className="mb-0">
-                                <i className="bi bi-x-circle text-danger me-2"></i>
-                                <strong>Risposta errata!</strong> La carta è stata scartata e non sarà più disponibile.
-                                {isDemo && " Prova di nuovo per scoprire dove doveva andare!"}
-                            </p>
-                        )}
+                    <Alert variant={getAlertVariant()} className="shadow-lg">
+                        <div className="display-4 mb-3">
+                            {isTimeout ? '⏰' : isCorrect ? '🥳' : '😢'}
+                        </div>
+                        <h2 className="mb-3">{getResultTitle()}</h2>
+                        <p className="lead mb-0">{getResultMessage()}</p>
                     </Alert>
                 </Col>
             </Row>
-
-            {/* ✅ DEMO ONLY: Mostra tutte le carte con ordine corretto - SOLO SE VINTO */}
-            {isDemo && isCorrect && allCards && allCards.length > 0 && (
-                <Row className="mb-5">
-                    <Col>
-                        <Card className="shadow-sm">
-                            <Card.Header className="bg-secondary text-white text-center">
+            
+            {/* ✅ CARTA COINVOLTA - SOLO SE VINTA */}
+            {isCorrect && targetCard && (
+                <Row className="mb-4">
+                    <Col className="text-center">
+                        <h4 className="mb-3">
+                            <i className="bi bi-card-heading me-2"></i>
+                            Carta Vinta
+                        </h4>
+                        
+                        <div className="d-flex justify-content-center">
+                            <div className="text-center">
+                                <div className="mb-2">
+                                    <Badge bg="success">VINTA</Badge>
+                                </div>
+                                <div style={{ width: '200px', maxWidth: '100%' }}>
+                                    <CardDisplay 
+                                        card={targetCard}
+                                        showBadLuckIndex={true} // ✅ Solo se vinta
+                                        className="shadow"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </Col>
+                </Row>
+            )}
+            
+            {/* ✅ SPIEGAZIONE - SOLO SE VINTA */}
+            {isCorrect && targetCard && (
+                <Row className="mb-4">
+                    <Col md={10} className="mx-auto">
+                        <Card className="border-success">
+                            <Card.Header className="bg-success text-white">
                                 <h5 className="mb-0">
-                                    <i className="bi bi-list-ol me-2"></i>
-                                    Ordine Corretto delle Carte
+                                    <i className="bi bi-lightbulb me-2"></i>
+                                    Ottimo Lavoro!
                                 </h5>
                             </Card.Header>
                             <Card.Body>
+                                <div className="mb-3">
+                                    <strong>La tua scelta:</strong> Posizione {guessedPosition}
+                                    <br />
+                                    <strong>Era corretta!</strong> La carta "{targetCard.name}" ha Bad Luck Index {targetCard.bad_luck_index}.
+                                </div>
+                                
+                                <div className="mt-3 p-3 bg-light rounded">
+                                    <small className="text-muted">
+                                        <i className="bi bi-trophy me-2"></i>
+                                        <strong>Bene!</strong> Continua così e osserva attentamente le immagini e i nomi delle situazioni!
+                                    </small>
+                                </div>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                </Row>
+            )}
+            
+            {/* ✅ MESSAGGIO GENERICO SE PERSA - NESSUN DETTAGLIO */}
+            {!isCorrect && !isTimeout && (
+                <Row className="mb-4">
+                    <Col md={10} className="mx-auto">
+                        <Card className="border-danger">
+                            <Card.Header className="bg-danger text-white">
+                                <h5 className="mb-0">
+                                    <i className="bi bi-x-circle me-2"></i>
+                                    Non Scoraggiarti!
+                                </h5>
+                            </Card.Header>
+                            <Card.Body>
+                                <div className="mb-3">
+                                    <strong>La tua scelta:</strong> Posizione {guessedPosition}
+                                    <br />
+                                    <strong>Non era corretta.</strong> Hai perso questa carta.
+                                </div>
+                                
+                                <div className="mt-3 p-3 bg-light rounded">
+                                    <small className="text-muted">
+                                        <i className="bi bi-lightbulb me-2"></i>
+                                        <strong>Consiglio:</strong> Osserva attentamente le immagini e pensa a quanto gravi siano le situazioni rispetto a quelle che hai già!
+                                    </small>
+                                </div>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                </Row>
+            )}
+            
+            {/* ✅ MESSAGGIO GENERICO SE TIMEOUT - NESSUN DETTAGLIO */}
+            {isTimeout && (
+                <Row className="mb-4">
+                    <Col md={10} className="mx-auto">
+                        <Card className="border-warning">
+                            <Card.Header className="bg-warning text-dark">
+                                <h5 className="mb-0">
+                                    <i className="bi bi-clock me-2"></i>
+                                    Tempo Scaduto
+                                </h5>
+                            </Card.Header>
+                            <Card.Body>
+                                <div className="mb-3">
+                                    Il tempo di 30 secondi è scaduto prima che tu potessi fare una scelta.
+                                </div>
+                                
+                                <div className="mt-3 p-3 bg-light rounded">
+                                    <small className="text-muted">
+                                        <i className="bi bi-stopwatch me-2"></i>
+                                        <strong>Suggerimento:</strong> Cerca di essere più veloce nella prossima volta!
+                                    </small>
+                                </div>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                </Row>
+            )}
+            
+            {/* ✅ ORDINE FINALE DELLE CARTE - SOLO PER DEMO quando vinci */}
+            {isDemo && isCorrect && allCards && allCards.length > 0 && (
+                <Row className="mb-4">
+                    <Col>
+                        <Card className="border-success">
+                            <Card.Header className="bg-success text-white">
+                                <h5 className="mb-0">
+                                    <i className="bi bi-collection me-2"></i>
+                                    Le Tue Carte Attuali
+                                </h5>
+                            </Card.Header>
+                            <Card.Body>
+                                <p className="text-muted mb-3">
+                                    Ecco come sono ordinate le tue carte dopo questo round:
+                                </p>
                                 <Row className="g-3">
-                                    {/* Mostra le carte nell'ordine corretto con la target inserita */}
-                                    {(() => {
-                                        // Crea array con tutte le carte nell'ordine corretto
-                                        const sortedCards = [...allCards].sort((a, b) => a.bad_luck_index - b.bad_luck_index);
-                                        const allCardsWithTarget = [...sortedCards];
-                                        
-                                        // Inserisci la carta target nella posizione corretta
-                                        allCardsWithTarget.splice(correctPosition, 0, targetCard);
-                                        
-                                        return allCardsWithTarget.map((card, index) => (
-                                            <Col key={card.id} md={6} lg={3} className="mb-3">
-                                                <div className="text-center mb-2">
-                                                    <Badge 
-                                                        bg={card.id === targetCard.id ? "success" : "secondary"}
-                                                        className="fs-6"
-                                                    >
-                                                        Pos. {index + 1}
-                                                        {card.id === targetCard.id && " (Target)"}
-                                                    </Badge>
-                                                </div>
-                                                <CardDisplay 
-                                                    card={card} 
-                                                    showBadLuckIndex={true}
-                                                    className={`h-100 ${card.id === targetCard.id ? 
-                                                        'border-3 border-success' : ''}`}
-                                                />
-                                                <div className="text-center mt-2">
-                                                    <small className="text-muted">
-                                                        Bad Luck: <strong>{card.bad_luck_index}</strong>
-                                                    </small>
-                                                </div>
-                                            </Col>
-                                        ));
-                                    })()}
+                                    {allCards
+                                        .sort((a, b) => a.bad_luck_index - b.bad_luck_index)
+                                        .map((card, index) => {
+                                            // ✅ NUOVO: Determina se è carta iniziale o vinta
+                                            const isWonCard = card.id === targetCard?.id;
+                                            
+                                            return (
+                                                <Col key={card.id} md={3} lg={2} className="text-center">
+                                                    <div className="mb-2">
+                                                        {isWonCard ? (
+                                                            <Badge bg="success">
+                                                                <i className="bi bi-trophy-fill me-1"></i>
+                                                                Vinta!
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge bg="info">
+                                                                <i className="bi bi-circle-fill me-1"></i>
+                                                                Iniziale
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                    <CardDisplay 
+                                                        card={card}
+                                                        showBadLuckIndex={true}
+                                                        className={`h-100 ${isWonCard ? 'border-success border-2' : 'border-info'}`}
+                                                        style={{ maxHeight: '200px' }}
+                                                    />
+                                                </Col>
+                                            );
+                                        })}
                                 </Row>
                             </Card.Body>
                         </Card>
                     </Col>
                 </Row>
             )}
-
-            {/* ✅ Consigli per migliorare (solo se non ha vinto) */}
-            {!isCorrect && !isTimeout && (
-                <Row className="mb-5">
-                    <Col>
-                        <Alert variant="info" className="shadow-sm">
-                            <h6 className="alert-heading">
-                                <i className="bi bi-lightbulb me-2"></i>
-                                Consigli per Migliorare
-                            </h6>
-                            <ListGroup variant="flush" className="bg-transparent">
-                                <ListGroup.Item className="bg-transparent px-0">
-                                    <i className="bi bi-eye text-primary me-2"></i>
-                                    Osserva attentamente l'immagine della situazione
-                                </ListGroup.Item>
-                                <ListGroup.Item className="bg-transparent px-0">
-                                    <i className="bi bi-book text-primary me-2"></i>
-                                    Leggi con attenzione il nome della situazione
-                                </ListGroup.Item>
-                                <ListGroup.Item className="bg-transparent px-0">
-                                    <i className="bi bi-graph-up text-primary me-2"></i>
-                                    Confronta mentalmente la gravità con le altre carte
-                                </ListGroup.Item>
-                                {isDemo && (
-                                    <ListGroup.Item className="bg-transparent px-0">
-                                        <i className="bi bi-star text-warning me-2"></i>
-                                        Prova di nuovo o registrati per partite complete!
-                                    </ListGroup.Item>
-                                )}
-                            </ListGroup>
-                        </Alert>
-                    </Col>
-                </Row>
-            )}
-
-            {/* ✅ INVITO ALLA REGISTRAZIONE per utenti demo */}
+            
+            {/* ✅ PULSANTI DI AZIONE - GESTIONE DEMO vs FULL GAME */}
+            <Row>
+                <Col className="text-center">
+                    <Card className="bg-body-secondary">
+                        <Card.Body className="p-4">
+                            <h4 className="mb-3">Cosa vuoi fare ora?</h4>
+                            
+                            {/* ✅ GESTIONE SPECIFICA PER DEMO */}
+                            {isDemo && (
+                                <div className="d-grid gap-2 d-md-flex justify-content-md-center">
+                                    <Button 
+                                        variant="primary" 
+                                        size="lg" 
+                                        onClick={onNewGame}
+                                        className="d-flex align-items-center"
+                                    >
+                                        <i className="bi bi-arrow-repeat me-2"></i>
+                                        Nuova Demo
+                                    </Button>
+                                    
+                                    <Button 
+                                        variant="outline-primary" 
+                                        size="lg"
+                                        href="/login"
+                                        className="d-flex align-items-center"
+                                    >
+                                        <i className="bi bi-person-plus me-2"></i>
+                                        Registrati per Partite Complete
+                                    </Button>
+                                    
+                                    <Button 
+                                        variant="outline-secondary" 
+                                        size="lg"
+                                        onClick={onBackHome}
+                                        className="d-flex align-items-center"
+                                    >
+                                        <i className="bi bi-house me-2"></i>
+                                        Torna alla Home
+                                    </Button>
+                                </div>
+                            )}
+                            
+                            {/* ✅ GESTIONE PER PARTITE COMPLETE */}
+                            {!isDemo && (
+                                <div className="d-grid gap-2 d-md-flex justify-content-md-center">
+                                    {/* Se partita NON completata = continua al prossimo round */}
+                                    {!gameCompleted && (
+                                        <Button 
+                                            variant="primary" 
+                                            size="lg"
+                                            onClick={onContinue}
+                                            className="d-flex align-items-center"
+                                        >
+                                            <i className="bi bi-arrow-right me-2"></i>
+                                            Continua al Prossimo Round
+                                        </Button>
+                                    )}
+                                    
+                                    {/* Se partita COMPLETATA = vai al riepilogo finale */}
+                                    {gameCompleted && (
+                                        <Button 
+                                            variant="primary" 
+                                            size="lg"
+                                            onClick={onContinue}
+                                            className="d-flex align-items-center"
+                                        >
+                                            <i className="bi bi-eye me-2"></i>
+                                            Vedi Riepilogo Finale
+                                        </Button>
+                                    )}
+                                    
+                                    {/* Sempre presenti per partite complete */}
+                                    <Button 
+                                        variant="outline-primary" 
+                                        size="lg"
+                                        onClick={onNewGame}
+                                        className="d-flex align-items-center"
+                                    >
+                                        <i className="bi bi-plus-circle me-2"></i>
+                                        Nuova Partita
+                                    </Button>
+                                    
+                                    <Button 
+                                        variant="outline-secondary" 
+                                        size="lg"
+                                        onClick={onBackHome}
+                                        className="d-flex align-items-center"
+                                    >
+                                        <i className="bi bi-house me-2"></i>
+                                        Torna alla Home
+                                    </Button>
+                                </div>
+                            )}
+                        </Card.Body>
+                    </Card>
+                </Col>
+            </Row>
+            
+            {/* ✅ MESSAGGIO PROMOZIONALE PER DEMO */}
             {isDemo && (
-                <Row className="mb-4">
+                <Row className="mt-4">
                     <Col>
-                        <Alert variant="success" className="text-center shadow-sm">
+                        <Alert variant={isCorrect ? 'success' : 'info'} className="text-center">
                             <h5 className="alert-heading">
                                 <i className="bi bi-star me-2"></i>
-                                Ti è piaciuto il gioco?
+                                {isCorrect ? 'Complimenti! Hai talento per questo gioco!' : 'Vuoi migliorare?'}
                             </h5>
                             <p className="mb-3">
                                 {isCorrect ? 
-                                    'Complimenti! Hai il talento per questo gioco. Registrati per giocare partite complete con 6 carte e tenere traccia dei tuoi progressi.' :
-                                    'Questa era solo un\'anteprima! Registrati per giocare partite complete e migliorare le tue abilità.'
+                                    'Hai dimostrato di capire il meccanismo. Registrati per giocare partite complete con 6 carte e tenere traccia dei tuoi progressi!' :
+                                    'Questa era solo un\'anteprima! Registrati per giocare partite complete e perfezionare le tue abilità.'
                                 }
                             </p>
-                            <Button variant="success" href="/login" size="lg">
+                            <Button variant={isCorrect ? 'success' : 'primary'} href="/login" size="lg">
                                 <i className="bi bi-person-plus me-2"></i>
                                 Registrati Ora
                             </Button>
@@ -380,20 +351,6 @@ function RoundResult({
                     </Col>
                 </Row>
             )}
-
-            {/* ✅ Pulsanti di Azione - Dinamici secondo le specifiche del prof */}
-            <Row>
-                <Col>
-                    <Card className="bg-body-secondary text-center shadow-sm">
-                        <Card.Body className="p-4">
-                            <h4 className="mb-3">
-                                {isDemo ? "Cosa vuoi fare ora?" : "Continua la Sfida"}
-                            </h4>
-                            {getActionButtons()}
-                        </Card.Body>
-                    </Card>
-                </Col>
-            </Row>
         </Container>
     );
 }

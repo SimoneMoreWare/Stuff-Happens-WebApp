@@ -346,8 +346,6 @@ function DemoGameBoard() {
             const timeElapsed = gameStartTime ? Math.floor((Date.now() - gameStartTime) / 1000) : 0;
             
             console.log('🎯 Demo position selected:', position);
-            console.log('📊 Current cards order:', currentCards.map(c => `${c.id}:${c.bad_luck_index}`));
-            console.log('⏰ Time elapsed:', timeElapsed);
             
             const result = await API.submitDemoGuess(
                 targetCard.id,
@@ -363,10 +361,27 @@ function DemoGameBoard() {
                 targetCard.id,
                 targetCard.name,
                 targetCard.image_url,
-                result.correct ? result.targetCard.bad_luck_index : null, // Solo se vinto
+                result.correct ? result.targetCard.bad_luck_index : null,
                 targetCard.theme
             );
             setTargetCard(revealedCard);
+            
+            // ✅ NUOVO: Se vinto, aggiorna currentCards con la carta vinta
+            if (result.correct && result.targetCard.bad_luck_index) {
+                const wonCard = new CardModel(
+                    targetCard.id,
+                    targetCard.name,
+                    targetCard.image_url,
+                    result.targetCard.bad_luck_index,
+                    targetCard.theme
+                );
+                
+                setCurrentCards(prev => {
+                    const newCards = [...prev, wonCard];
+                    newCards.sort((a, b) => a.bad_luck_index - b.bad_luck_index);
+                    return newCards;
+                });
+            }
             
             setGameResult({
                 isCorrect: result.correct,
@@ -412,10 +427,27 @@ function DemoGameBoard() {
                 targetCard.id,
                 targetCard.name,
                 targetCard.image_url,
-                result.correct ? result.targetCard.bad_luck_index : null, // Solo se vinto
+                result.correct ? result.targetCard.bad_luck_index : null,
                 targetCard.theme
             );
             setTargetCard(revealedCard);
+            
+            // ✅ NUOVO: Se vinto anche in timeout (caso raro), aggiorna currentCards
+            if (result.correct && result.targetCard.bad_luck_index) {
+                const wonCard = new CardModel(
+                    targetCard.id,
+                    targetCard.name,
+                    targetCard.image_url,
+                    result.targetCard.bad_luck_index,
+                    targetCard.theme
+                );
+                
+                setCurrentCards(prev => {
+                    const newCards = [...prev, wonCard];
+                    newCards.sort((a, b) => a.bad_luck_index - b.bad_luck_index);
+                    return newCards;
+                });
+            }
             
             setGameResult({
                 isCorrect: result.correct,
@@ -627,12 +659,13 @@ function DemoGameBoard() {
                         correctPosition={gameResult.correctPosition}
                         guessedPosition={gameResult.guessedPosition}
                         allCards={currentCards}
-                        onContinue={handleNewGame} // ✅ INVECE di onContinue=summary, vai diretto a nuova demo
+                        onContinue={handleNewGame} // ✅ Va diretto a nuova demo
                         onNewGame={handleNewGame}
                         onBackHome={handleBackHome}
                         isDemo={true}
-                        gameCompleted={true}
+                        gameCompleted={true} // ✅ Demo finisce sempre dopo 1 round
                         gameWon={gameResult.isCorrect}
+                        showSummaryOption={false} // ✅ NUOVO: non mostrare "vai al summary"
                     />
                 )}
 

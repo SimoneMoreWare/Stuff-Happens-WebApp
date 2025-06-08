@@ -1,10 +1,10 @@
-import { Card, Row, Col, Button, Badge, Alert, ListGroup } from 'react-bootstrap';
+import { Card, Row, Col, Button, Badge, Alert, ListGroup, Container } from 'react-bootstrap';
+import { useNavigate } from 'react-router';
 import CardDisplay from './CardDisplay.jsx';
 
 function GameSummary({ 
     gameWon, 
     finalCards, 
-    allInvolvedCards, // ✅ NUOVO: tutte le carte coinvolte (per demo)
     totalRounds, 
     cardsCollected, 
     wrongGuesses,
@@ -12,11 +12,24 @@ function GameSummary({
     onBackHome, 
     isDemo = false 
 }) {
+    const navigate = useNavigate();
     
     // ✅ CALCOLI INTELLIGENTI per demo vs full game
     const targetCards = isDemo ? 1 : 6;
-    const maxErrors = isDemo ? 1 : 3; // Demo ha massimo 1 errore possibile
+    const maxErrors = isDemo ? 1 : 3;
     const precision = totalRounds > 0 ? Math.round(((totalRounds - wrongGuesses) / totalRounds) * 100) : 0;
+    
+    // ✅ SEPARAZIONE carte iniziali da carte vinte per partite complete
+    const getCardsDisplay = () => {
+        // ✅ SEMPLIFICATO: Stessa logica per demo e partite complete
+        return {
+            initialCards: finalCards?.slice(0, 3) || [],
+            wonCards: finalCards?.slice(3) || [],
+            allCards: finalCards || []
+        };
+    };
+    
+    const { initialCards, wonCards, allCards } = getCardsDisplay();
     
     // ✅ TITOLI DINAMICI
     const getMainTitle = () => {
@@ -40,33 +53,28 @@ function GameSummary({
     };
     
     return (
-        <div className="game-summary">
+        <Container>
             {/* ✅ Header principale con risultato */}
-            <Row className="mb-5">
-                <Col className="text-center">
-                    <div className={`display-3 mb-3 ${gameWon ? 'text-success' : (isDemo ? 'text-warning' : 'text-danger')}`}>
-                        {isDemo ? (
-                            <i className="bi bi-controller"></i>
-                        ) : gameWon ? (
-                            <i className="bi bi-trophy-fill"></i>
-                        ) : (
-                            <i className="bi bi-emoji-frown"></i>
-                        )}
-                    </div>
-                    <h1 className={`display-4 fw-bold ${gameWon ? 'text-success' : (isDemo ? 'text-warning' : 'text-danger')}`}>
-                        {getMainTitle()}
-                    </h1>
-                    <p className="lead text-muted mb-4">
-                        {getMainSubtitle()}
-                    </p>
+            <Row className="justify-content-center mb-4">
+                <Col md={10}>
+                    <Card className="text-center shadow-lg border-0">
+                        <Card.Header className={isDemo ? "bg-info text-white py-4" : gameWon ? "bg-success text-white py-4" : "bg-danger text-white py-4"}>
+                            <h1 className="mb-2">
+                                {getMainTitle()}
+                            </h1>
+                            <p className="mb-0 fs-5">
+                                {getMainSubtitle()}
+                            </p>
+                        </Card.Header>
+                    </Card>
                 </Col>
             </Row>
 
             {/* ✅ Statistiche della partita */}
-            <Row className="mb-5">
-                <Col>
-                    <Card className="shadow-sm">
-                        <Card.Header className={`${gameWon ? 'bg-success' : (isDemo ? 'bg-warning text-dark' : 'bg-danger')} text-white text-center`}>
+            <Row className="justify-content-center mb-4">
+                <Col md={10}>
+                    <Card className="shadow">
+                        <Card.Header className="bg-light">
                             <h4 className="mb-0">
                                 <i className="bi bi-graph-up me-2"></i>
                                 {isDemo ? 'Statistiche Demo' : 'Statistiche Partita'}
@@ -74,28 +82,28 @@ function GameSummary({
                         </Card.Header>
                         <Card.Body>
                             <Row className="text-center">
-                                <Col md={3} className="mb-3">
-                                    <div className="bg-body-secondary rounded p-3">
-                                        <div className="display-6 text-primary mb-1">{totalRounds}</div>
-                                        <small className="text-muted">{isDemo ? 'Round Demo' : 'Round Giocati'}</small>
+                                <Col md={3}>
+                                    <div className="p-3">
+                                        <h3 className="text-primary">{totalRounds}</h3>
+                                        {isDemo ? 'Round Demo' : 'Round Giocati'}
                                     </div>
                                 </Col>
-                                <Col md={3} className="mb-3">
-                                    <div className="bg-body-secondary rounded p-3">
-                                        <div className="display-6 text-success mb-1">{cardsCollected}</div>
-                                        <small className="text-muted">Carte Raccolte</small>
+                                <Col md={3}>
+                                    <div className="p-3">
+                                        <h3 className="text-success">{cardsCollected}</h3>
+                                        Carte Raccolte
                                     </div>
                                 </Col>
-                                <Col md={3} className="mb-3">
-                                    <div className="bg-body-secondary rounded p-3">
-                                        <div className="display-6 text-danger mb-1">{wrongGuesses}</div>
-                                        <small className="text-muted">{isDemo ? 'Errori Demo' : 'Errori Commessi'}</small>
+                                <Col md={3}>
+                                    <div className="p-3">
+                                        <h3 className="text-danger">{wrongGuesses}</h3>
+                                        {isDemo ? 'Errori Demo' : 'Errori Commessi'}
                                     </div>
                                 </Col>
-                                <Col md={3} className="mb-3">
-                                    <div className="bg-body-secondary rounded p-3">
-                                        <div className="display-6 text-warning mb-1">{precision}%</div>
-                                        <small className="text-muted">Precisione</small>
+                                <Col md={3}>
+                                    <div className="p-3">
+                                        <h3 className="text-info">{precision}%</h3>
+                                        Precisione
                                     </div>
                                 </Col>
                             </Row>
@@ -104,99 +112,93 @@ function GameSummary({
                 </Col>
             </Row>
 
-            {/* ✅ IMPORTANTE: Carte raccolte/coinvolte - SEMPRE MOSTRATE secondo specifiche */}
-            <Row className="mb-5">
-                <Col>
-                    <Card className="shadow-sm">
-                        <Card.Header className="bg-primary text-white">
+            {/* ✅ SEZIONE CARTE - SEPARATA PER DEMO E PARTITE COMPLETE */}
+            <Row className="justify-content-center mb-4">
+                <Col md={10}>
+                    <Card className="shadow">
+                        <Card.Header className="bg-light">
                             <h4 className="mb-0">
                                 <i className="bi bi-collection me-2"></i>
-                                {isDemo ? 'Carte in Tuo Possesso' : 'Le Tue Carte'} ({isDemo && allInvolvedCards ? allInvolvedCards.length : finalCards.length})
+                                {isDemo ? 'Carte in Tuo Possesso' : 'Le Tue Carte'} ({allCards.length})
                             </h4>
                         </Card.Header>
                         <Card.Body>
-                            {/* ✅ DEMO: Mostra solo le carte effettivamente in possesso */}
-                            {isDemo && allInvolvedCards && allInvolvedCards.length > 0 ? (
+                            {isDemo ? (
+                                /* ✅ DEMO: Comportamento originale */
                                 <>
-                                    <p className="text-muted mb-4">
+                                    <Alert variant="info" className="mb-3">
                                         Ecco tutte le carte che possiedi al termine della demo:
-                                    </p>
-                                    <Row className="g-3 pb-4 mb-4">
-                                        {allInvolvedCards.map((card, index) => {
-                                            // ✅ Determina se è una carta iniziale o la carta target vinta
+                                    </Alert>
+                                    <Row className="justify-content-center g-3">
+                                        {allCards.map((card, index) => {
                                             const isInitialCard = index < 3;
-                                            const isTargetCard = index === 3; // Solo se presente, è stata vinta
+                                            const isTargetCard = index === 3;
                                             
                                             return (
-                                                <Col key={card.id} md={6} lg={3}>
-                                                    <div className="text-center mb-2">
+                                                <Col key={`demo-card-${card.id}`} xs={6} md={4} lg={3}>
+                                                    <div className="text-center">
                                                         {isInitialCard ? (
-                                                            <Badge bg="info">Carta Iniziale #{index + 1}</Badge>
+                                                            <Badge bg="secondary" className="mb-2">
+                                                                <i className="bi bi-card-list me-1"></i>
+                                                                Carta Iniziale #{index + 1}
+                                                            </Badge>
                                                         ) : isTargetCard ? (
-                                                            <Badge bg="success">Carta Vinta!</Badge>
+                                                            <Badge bg="success" className="mb-2">
+                                                                <i className="bi bi-trophy me-1"></i>
+                                                                Carta Vinta!
+                                                            </Badge>
                                                         ) : (
-                                                            <Badge bg="secondary">#{index + 1}</Badge>
+                                                            <Badge bg="primary" className="mb-2">#{index + 1}</Badge>
                                                         )}
                                                     </div>
-                                                    <CardDisplay 
-                                                        card={card} 
-                                                        showBadLuckIndex={true}
-                                                        className={`h-100 ${isTargetCard ? 'border-success' : 'border-info'}`}
-                                                    />
+                                                    <CardDisplay card={card} showBadLuckIndex={true} fixedHeight={true} />
+                                                </Col>
+                                            );
+                                        })}
+                                    </Row>
+                                </>
+                            ) : (
+                                /* ✅ PARTITE COMPLETE: Tutte le carte mischiate con etichette */
+                                <>
+                                    <Alert variant="info" className="mb-3">
+                                        Ecco tutte le tue carte ordinate per Bad Luck Index crescente. 
+                                        Le prime 3 erano quelle iniziali, le altre le hai vinte durante la partita.
+                                    </Alert>
+                                    <Row className="justify-content-center g-3">
+                                        {allCards.map((card, index) => {
+                                            const isInitialCard = index < 3;
+                                            
+                                            return (
+                                                <Col key={`game-card-${card.id}`} xs={6} md={4} lg={3} className='pb-4'>
+                                                    <div className="text-center">
+                                                        {isInitialCard ? (
+                                                            <Badge bg="secondary" className="mb-2">
+                                                                <i className="bi bi-card-list me-1"></i>
+                                                                Iniziale #{index + 1}
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge bg="success" className="mb-2">
+                                                                <i className="bi bi-trophy me-1"></i>
+                                                                Vinta #{index - 2}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                    <CardDisplay card={card} showBadLuckIndex={true} fixedHeight={true} />
                                                 </Col>
                                             );
                                         })}
                                     </Row>
                                     
-                                    {/* ✅ SPIEGAZIONE PER DEMO */}
-                                    <Alert variant="info" className="mt-4 pt-4">
-                                        <h6 className="alert-heading">
+                                    {/* ✅ Statistiche delle carte */}
+                                    <div className="mt-4 pt-4 text-center">
+                                        <small className="text-muted">
                                             <i className="bi bi-info-circle me-2"></i>
-                                            Spiegazione Demo
-                                        </h6>
-                                        <p className="mb-0">
-                                            <strong>Carte Iniziali:</strong> Le 3 carte che avevi in possesso all'inizio, ordinate per Bad Luck Index crescente.<br/>
-                                            {allInvolvedCards.length > 3 ? (
-                                                <><strong>Carta Vinta:</strong> La carta target che sei riuscito a posizionare correttamente!</>
-                                            ) : (
-                                                <><strong>Risultato:</strong> Non sei riuscito a vincere la carta target, ma le 3 carte iniziali rimangono tue.</>
-                                            )}
-                                        </p>
-                                    </Alert>
-                                </>
-                            ) : 
-                            /* ✅ PARTITE COMPLETE: Comportamento originale */
-                            finalCards && finalCards.length > 0 ? (
-                                <>
-                                    <p className="text-muted mb-4">
-                                        Ecco tutte le carte che sei riuscito a raccogliere, ordinate dal Bad Luck Index più basso al più alto:
-                                    </p>
-                                    <Row className="g-3 mb-4 pb-4">
-                                        {finalCards.map((card, index) => (
-                                            <Col key={card.id} md={4} lg={3} className="mb-4">
-                                                <div className="text-center mb-2 ">
-                                                    <Badge bg="secondary">#{index + 1}</Badge>
-                                                </div>
-                                                <CardDisplay 
-                                                    card={card} 
-                                                    showBadLuckIndex={true}
-                                                    className="h-100"
-                                                />
-                                            </Col>
-                                        ))}
-                                    </Row>
-                                </>
-                            ) : (
-                                // ✅ CASO IMPOSSIBILE per demo (ha sempre almeno 3 carte iniziali)
-                                <div className="text-center py-5">
-                                    <div className="display-1 text-muted mb-3">
-                                        <i className="bi bi-collection"></i>
+                                            <strong>Totale:</strong> {allCards.length} carte • 
+                                            <strong className="text-secondary ms-2">Iniziali:</strong> {initialCards.length} • 
+                                            <strong className="text-success ms-2">Vinte:</strong> {wonCards.length}
+                                        </small>
                                     </div>
-                                    <h5 className="text-muted mb-3">Nessuna Carta Raccolta</h5>
-                                    <p className="text-muted mb-0">
-                                        Non sei riuscito a raccogliere nessuna carta in questa partita.
-                                    </p>
-                                </div>
+                                </>
                             )}
                         </Card.Body>
                     </Card>
@@ -204,53 +206,55 @@ function GameSummary({
             </Row>
 
             {/* ✅ Analisi delle performance */}
-            <Row className="mb-5">
-                <Col>
-                    <Alert variant={gameWon ? 'success' : (isDemo && !gameWon ? 'info' : 'warning')} className="mb-4">
-                        <h5 className="alert-heading">
-                            <i className="bi bi-lightbulb me-2"></i>
-                            {isDemo ? 'Come Hai Performato' : 'Analisi delle Performance'}
-                        </h5>
-                        
+            <Row className="justify-content-center mb-4">
+                <Col md={10}>
+                    <Card className="shadow">
+                        <Card.Header className="bg-light">
+                            <h4 className="mb-0">
+                                <i className="bi bi-analytics me-2"></i>
+                                {isDemo ? 'Come Hai Performato' : 'Analisi delle Performance'}
+                            </h4>
+                        </Card.Header>
+                        <Card.Body>
                         {isDemo ? (
                             // ✅ MESSAGGI SPECIFICI PER DEMO
                             <div>
                                 {gameWon ? (
                                     <>
-                                        <p className="mb-2">
-                                            <strong>Perfetto!</strong> Hai capito il meccanismo del gioco al primo tentativo.
-                                        </p>
-                                        <ListGroup variant="flush" className="bg-transparent">
-                                            <ListGroup.Item className="bg-transparent px-0">
+                                        <Alert variant="success" className="mb-3">
+                                            Perfetto! Hai capito il meccanismo del gioco al primo tentativo.
+                                        </Alert>
+                                        <ListGroup variant="flush">
+                                            <ListGroup.Item className="border-0">
                                                 <i className="bi bi-check-circle text-success me-2"></i>
                                                 Hai indovinato la posizione corretta
                                             </ListGroup.Item>
-                                            <ListGroup.Item className="bg-transparent px-0">
+                                            <ListGroup.Item className="border-0">
                                                 <i className="bi bi-check-circle text-success me-2"></i>
                                                 Hai compreso il sistema del Bad Luck Index
                                             </ListGroup.Item>
-                                            <ListGroup.Item className="bg-transparent px-0">
-                                                <i className="bi bi-star text-warning me-2"></i>
+                                            <ListGroup.Item className="border-0">
+                                                <i className="bi bi-check-circle text-success me-2"></i>
                                                 Sei pronto per una partita completa!
                                             </ListGroup.Item>
                                         </ListGroup>
                                     </>
                                 ) : (
                                     <>
-                                        <p className="mb-2">
-                                            <strong>Nessun problema!</strong> Il gioco richiede un po' di pratica per capire come valutare i disastri.
-                                        </p>
-                                        <ListGroup variant="flush" className="bg-transparent">
-                                            <ListGroup.Item className="bg-transparent px-0">
-                                                <i className="bi bi-info-circle text-primary me-2"></i>
+                                        <Alert variant="info" className="mb-3">
+                                            Nessun problema! Il gioco richiede un po' di pratica per capire come valutare i disastri.
+                                        </Alert>
+                                        <ListGroup variant="flush">
+                                            <ListGroup.Item className="border-0">
+                                                <i className="bi bi-info-circle text-info me-2"></i>
                                                 Ora conosci il meccanismo del gioco
                                             </ListGroup.Item>
-                                            <ListGroup.Item className="bg-transparent px-0">
+                                            <ListGroup.Item className="border-0">
                                                 <i className="bi bi-lightbulb text-warning me-2"></i>
-                                                <strong>Consiglio:</strong> Fai attenzione alle immagini e al nome della situazione
+                                                Consiglio: Fai attenzione alle immagini e al nome della situazione
                                             </ListGroup.Item>
-                                            <ListGroup.Item className="bg-transparent px-0">
-                                                <i className="bi bi-arrow-repeat text-info me-2"></i>
+                                            <ListGroup.Item className="border-0">
+                                                <i className="bi bi-arrow-repeat text-primary me-2"></i>
                                                 Prova di nuovo o registrati per partite complete!
                                             </ListGroup.Item>
                                         </ListGroup>
@@ -260,20 +264,20 @@ function GameSummary({
                         ) : gameWon ? (
                             // ✅ MESSAGGI PER PARTITA COMPLETA VINTA
                             <div>
-                                <p className="mb-2">
-                                    <strong>Eccellente!</strong> Hai dimostrato una perfetta comprensione 
+                                <Alert variant="success" className="mb-3">
+                                    Eccellente! Hai dimostrato una perfetta comprensione 
                                     della scala dei disastri della vita.
-                                </p>
-                                <ListGroup variant="flush" className="bg-transparent">
-                                    <ListGroup.Item className="bg-transparent px-0">
+                                </Alert>
+                                <ListGroup variant="flush">
+                                    <ListGroup.Item className="border-0">
                                         <i className="bi bi-check-circle text-success me-2"></i>
                                         Hai raccolto tutte e 6 le carte necessarie
                                     </ListGroup.Item>
-                                    <ListGroup.Item className="bg-transparent px-0">
+                                    <ListGroup.Item className="border-0">
                                         <i className="bi bi-check-circle text-success me-2"></i>
                                         Hai mantenuto gli errori sotto il limite di 3
                                     </ListGroup.Item>
-                                    <ListGroup.Item className="bg-transparent px-0">
+                                    <ListGroup.Item className="border-0">
                                         <i className="bi bi-check-circle text-success me-2"></i>
                                         La tua precisione è stata del {precision}%
                                     </ListGroup.Item>
@@ -282,98 +286,74 @@ function GameSummary({
                         ) : (
                             // ✅ MESSAGGI PER PARTITA COMPLETA PERSA
                             <div>
-                                <p className="mb-2">
-                                    <strong>Non scoraggiarti!</strong> Interpretare i disastri è più difficile di quanto sembri.
-                                </p>
-                                <ListGroup variant="flush" className="bg-transparent">
-                                    <ListGroup.Item className="bg-transparent px-0">
-                                        <i className="bi bi-info-circle text-primary me-2"></i>
-                                        Hai raccolto {cardsCollected} carte su 6 necessarie
-                                    </ListGroup.Item>
-                                    <ListGroup.Item className="bg-transparent px-0">
-                                        <i className="bi bi-info-circle text-primary me-2"></i>
-                                        Hai commesso {wrongGuesses} errori (limite: 3)
-                                    </ListGroup.Item>
-                                    <ListGroup.Item className="bg-transparent px-0">
+                                <Alert variant="warning" className="mb-3">
+                                    Non scoraggiarti! Interpretare i disastri è più difficile di quanto sembri.
+                                </Alert>
+                                <ListGroup variant="flush">
+                                    <ListGroup.Item className="border-0">
+                                        <i className="bi bi-info-circle text-info me-2"></i>
+                                       Hai raccolto {cardsCollected} carte su 6 necessarie
+                                   </ListGroup.Item>
+                                   <ListGroup.Item className="border-0">
+                                        <i className="bi bi-x-circle text-danger me-2"></i>
+                                       Hai commesso {wrongGuesses} errori (limite: 3)
+                                   </ListGroup.Item>
+                                   <ListGroup.Item className="border-0">
                                         <i className="bi bi-lightbulb text-warning me-2"></i>
-                                        <strong>Consiglio:</strong> Presta più attenzione alle immagini e ai dettagli del nome delle situazioni
-                                    </ListGroup.Item>
-                                </ListGroup>
-                            </div>
-                        )}
-                    </Alert>
-                </Col>
-            </Row>
-
-            {/* ✅ Pulsanti di azione finale */}
-            <Row>
-                <Col>
-                    <Card className="bg-body-secondary text-center">
-                        <Card.Body className="p-4">
-                            <h4 className="mb-3">Cosa vuoi fare ora?</h4>
-                            <div className="d-grid gap-2 d-md-flex justify-content-md-center">
-                                <Button 
-                                    variant="primary" 
-                                    size="lg" 
-                                    onClick={onNewGame}
-                                    className="d-flex align-items-center"
-                                >
-                                    <i className="bi bi-arrow-repeat me-2"></i>
-                                    {isDemo ? 'Nuova Demo' : (gameWon ? 'Nuova Sfida' : 'Riprova')}
-                                </Button>
-                                
-                                {!isDemo && (
-                                    <Button 
-                                        variant="outline-primary" 
-                                        size="lg"
-                                        href="/profile"
-                                        className="d-flex align-items-center"
-                                    >
-                                        <i className="bi bi-person-lines-fill me-2"></i>
-                                        Vai al Profilo
-                                    </Button>
-                                )}
-                                
-                                <Button 
-                                    variant="outline-secondary" 
-                                    size="lg"
-                                    onClick={onBackHome}
-                                    className="d-flex align-items-center"
-                                >
-                                    <i className="bi bi-house me-2"></i>
-                                    Torna alla Home
-                                </Button>
-                            </div>
-                        </Card.Body>
-                    </Card>
-                </Col>
-            </Row>
-
-            {/* ✅ MODIFICATO: Messaggio per utenti demo */}
-            {isDemo && (
-                <Row className="mt-4">
-                    <Col>
-                        <Alert variant="success" className="text-center">
-                            <h5 className="alert-heading">
-                                <i className="bi bi-star me-2"></i>
-                                Ti è piaciuto il gioco?
-                            </h5>
-                            <p className="mb-3">
-                                {gameWon ? 
-                                    'Complimenti! Hai il talento per questo gioco. Registrati per giocare partite complete con 6 carte e tenere traccia dei tuoi progressi.' :
-                                    'Questa era solo un\'anteprima! Registrati per giocare partite complete e migliorare le tue abilità.'
-                                }
-                            </p>
-                            <Button variant="success" href="/login" size="lg">
-                                <i className="bi bi-person-plus me-2"></i>
-                                Registrati Ora
-                            </Button>
-                        </Alert>
-                    </Col>
-                </Row>
-            )}
-        </div>
-    );
+                                       Consiglio: Presta più attenzione alle immagini e ai dettagli del nome delle situazioni
+                                   </ListGroup.Item>
+                               </ListGroup>
+                           </div>
+                       )}
+                   </Card.Body>
+               </Card>
+           </Col>
+       </Row>
+       
+       {/* ✅ Pulsanti di azione finale */}
+       <Row className="justify-content-center mb-4">
+           <Col md={6}>
+               <Card className="text-center shadow">
+                   <Card.Body className="p-4">
+                       <h5 className="mb-3">
+                           <i className="bi bi-question-circle me-2"></i>
+                           Cosa vuoi fare ora?
+                       </h5>
+                       <div className="d-grid gap-2">
+                           <Button 
+                               variant="primary" 
+                               size="lg" 
+                               onClick={onNewGame}
+                               className="d-flex align-items-center justify-content-center"
+                           >
+                               <i className="bi bi-arrow-clockwise me-2"></i>
+                               {isDemo ? 'Nuova Demo' : (gameWon ? 'Nuova Sfida' : 'Riprova')}
+                           </Button>
+                           {!isDemo && (
+                               <Button 
+                                   variant="outline-primary" 
+                                   onClick={() => navigate('/profile')}
+                                   className="d-flex align-items-center justify-content-center"
+                               >
+                                   <i className="bi bi-person-lines-fill me-2"></i>
+                                   Vai al Profilo
+                               </Button>
+                           )}
+                           <Button 
+                               variant="outline-secondary" 
+                               onClick={onBackHome}
+                               className="d-flex align-items-center justify-content-center"
+                           >
+                               <i className="bi bi-house me-2"></i>
+                               Torna alla Home
+                           </Button>
+                       </div>
+                   </Card.Body>
+               </Card>
+           </Col>
+       </Row>
+   </Container>
+   );
 }
 
 export default GameSummary;

@@ -171,27 +171,18 @@ function GameHistoryItem({ game, index }) {
                                         <i className="bi bi-trophy me-2"></i>
                                         Riepilogo Finale
                                     </h6>
-                                    <p className="small text-muted mb-3">
-                                        Esito: <strong>{game.status === 'won' ? 'Vittoria' : 'Sconfitta'}</strong> - 
-                                        Carte raccolte: <strong>{game.cards_collected || 0}/6</strong>
-                                    </p>
                                     
-                                    {/* Mostra solo le carte vinte nel riepilogo con tutti i dettagli */}
-                                    {game.cards && game.cards.filter(c => c.guessed_correctly || c.is_initial).length > 0 && (
-                                        <div className="small text-muted">
-                                            <strong>Carte in possesso al termine della partita:</strong>
-                                            <ul className="mt-2 mb-0">
-                                                {game.cards
-                                                    .filter(c => c.guessed_correctly || c.is_initial)
-                                                    .sort((a, b) => a.bad_luck_index - b.bad_luck_index)
-                                                    .map((card, idx) => (
-                                                    <li key={idx}>
-                                                        <strong>{card.name}</strong>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
+                                    {/* Solo il numero totale come richiesto dalle specifiche */}
+                                    <div className="alert alert-light mb-0 text-center">
+                                        <strong>
+                                            {game.status === 'won' ? 'Vittoria' : 'Sconfitta'}: {game.cards_collected || 0} carte raccolte
+                                        </strong>
+                                    </div>
+                                    
+                                    {/* Opzionale: struttura come specificato dal prof */}
+                                    <div className="text-muted small mt-2 text-center">
+                                        Partita con {initialCards.length} carte iniziali + {roundCards.filter(c => c.guessed_correctly).length} carte vinte nei round
+                                    </div>
                                 </div>
                             </>
                         ) : (

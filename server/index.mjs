@@ -31,6 +31,9 @@ const corsOptions = {
 // Use ONLY for development purposes, otherwise use a more restrictive policy
 app.use(cors(corsOptions));
 
+// Middleware per servire file statici (ESSENZIALE per le immagini)
+app.use(express.static('public'));
+
 // Configure Passport
 configurePassport();
 
@@ -47,7 +50,6 @@ app.use('/api', authRoutes);       // Authentication routes: /api/sessions/*
 app.use('/api/cards', cardsRoutes); // Cards routes: /api/cards/*
 app.use('/api/games', gamesRoutes); // Games routes: /api/games/*
 app.use('/api/demo', demoRoutes);   // Demo routes: /api/demo/*
-
 
 // activate the server
 app.listen(port, () => {

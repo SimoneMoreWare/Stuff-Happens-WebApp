@@ -183,7 +183,13 @@ const getAllCards = async () => {
   
   if (response.ok) {
     const cardsJson = await response.json();
-    return cardsJson.map(c => new Card(c.id, c.name, c.image_url, c.bad_luck_index, c.theme));
+    return cardsJson.map(c => new Card(
+      c.id, 
+      c.name, 
+      c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`,
+      c.bad_luck_index, 
+      c.theme
+    ));
   } else {
     throw new Error("Error fetching cards");
   }
@@ -203,7 +209,13 @@ const getCardsByTheme = async (theme) => {
   
   if (response.ok) {
     const cardsJson = await response.json();
-    return cardsJson.map(c => new Card(c.id, c.name, c.image_url, c.bad_luck_index, c.theme));
+    return cardsJson.map(c => new Card(
+      c.id, 
+      c.name, 
+      c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`,
+      c.bad_luck_index, 
+      c.theme
+    ));
   } else {
     const errorData = await response.json();
     throw new Error(errorData.error || "Error fetching cards by theme");
@@ -224,7 +236,14 @@ const getCardById = async (cardId) => {
   
   if (response.ok) {
     const cardJson = await response.json();
-    return new Card(cardJson.id, cardJson.name, cardJson.image_url, cardJson.bad_luck_index, cardJson.theme);
+    // ✅ CORRETTO: cardJson è un oggetto singolo, non un array
+    return new Card(
+      cardJson.id, 
+      cardJson.name, 
+      cardJson.image_url.startsWith('http') ? cardJson.image_url : `${SERVER_URL}/${cardJson.image_url}`,
+      cardJson.bad_luck_index, 
+      cardJson.theme
+    );
   } else {
     if (response.status === 404) {
       throw new Error("Card not found");
@@ -254,7 +273,13 @@ const getRandomCards = async (theme, count, excludeIds = []) => {
   
   if (response.ok) {
     const cardsJson = await response.json();
-    return cardsJson.map(c => new Card(c.id, c.name, c.image_url, c.bad_luck_index, c.theme));
+    return cardsJson.map(c => new Card(
+      c.id, 
+      c.name, 
+      c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`,
+      c.bad_luck_index, 
+      c.theme
+    ));
   } else {
     const errorData = await response.json();
     throw new Error(errorData.error || "Error fetching random cards");
@@ -280,7 +305,13 @@ const getCardsByIds = async (cardIds) => {
   
   if (response.ok) {
     const cardsJson = await response.json();
-    return cardsJson.map(c => new Card(c.id, c.name, c.image_url, c.bad_luck_index, c.theme));
+    return cardsJson.map(c => new Card(
+      c.id, 
+      c.name, 
+      c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`,
+      c.bad_luck_index, 
+      c.theme
+    ));
   } else {
     const errorData = await response.json();
     throw new Error(errorData.error || "Error fetching cards");
@@ -301,8 +332,13 @@ const getCardWithoutIndex = async (cardId) => {
   
   if (response.ok) {
     const cardJson = await response.json();
-    return cardJson; // Returns plain object without bad_luck_index
-  } else {
+    return {
+          ...cardJson,
+          image_url: cardJson.image_url.startsWith('http') 
+            ? cardJson.image_url 
+            : `${SERVER_URL}/${cardJson.image_url}`
+        };
+    } else {
     if (response.status === 404) {
       throw new Error("Card not found");
     }
@@ -327,13 +363,26 @@ const startDemoGame = async (theme = 'university_life') => {
     headers: {
       'Content-Type': 'application/json',
     },
-    // Note: No credentials needed for demo games
     body: JSON.stringify({ theme }),
   });
   
   if (response.ok) {
     const demoData = await response.json();
-    return demoData;
+    
+    // ✅ CONVERTI URL DELLE IMMAGINI
+    return {
+      ...demoData,
+      initialCards: demoData.initialCards.map(c => ({
+        ...c,
+        image_url: c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`
+      })),
+      targetCard: {
+        ...demoData.targetCard,
+        image_url: demoData.targetCard.image_url.startsWith('http') 
+          ? demoData.targetCard.image_url 
+          : `${SERVER_URL}/${demoData.targetCard.image_url}`
+      }
+    };
   } else {
     const errorData = await response.json();
     throw new Error(errorData.error || "Error starting demo game");
@@ -434,17 +483,24 @@ const createGame = async (theme = 'university_life') => {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include', // Required for authenticated endpoint
+    credentials: 'include',
     body: JSON.stringify({ theme }),
   });
   
   if (response.ok) {
     const gameData = await response.json();
-    return gameData;
+    
+    // ✅ AGGIUNGI CONVERSIONE URL PER LE CARTE INIZIALI
+    return {
+      ...gameData,
+      initialCards: gameData.initialCards ? gameData.initialCards.map(c => ({
+        ...c,
+        image_url: c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`
+      })) : []
+    };
   } else {
     const errorData = await response.json();
     if (response.status === 400 && errorData.activeGameId) {
-      // User already has an active game
       throw { 
         message: errorData.error, 
         activeGameId: errorData.activeGameId,
@@ -463,12 +519,20 @@ const createGame = async (theme = 'university_life') => {
  */
 const getCurrentGame = async () => {
   const response = await fetch(SERVER_URL + '/api/games/current', {
-    credentials: 'include', // Required for authenticated endpoint
+    credentials: 'include',
   });
   
   if (response.ok) {
     const gameData = await response.json();
-    return gameData;
+    
+    // ✅ AGGIUNGI CONVERSIONE URL PER LE CARTE VINTE
+    return {
+      ...gameData,
+      wonCards: gameData.wonCards ? gameData.wonCards.map(c => ({
+        ...c,
+        image_url: c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`
+      })) : []
+    };
   } else {
     if (response.status === 404) {
       throw { message: "No active game found", type: 'NO_ACTIVE_GAME' };
@@ -486,18 +550,25 @@ const getCurrentGame = async () => {
  */
 const getGameHistory = async () => {
   const response = await fetch(SERVER_URL + '/api/games/history', {
-    credentials: 'include', // Required for authenticated endpoint
+    credentials: 'include',
   });
   
   if (response.ok) {
     const history = await response.json();
-    return history;
+    
+    // ✅ AGGIUNGI CONVERSIONE URL PER LE CARTE NELLO STORICO
+    return history.map(game => ({
+      ...game,
+      cards: game.cards ? game.cards.map(c => ({
+        ...c,
+        image_url: c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`
+      })) : []
+    }));
   } else {
     const errorData = await response.json();
     throw new Error(errorData.error || "Error fetching game history");
   }
 };
-
 /**
  * Get specific game details by ID
  * 
@@ -565,16 +636,25 @@ const getNextRoundCard = async (gameId) => {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include', // Required for authentication check
+    credentials: 'include',
   });
   
   if (response.ok) {
     const roundData = await response.json();
-    return roundData;
+    
+    // ✅ AGGIUNGI CONVERSIONE URL PER LA ROUND CARD
+    return {
+      ...roundData,
+      roundCard: roundData.roundCard ? {
+        ...roundData.roundCard,
+        image_url: roundData.roundCard.image_url.startsWith('http') 
+          ? roundData.roundCard.image_url 
+          : `${SERVER_URL}/${roundData.roundCard.image_url}`
+      } : null
+    };
   } else {
     const errorData = await response.json();
     if (response.status === 400) {
-      // Game might be completed or other specific error
       throw { 
         message: errorData.error, 
         type: 'GAME_NOT_ACTIVE'
@@ -583,7 +663,6 @@ const getNextRoundCard = async (gameId) => {
     throw new Error(errorData.error || "Error getting next round card");
   }
 };
-
 /**
  * Submit a position guess for the current round card
  * 
@@ -600,7 +679,7 @@ const submitGameGuess = async (gameId, gameCardId, position, timeElapsed = 0) =>
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include', // Required for authenticated endpoint
+    credentials: 'include',
     body: JSON.stringify({
       gameCardId,
       position,
@@ -610,11 +689,20 @@ const submitGameGuess = async (gameId, gameCardId, position, timeElapsed = 0) =>
   
   if (response.ok) {
     const result = await response.json();
-    return result;
+    
+    // ✅ AGGIUNGI CONVERSIONE URL PER LA CARTA RIVELATA
+    return {
+      ...result,
+      revealed_card: result.revealed_card ? {
+        ...result.revealed_card,
+        image_url: result.revealed_card.image_url.startsWith('http') 
+          ? result.revealed_card.image_url 
+          : `${SERVER_URL}/${result.revealed_card.image_url}`
+      } : null
+    };
   } else {
     const errorData = await response.json();
     if (response.status === 400) {
-      // Invalid game state or other specific error
       throw { 
         message: errorData.error, 
         type: 'INVALID_GAME_STATE'
@@ -643,7 +731,17 @@ const submitGameTimeout = async (gameId, gameCardId) => {
   
   if (response.ok) {
     const result = await response.json();
-    return result;
+    
+    // ✅ AGGIUNGI CONVERSIONE URL PER LA CARTA RIVELATA
+    return {
+      ...result,
+      revealed_card: result.revealed_card ? {
+        ...result.revealed_card,
+        image_url: result.revealed_card.image_url.startsWith('http') 
+          ? result.revealed_card.image_url 
+          : `${SERVER_URL}/${result.revealed_card.image_url}`
+      } : null
+    };
   } else {
     const errorData = await response.json();
     throw new Error(errorData.error || "Error processing timeout");

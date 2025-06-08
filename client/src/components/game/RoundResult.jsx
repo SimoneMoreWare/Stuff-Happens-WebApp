@@ -228,134 +228,95 @@ function RoundResult({
                 </Row>
             )}
 
-            {/* ✅ Spiegazione del Risultato */}
+            {/* ✅ Spiegazione del Risultato - STRETTA secondo prof */}
             <Row className="mb-5">
                 <Col>
                     <Alert variant={message.variant} className="shadow-sm">
                         <h5 className="alert-heading">
                             <i className="bi bi-info-circle me-2"></i>
-                            Spiegazione del Risultato
+                            Risultato Round
                         </h5>
                         
-                        {!isTimeout ? (
+                        {isCorrect ? (
+                            // ✅ SOLO se vinto: mostra dettagli completi
                             <div>
                                 <p className="mb-3">
                                     <strong>La tua scelta:</strong> Posizione {guessedPosition + 1}
                                     <br />
                                     <strong>Posizione corretta:</strong> Posizione {correctPosition + 1}
                                 </p>
-                                
-                                {isCorrect ? (
-                                    <p className="mb-0">
-                                        <i className="bi bi-check-circle text-success me-2"></i>
-                                        <strong>Perfetto!</strong> Hai posizionato correttamente la carta basandoti sul Bad Luck Index.
-                                    </p>
-                                ) : (
-                                    <p className="mb-0">
-                                        <i className="bi bi-x-circle text-danger me-2"></i>
-                                        <strong>Non proprio.</strong> Hai sbagliato la posizione. 
-                                        La posizione corretta era la {correctPosition + 1}.
-                                        {isDemo && " Prova di nuovo per scoprire il Bad Luck Index!"}
-                                    </p>
-                                )}
+                                <p className="mb-0">
+                                    <i className="bi bi-check-circle text-success me-2"></i>
+                                    <strong>Perfetto!</strong> Hai posizionato correttamente la carta basandoti sul Bad Luck Index.
+                                </p>
                             </div>
-                        ) : (
+                        ) : isTimeout ? (
+                            // ✅ TIMEOUT: Nessuna informazione sulla carta
                             <p className="mb-0">
                                 <i className="bi bi-clock text-warning me-2"></i>
                                 <strong>Tempo scaduto!</strong> Non hai fatto in tempo a posizionare la carta. 
-                                La posizione corretta era la {correctPosition + 1}.
+                                La carta è stata scartata e non sarà più disponibile.
+                            </p>
+                        ) : (
+                            // 🚨 SBAGLIATO: NESSUNA informazione secondo prof ("does not see ANY info")
+                            <p className="mb-0">
+                                <i className="bi bi-x-circle text-danger me-2"></i>
+                                <strong>Risposta errata!</strong> La carta è stata scartata e non sarà più disponibile.
+                                {isDemo && " Prova di nuovo per scoprire dove doveva andare!"}
                             </p>
                         )}
                     </Alert>
                 </Col>
             </Row>
 
-            {/* ✅ DEMO ONLY: Mostra tutte le carte con ordine corretto */}
-            {isDemo && allCards && allCards.length > 0 && (
+            {/* ✅ DEMO ONLY: Mostra tutte le carte con ordine corretto - SOLO SE VINTO */}
+            {isDemo && isCorrect && allCards && allCards.length > 0 && (
                 <Row className="mb-5">
                     <Col>
                         <Card className="shadow-sm">
                             <Card.Header className="bg-secondary text-white text-center">
                                 <h5 className="mb-0">
                                     <i className="bi bi-list-ol me-2"></i>
-                                    Posizioni delle Carte Demo
+                                    Ordine Corretto delle Carte
                                 </h5>
                             </Card.Header>
                             <Card.Body>
-                                {/* ✅ SICUREZZA: Mostra ordine completo SOLO se ha vinto */}
-                                {isCorrect ? (
-                                    <Row className="g-3">
-                                        {/* Mostra le carte nell'ordine corretto con la target inserita */}
-                                        {(() => {
-                                            // Crea array con tutte le carte nell'ordine corretto
-                                            const sortedCards = [...allCards].sort((a, b) => a.bad_luck_index - b.bad_luck_index);
-                                            const allCardsWithTarget = [...sortedCards];
-                                            
-                                            // Inserisci la carta target nella posizione corretta
-                                            allCardsWithTarget.splice(correctPosition, 0, targetCard);
-                                            
-                                            return allCardsWithTarget.map((card, index) => (
-                                                <Col key={card.id} md={6} lg={3} className="mb-3">
-                                                    <div className="text-center mb-2">
-                                                        <Badge 
-                                                            bg={card.id === targetCard.id ? "success" : "secondary"}
-                                                            className="fs-6"
-                                                        >
-                                                            Pos. {index + 1}
-                                                            {card.id === targetCard.id && " (Target)"}
-                                                        </Badge>
-                                                    </div>
-                                                    <CardDisplay 
-                                                        card={card} 
-                                                        showBadLuckIndex={true}
-                                                        className={`h-100 ${card.id === targetCard.id ? 
-                                                            'border-3 border-success' : ''}`}
-                                                    />
-                                                    <div className="text-center mt-2">
-                                                        <small className="text-muted">
-                                                            Bad Luck: <strong>{card.bad_luck_index}</strong>
-                                                        </small>
-                                                    </div>
-                                                </Col>
-                                            ));
-                                        })()}
-                                    </Row>
-                                ) : (
-                                    // ❌ Se ha perso, mostra solo le carte iniziali + messaggio
-                                    <>
-                                        <Row className="g-3">
-                                            {allCards.map((card, index) => (
-                                                <Col key={card.id} md={6} lg={4} className="mb-3">
-                                                    <div className="text-center mb-2">
-                                                        <Badge bg="secondary" className="fs-6">
-                                                            Pos. {index + 1}
-                                                        </Badge>
-                                                    </div>
-                                                    <CardDisplay 
-                                                        card={card} 
-                                                        showBadLuckIndex={true}
-                                                        className="h-100"
-                                                    />
-                                                    <div className="text-center mt-2">
-                                                        <small className="text-muted">
-                                                            Bad Luck: <strong>{card.bad_luck_index}</strong>
-                                                        </small>
-                                                    </div>
-                                                </Col>
-                                            ))}
-                                        </Row>
-                                        <Alert variant="info" className="mt-4">
-                                            <h6 className="alert-heading">
-                                                <i className="bi bi-shield-lock me-2"></i>
-                                                Carta Target Nascosta
-                                            </h6>
-                                            <p className="mb-0">
-                                                La carta target e il suo Bad Luck Index rimangono nascosti perché non hai indovinato. 
-                                                Riprova per scoprire dove doveva andare!
-                                            </p>
-                                        </Alert>
-                                    </>
-                                )}
+                                <Row className="g-3">
+                                    {/* Mostra le carte nell'ordine corretto con la target inserita */}
+                                    {(() => {
+                                        // Crea array con tutte le carte nell'ordine corretto
+                                        const sortedCards = [...allCards].sort((a, b) => a.bad_luck_index - b.bad_luck_index);
+                                        const allCardsWithTarget = [...sortedCards];
+                                        
+                                        // Inserisci la carta target nella posizione corretta
+                                        allCardsWithTarget.splice(correctPosition, 0, targetCard);
+                                        
+                                        return allCardsWithTarget.map((card, index) => (
+                                            <Col key={card.id} md={6} lg={3} className="mb-3">
+                                                <div className="text-center mb-2">
+                                                    <Badge 
+                                                        bg={card.id === targetCard.id ? "success" : "secondary"}
+                                                        className="fs-6"
+                                                    >
+                                                        Pos. {index + 1}
+                                                        {card.id === targetCard.id && " (Target)"}
+                                                    </Badge>
+                                                </div>
+                                                <CardDisplay 
+                                                    card={card} 
+                                                    showBadLuckIndex={true}
+                                                    className={`h-100 ${card.id === targetCard.id ? 
+                                                        'border-3 border-success' : ''}`}
+                                                />
+                                                <div className="text-center mt-2">
+                                                    <small className="text-muted">
+                                                        Bad Luck: <strong>{card.bad_luck_index}</strong>
+                                                    </small>
+                                                </div>
+                                            </Col>
+                                        ));
+                                    })()}
+                                </Row>
                             </Card.Body>
                         </Card>
                     </Col>

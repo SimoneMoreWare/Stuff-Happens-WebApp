@@ -40,7 +40,7 @@ function RoundResult({
                 'Ottimo! Hai vinto questa carta.';
         } else {
             return isDemo ?
-                'Non preoccuparti, è normale all\'inizio!' :
+                'Non preoccuparti, ora hai capito come funziona il gioco e sei pronto per le partite complete!' :
                 'Prossima volta andrà meglio!';
         }
     };

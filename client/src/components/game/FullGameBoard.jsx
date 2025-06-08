@@ -654,7 +654,7 @@ function FullGameBoard() {
    };
    
    const handleAbandonGame = async () => {
-       if (!currentGame || !window.confirm('Sei sicuro di voler abbandonare questa partita?')) {
+       if (!currentGame) {
            return;
        }
        

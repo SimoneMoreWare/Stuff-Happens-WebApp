@@ -2,9 +2,9 @@ import { useContext, useState, useEffect } from 'react';
 import { Navbar, Nav, Container, Button, NavDropdown } from 'react-bootstrap';
 import { Link, useLocation, useNavigate } from 'react-router';
 import UserContext from '../../context/UserContext.jsx';
+import API from '../../API/API.mjs';
 
 function AppNavbar() {
-  // ✅ AGGIUNGI: Importa isInActiveGame dal Context
   const { 
     user, 
     loggedIn, 
@@ -12,7 +12,8 @@ function AppNavbar() {
     isInActiveGame,
     setIsInActiveGame,
     handleLogout,
-    clearCurrentGame 
+    clearCurrentGame,
+    setMessage 
   } = useContext(UserContext);
   
   const location = useLocation();
@@ -26,32 +27,67 @@ function AppNavbar() {
     return location.pathname === path;
   };
 
-  // ✅ AGGIUNGI: Funzione per navigazione protetta
-  const handleProtectedNavigation = (path) => {
+  // ✅ FUNZIONE CORRETTA: Abbandona automaticamente come il tasto "Abbandona"
+  const handleNavigationWithAutoAbandon = async (path) => {
     if (isInActiveGame) {
-      const confirm = window.confirm(
-        'Hai una partita in corso. Abbandonandola perderai tutti i progressi. Continuare?'
-      );
-      if (confirm) {
+      try {
+        console.log('🗑️ Auto-abandoning game for navigation to:', path);
+        
+        // ✅ ABBANDONA AUTOMATICAMENTE SENZA CONFERMA (come il tasto Abbandona)
+        if (currentGame) {
+          await API.abandonGame(currentGame.id);
+          console.log('✅ Game auto-abandoned successfully');
+          
+          // ✅ ATTESA PER DARE TEMPO AL SERVER
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        // ✅ PULIZIA COMPLETA DELLO STATO
         setIsInActiveGame(false);
         clearCurrentGame();
+        
+        setMessage({ type: 'info', msg: 'Partita abbandonata automaticamente' });
+        
+        // ✅ NAVIGA VERSO LA DESTINAZIONE
+        navigate(path);
+        
+      } catch (err) {
+        console.error('❌ Error auto-abandoning game:', err);
+        
+        // ✅ PULIZIA FORZATA ANCHE IN CASO DI ERRORE API
+        setIsInActiveGame(false);
+        clearCurrentGame();
+        
+        setMessage({ 
+          type: 'warning', 
+          msg: 'Partita abbandonata localmente (errore API)' 
+        });
+        
+        // ✅ NAVIGA COMUNQUE
         navigate(path);
       }
-      // Se dice "Annulla", non fa nulla
     } else {
+      // ✅ NESSUNA PARTITA ATTIVA - NAVIGAZIONE NORMALE
       navigate(path);
     }
   };
 
   const handleLogoutClick = async () => {
-    // ✅ AGGIUNGI: Protezione anche per logout
+    // ✅ LOGOUT: Abbandona automaticamente come gli altri link
     if (isInActiveGame) {
-      const confirm = window.confirm(
-        'Hai una partita in corso. Facendo logout perderai tutti i progressi. Continuare?'
-      );
-      if (!confirm) return;
-      setIsInActiveGame(false);
-      clearCurrentGame();
+      try {
+        if (currentGame) {
+          await API.abandonGame(currentGame.id);
+          console.log('✅ Game auto-abandoned before logout');
+        }
+        setIsInActiveGame(false);
+        clearCurrentGame();
+      } catch (err) {
+        console.error('❌ Error abandoning game before logout:', err);
+        // Continua comunque con il logout
+        setIsInActiveGame(false);
+        clearCurrentGame();
+      }
     }
     
     await handleLogout();
@@ -67,7 +103,7 @@ function AppNavbar() {
       <Container fluid>
         {/* Brand Logo */}
         <Navbar.Brand 
-          onClick={() => handleProtectedNavigation('/')}
+          onClick={() => handleNavigationWithAutoAbandon('/')}
           style={{ cursor: 'pointer' }}
           className="fw-bold"
         >
@@ -81,9 +117,9 @@ function AppNavbar() {
         <Navbar.Collapse id="basic-navbar-nav">
           {/* Navigation Links */}
           <Nav className="me-auto">
-            {/* ✅ MODIFICA: Home con protezione */}
+            {/* ✅ HOME: Abbandona automaticamente */}
             <Nav.Link 
-              onClick={() => handleProtectedNavigation('/')}
+              onClick={() => handleNavigationWithAutoAbandon('/')}
               active={isActivePath('/')}
               className="d-flex align-items-center"
               style={{ cursor: 'pointer' }}
@@ -92,9 +128,9 @@ function AppNavbar() {
               Home
             </Nav.Link>
             
-            {/* ✅ MODIFICA: Regole con protezione */}
+            {/* ✅ REGOLE: Abbandona automaticamente */}
             <Nav.Link 
-              onClick={() => handleProtectedNavigation('/instructions')}
+              onClick={() => handleNavigationWithAutoAbandon('/instructions')}
               active={isActivePath('/instructions')}
               className="d-flex align-items-center"
               style={{ cursor: 'pointer' }}
@@ -123,9 +159,9 @@ function AppNavbar() {
                   )}
                 </Nav.Link>
                 
-                {/* ✅ MODIFICA: Profilo con protezione */}
+                {/* ✅ PROFILO: Abbandona automaticamente */}
                 <Nav.Link 
-                  onClick={() => handleProtectedNavigation('/profile')}
+                  onClick={() => handleNavigationWithAutoAbandon('/profile')}
                   active={isActivePath('/profile')}
                   className="d-flex align-items-center"
                   style={{ cursor: 'pointer' }}
@@ -153,9 +189,9 @@ function AppNavbar() {
                 id="user-dropdown"
                 align="end"
               >
-                {/* ✅ MODIFICA: Profilo nel dropdown con protezione */}
+                {/* ✅ PROFILO NEL DROPDOWN: Abbandona automaticamente */}
                 <NavDropdown.Item 
-                  onClick={() => handleProtectedNavigation('/profile')}
+                  onClick={() => handleNavigationWithAutoAbandon('/profile')}
                   style={{ cursor: 'pointer' }}
                 >
                   <i className="bi bi-person-lines-fill me-2"></i>
@@ -172,7 +208,7 @@ function AppNavbar() {
                 
                 <NavDropdown.Divider />
                 
-                {/* ✅ MODIFICA: Logout con protezione */}
+                {/* ✅ LOGOUT: Abbandona automaticamente */}
                 <NavDropdown.Item onClick={handleLogoutClick}>
                   <i className="bi bi-box-arrow-right me-2 text-danger"></i>
                   Logout

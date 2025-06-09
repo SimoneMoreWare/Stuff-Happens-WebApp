@@ -1,11 +1,20 @@
 import { useContext, useState, useEffect } from 'react';
 import { Navbar, Nav, Container, Button, NavDropdown } from 'react-bootstrap';
 import { Link, useLocation, useNavigate } from 'react-router';
-
 import UserContext from '../../context/UserContext.jsx';
 
 function AppNavbar() {
-  const { user, loggedIn, currentGame, handleLogout } = useContext(UserContext);
+  // ✅ AGGIUNGI: Importa isInActiveGame dal Context
+  const { 
+    user, 
+    loggedIn, 
+    currentGame, 
+    isInActiveGame,
+    setIsInActiveGame,
+    handleLogout,
+    clearCurrentGame 
+  } = useContext(UserContext);
+  
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -17,7 +26,34 @@ function AppNavbar() {
     return location.pathname === path;
   };
 
+  // ✅ AGGIUNGI: Funzione per navigazione protetta
+  const handleProtectedNavigation = (path) => {
+    if (isInActiveGame) {
+      const confirm = window.confirm(
+        'Hai una partita in corso. Abbandonandola perderai tutti i progressi. Continuare?'
+      );
+      if (confirm) {
+        setIsInActiveGame(false);
+        clearCurrentGame();
+        navigate(path);
+      }
+      // Se dice "Annulla", non fa nulla
+    } else {
+      navigate(path);
+    }
+  };
+
   const handleLogoutClick = async () => {
+    // ✅ AGGIUNGI: Protezione anche per logout
+    if (isInActiveGame) {
+      const confirm = window.confirm(
+        'Hai una partita in corso. Facendo logout perderai tutti i progressi. Continuare?'
+      );
+      if (!confirm) return;
+      setIsInActiveGame(false);
+      clearCurrentGame();
+    }
+    
     await handleLogout();
     navigate('/');
   };
@@ -30,7 +66,11 @@ function AppNavbar() {
     <Navbar bg="primary" variant="dark" expand="lg" className="shadow-sm">
       <Container fluid>
         {/* Brand Logo */}
-        <Navbar.Brand as={Link} to="/" className="fw-bold">
+        <Navbar.Brand 
+          onClick={() => handleProtectedNavigation('/')}
+          style={{ cursor: 'pointer' }}
+          className="fw-bold"
+        >
           <i className="bi bi-lightning-charge-fill me-2"></i>
           Stuff Happens
         </Navbar.Brand>
@@ -41,21 +81,23 @@ function AppNavbar() {
         <Navbar.Collapse id="basic-navbar-nav">
           {/* Navigation Links */}
           <Nav className="me-auto">
+            {/* ✅ MODIFICA: Home con protezione */}
             <Nav.Link 
-              as={Link} 
-              to="/" 
+              onClick={() => handleProtectedNavigation('/')}
               active={isActivePath('/')}
               className="d-flex align-items-center"
+              style={{ cursor: 'pointer' }}
             >
               <i className="bi bi-house-fill me-1"></i>
               Home
             </Nav.Link>
             
+            {/* ✅ MODIFICA: Regole con protezione */}
             <Nav.Link 
-              as={Link} 
-              to="/instructions" 
+              onClick={() => handleProtectedNavigation('/instructions')}
               active={isActivePath('/instructions')}
               className="d-flex align-items-center"
+              style={{ cursor: 'pointer' }}
             >
               <i className="bi bi-book me-1"></i>
               Regole
@@ -64,6 +106,7 @@ function AppNavbar() {
             {/* Link condizionali per utenti autenticati */}
             {loggedIn && (
               <>
+                {/* ✅ GIOCA: Nessuna protezione (può sempre andare al gioco) */}
                 <Nav.Link 
                   as={Link} 
                   to="/game" 
@@ -80,11 +123,12 @@ function AppNavbar() {
                   )}
                 </Nav.Link>
                 
+                {/* ✅ MODIFICA: Profilo con protezione */}
                 <Nav.Link 
-                  as={Link} 
-                  to="/profile" 
+                  onClick={() => handleProtectedNavigation('/profile')}
                   active={isActivePath('/profile')}
                   className="d-flex align-items-center"
+                  style={{ cursor: 'pointer' }}
                 >
                   <i className="bi bi-person-lines-fill me-1"></i>
                   Profilo
@@ -109,11 +153,16 @@ function AppNavbar() {
                 id="user-dropdown"
                 align="end"
               >
-                <NavDropdown.Item as={Link} to="/profile">
+                {/* ✅ MODIFICA: Profilo nel dropdown con protezione */}
+                <NavDropdown.Item 
+                  onClick={() => handleProtectedNavigation('/profile')}
+                  style={{ cursor: 'pointer' }}
+                >
                   <i className="bi bi-person-lines-fill me-2"></i>
                   Il Mio Profilo
                 </NavDropdown.Item>
                 
+                {/* ✅ CONTINUA PARTITA: Nessuna protezione */}
                 {currentGame && (
                   <NavDropdown.Item as={Link} to="/game">
                     <i className="bi bi-play-circle-fill me-2 text-success"></i>
@@ -123,6 +172,7 @@ function AppNavbar() {
                 
                 <NavDropdown.Divider />
                 
+                {/* ✅ MODIFICA: Logout con protezione */}
                 <NavDropdown.Item onClick={handleLogoutClick}>
                   <i className="bi bi-box-arrow-right me-2 text-danger"></i>
                   Logout
@@ -131,6 +181,7 @@ function AppNavbar() {
             ) : (
               // ========== UTENTE ANONIMO ==========
               <div className="d-flex align-items-center gap-2">
+                {/* ✅ DEMO: Nessuna protezione (demo non ha partite persistenti) */}
                 <Link 
                   to="/game" 
                   className="btn btn-outline-light btn-sm"
@@ -140,6 +191,7 @@ function AppNavbar() {
                   Demo
                 </Link>
                 
+                {/* ✅ ACCEDI: Nessuna protezione */}
                 <Link 
                   to="/login" 
                   className="btn btn-light btn-sm"
@@ -156,4 +208,4 @@ function AppNavbar() {
   );
 }
 
-export default AppNavbar;   
+export default AppNavbar;

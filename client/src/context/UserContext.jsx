@@ -23,16 +23,25 @@ export const UserContextProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [currentGame, setCurrentGame] = useState(null);
     const [message, setMessage] = useState(null);
+    // ✅ AGGIUNGI QUESTA NUOVA FLAG
+    const [isInActiveGame, setIsInActiveGame] = useState(false);
     
-    // ✅ CORRETTO: usa useCallback per funzioni che vengono passate ai children
     const updateCurrentGame = useCallback((gameData) => {
         console.log('🔄 Updating currentGame:', gameData);
         setCurrentGame(gameData);
+        
+        // ✅ AGGIUNGI: Aggiorna automaticamente la flag
+        if (gameData && gameData.status === 'playing') {
+            setIsInActiveGame(true);
+        } else {
+            setIsInActiveGame(false);
+        }
     }, []);
     
     const clearCurrentGame = useCallback(() => {
         console.log('🗑️ Clearing currentGame');
         setCurrentGame(null);
+        setIsInActiveGame(false); // ✅ AGGIUNGI: Reset flag
     }, []);
     
     const handleLogin = useCallback((userData) => {
@@ -49,13 +58,17 @@ export const UserContextProvider = ({ children }) => {
     // ✅ CORRETTO: usa useMemo per memoizzare il context value
     // Questo previene re-render inutili dei consumer
     const contextValue = useMemo(() => ({
-        // Stati
+        // Stati esistenti
         user,
         loggedIn: Boolean(user),
         currentGame,
         message,
         
-        // Funzioni
+        // ✅ AGGIUNGI: Nuova flag
+        isInActiveGame,
+        setIsInActiveGame,
+        
+        // Funzioni esistenti
         updateCurrentGame,
         clearCurrentGame,
         handleLogin,
@@ -65,6 +78,7 @@ export const UserContextProvider = ({ children }) => {
         user, 
         currentGame, 
         message, 
+        isInActiveGame, // ✅ AGGIUNGI nelle dependencies
         updateCurrentGame, 
         clearCurrentGame, 
         handleLogin, 

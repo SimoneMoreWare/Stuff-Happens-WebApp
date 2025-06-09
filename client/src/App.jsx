@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react'; // ✅ AGGIUNGI useContext
 import { Routes, Route } from 'react-router';
 import { Container, Spinner, Alert } from 'react-bootstrap';
 
@@ -34,6 +34,26 @@ function App() {
   const [currentGame, setCurrentGame] = useState(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  
+  // ✅ AGGIUNGI: Flag per protezione abbandono partita
+  const [isInActiveGame, setIsInActiveGame] = useState(false);
+
+  // ============================================================================
+  // ✅ AGGIUNGI: PROTEZIONE BROWSER REFRESH/CLOSE
+  // ============================================================================
+  
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isInActiveGame) {
+        e.preventDefault();
+        e.returnValue = 'Hai una partita in corso. Sicuro di voler abbandonare?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isInActiveGame]);
 
   // ============================================================================
   // AUTENTICAZIONE - Controllo sessione esistente all'avvio
@@ -50,9 +70,16 @@ function App() {
         try {
           const gameData = await API.getCurrentGame();
           setCurrentGame(gameData);
+          
+          // ✅ AGGIUNGI: Se ha una partita in corso, attiva la protezione
+          if (gameData?.game?.status === 'playing') {
+            setIsInActiveGame(true);
+          }
+          
         } catch (gameError) {
           // Nessuna partita in corso - normale per utenti senza giochi attivi
           setCurrentGame(null);
+          setIsInActiveGame(false); // ✅ AGGIUNGI
         }
         
       } catch (error) {
@@ -61,11 +88,11 @@ function App() {
         setUser(null);
         setLoggedIn(false);
         setCurrentGame(null);
+        setIsInActiveGame(false); // ✅ AGGIUNGI
       } finally {
         setLoading(false);
       }
     };
-
     checkAuth();
   }, []); // IMPORTANTE: array vuoto per eseguire solo una volta
 
@@ -92,8 +119,15 @@ function App() {
       try {
         const gameData = await API.getCurrentGame();
         setCurrentGame(gameData);
+        
+        // ✅ AGGIUNGI: Se ha una partita in corso, attiva la protezione
+        if (gameData?.game?.status === 'playing') {
+          setIsInActiveGame(true);
+        }
+        
       } catch (gameError) {
         setCurrentGame(null);
+        setIsInActiveGame(false); // ✅ AGGIUNGI
         // NON rilanciare l'errore - è normale non avere partite!
       }
       
@@ -118,6 +152,7 @@ function App() {
       setUser(null);
       setLoggedIn(false);
       setCurrentGame(null);
+      setIsInActiveGame(false); // ✅ AGGIUNGI
       
       setMessage({ type: 'info', msg: 'Logout effettuato con successo' });
       // Il redirect viene gestito dal componente che chiama logout
@@ -129,6 +164,7 @@ function App() {
       setUser(null);
       setLoggedIn(false);
       setCurrentGame(null);
+      setIsInActiveGame(false); // ✅ AGGIUNGI
       // Il redirect viene gestito dal componente che chiama logout
     }
   };
@@ -143,6 +179,13 @@ function App() {
    */
   const updateCurrentGame = (gameData) => {
     setCurrentGame(gameData);
+    
+    // ✅ AGGIUNGI: Aggiorna automaticamente la flag di protezione
+    if (gameData && gameData.status === 'playing') {
+      setIsInActiveGame(true);
+    } else {
+      setIsInActiveGame(false);
+    }
   };
 
   /**
@@ -150,6 +193,7 @@ function App() {
    */
   const clearCurrentGame = () => {
     setCurrentGame(null);
+    setIsInActiveGame(false); // ✅ AGGIUNGI
   };
 
   // ============================================================================
@@ -160,6 +204,8 @@ function App() {
     user,
     loggedIn,
     currentGame,
+    isInActiveGame,        // ✅ AGGIUNGI
+    setIsInActiveGame,     // ✅ AGGIUNGI
     handleLogin,
     handleLogout,
     updateCurrentGame,

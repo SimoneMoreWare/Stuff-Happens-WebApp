@@ -4,22 +4,36 @@ import { Link, useNavigate } from 'react-router';
 import UserContext from '../../context/UserContext.jsx';
 
 function HomePage() {
-  const { user, loggedIn, currentGame } = useContext(UserContext);
+  const { user, loggedIn, currentGame, isInActiveGame } = useContext(UserContext);
   const navigate = useNavigate();
 
   // ============================================================================
   // GESTIONE NAVIGAZIONE VERSO IL GIOCO
   // ============================================================================
   
+  // ✅ MODIFICA: Aggiungi protezione alle funzioni di navigazione
   const handleStartGame = () => {
+    if (isInActiveGame) {
+      const confirm = window.confirm(
+        'Hai una partita in corso. Abbandonandola perderai tutti i progressi. Continuare?'
+      );
+      if (!confirm) return;
+    }
     navigate('/game');
   };
+  
 
   const handleContinueGame = () => {
     navigate('/game');
   };
 
   const handleStartDemo = () => {
+    if (isInActiveGame) {
+      const confirm = window.confirm(
+        'Hai una partita in corso. Abbandonandola perderai tutti i progressi. Continuare?'
+      );
+      if (!confirm) return;
+    }
     navigate('/game');
   };
 

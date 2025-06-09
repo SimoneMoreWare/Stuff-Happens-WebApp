@@ -108,12 +108,6 @@ function ProfilePage() {
                             </p>
                         </div>
                         <div className="d-flex gap-2">
-                            {currentGame && (
-                                <Button variant="success" onClick={handleNewGame}>
-                                    <i className="bi bi-play-circle-fill me-2"></i>
-                                    Continua Partita
-                                </Button>
-                            )}
                             <Button variant="primary" onClick={handleNewGame}>
                                 <i className="bi bi-plus-circle me-2"></i>
                                 {currentGame ? 'Nuova Partita' : 'Inizia a Giocare'}

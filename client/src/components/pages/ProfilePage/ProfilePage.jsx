@@ -121,30 +121,6 @@ function ProfilePage() {
                 </Col>
             </Row>
 
-            {/* Partita in corso (se presente) */}
-            {currentGame && (
-                <Row className="mb-4">
-                    <Col>
-                        <Alert variant="info" className="d-flex align-items-center justify-content-between">
-                            <div>
-                                <h6 className="alert-heading mb-1">
-                                    <i className="bi bi-play-circle-fill me-2"></i>
-                                    Partita in Corso
-                                </h6>
-                                <small>
-                                    Round {currentGame.current_round} - 
-                                    {currentGame.cards_collected} carte raccolte - 
-                                    {currentGame.wrong_guesses} errori
-                                </small>
-                            </div>
-                            <Button variant="success" onClick={handleNewGame}>
-                                Continua
-                            </Button>
-                        </Alert>
-                    </Col>
-                </Row>
-            )}
-
             {/* Statistiche utente */}
             <Row className="mb-5">
                 <Col>

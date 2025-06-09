@@ -8,6 +8,19 @@ dayjs.locale('it');
 function GameHistoryItem({ game, index }) {
     const [expanded, setExpanded] = useState(false);
 
+    // ✅ FILTRO: Mostra solo partite COMPLETE (non abbandonate)
+    const isGameComplete = () => {
+        // Una partita è completa se:
+        // 1. È stata vinta (6 carte raccolte)
+        // 2. È stata persa (3 errori)
+        return (game.cards_collected >= 6) || (game.wrong_guesses >= 3);
+    };
+
+    // ✅ Se la partita non è completa, non renderizzare nulla
+    if (!isGameComplete()) {
+        return null;
+    }
+
     const getStatusBadge = (status) => {
         switch (status) {
             case 'won':

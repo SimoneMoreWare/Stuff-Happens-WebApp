@@ -40,7 +40,7 @@ const hiddenScrollbarStyles = `
   .responsive-card {
     min-width: 100px;
     max-width: 180px;
-    flex: 1;
+    flex: 1; /* ✅ IMPORTANTE: flex uniforme per tutte le carte */
   }
   
   /* ✅ COMPATTEZZA: Riduci padding per 6+ carte */
@@ -58,6 +58,56 @@ const hiddenScrollbarStyles = `
     font-size: 0.75rem !important;
   }
 `;
+
+// ✅ Nel render del container principale, aggiorna il flex container:
+<div 
+  className={`cards-container d-flex gap-1 p-3 bg-light rounded ${isCompactLayout ? 'compact-layout' : ''}`}
+  style={{
+    overflowX: 'hidden',
+    overflowY: 'hidden',
+    minHeight: isCompactLayout ? '220px' : '290px',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    // ✅ FIX: Assicura che tutti gli elementi abbiano lo stesso spazio
+    display: 'flex',
+    flexWrap: 'nowrap'
+  }}
+>
+  {allItems.map((item, visualIndex) => {
+    return (
+      // ✅ FIX: Rimuovi la classe responsive-card dal wrapper
+      // per evitare doppio controllo flex
+      <React.Fragment key={item.id}>
+        {item.type === 'target' ? (
+          <div className="responsive-card">
+            <DraggableTargetCard 
+              card={item.card} 
+              position={item.position}
+              isCompact={isCompactLayout}
+            />
+          </div>
+        ) : item.type === 'static' ? (
+          <div className="responsive-card">
+            <StaticHandCard 
+              card={item.card} 
+              position={item.position} 
+              isDraggedOver={false}
+              isCompact={isCompactLayout}
+            />
+          </div>
+        ) : item.type === 'invisible' ? (
+          // ✅ FIX: NO wrapper div con responsive-card, 
+          // la InvisibleDropZone gestisce il proprio flex
+          <InvisibleDropZone 
+            position={item.position} 
+            label={item.position === -1 ? "Prima" : "Dopo"} 
+            isCompact={isCompactLayout}
+          />
+        ) : null}
+      </React.Fragment>
+    );
+  })}
+</div>
 
 // ============================================================================
 // ✅ COMPONENTI DRAG & DROP OTTIMIZZATI CON STILE MIGLIORE
@@ -163,19 +213,21 @@ function InvisibleDropZone({ position, label, isCompact }) {
     id: position === -1 ? 'invisible-before' : 'invisible-after',
     data: { isInvisible: true, position }
   });
-
+  
   const style = {
     ...(transform ? { transform: CSS.Transform.toString(transform) } : {}),
     transition: transition || 'all 0.2s ease',
-    minWidth: isCompact ? '30px' : '40px', 
-    maxWidth: isCompact ? '50px' : '60px',
+    // ✅ FIX: Usa le stesse dimensioni delle responsive-card
+    minWidth: isCompact ? '90px' : '100px',  // Same as responsive-card
+    maxWidth: isCompact ? '140px' : '180px', // Same as responsive-card
     height: isCompact ? '200px' : '240px',
     border: '2px dashed #dee2e6',
     borderRadius: '8px',
     backgroundColor: 'rgba(108, 117, 125, 0.1)',
-    flex: '0 0 auto'
+    // ✅ FIX: Usa flex: 1 come le altre carte per allineamento uniforme
+    flex: '1'
   };
-
+  
   return (
     <div ref={setNodeRef} style={style}>
       <div className="h-100 d-flex align-items-center justify-content-center">
@@ -1076,7 +1128,7 @@ function FullGameBoard() {
                                             style={{
                                                 overflowX: 'hidden', // ✅ NESSUN SCROLL
                                                 overflowY: 'hidden',
-                                                minHeight: isCompactLayout ? '220px' : '280px',
+                                                minHeight: isCompactLayout ? '220px' : '290px',
                                                 justifyContent: 'center', // ✅ CENTRA LE CARTE
                                                 alignItems: 'flex-start'
                                             }}

@@ -29,7 +29,7 @@ import GameSummary from './GameSummary.jsx';
 import GameStatus from './GameStatus.jsx';
 
 // ============================================================================
-// ✅ STILE OTTIMIZZATO PER 6 CARTE SENZA SCROLL + SCROLLBAR NASCOSTA
+// ✅ STILE OTTIMIZZATO PER 6 CARTE SENZA SCROLL + LAYOUT MIGLIORATO
 // ============================================================================
 const hiddenScrollbarStyles = `
   .cards-container::-webkit-scrollbar {
@@ -39,15 +39,14 @@ const hiddenScrollbarStyles = `
   /* ✅ RESPONSIVE CARDS: Si adattano al numero di carte */
   .responsive-card {
     min-width: 100px;
-    max-width: 160px;
+    max-width: 180px;
     flex: 1;
-    flex-shrink: 0;
   }
   
-  /* ✅ COMPATTEZZA: Riduci dimensioni per 4+ carte */
+  /* ✅ COMPATTEZZA: Riduci padding per 6+ carte */
   .compact-layout .responsive-card {
     min-width: 90px;
-    max-width: 130px;
+    max-width: 140px;
   }
   
   .compact-layout .card-body {
@@ -58,18 +57,10 @@ const hiddenScrollbarStyles = `
     padding: 0.25rem !important;
     font-size: 0.75rem !important;
   }
-  
-  .compact-layout .target-card {
-    height: 200px !important;
-  }
-  
-  .compact-layout .static-card {
-    height: 220px !important;
-  }
 `;
 
 // ============================================================================
-// ✅ COMPONENTI DRAG & DROP OTTIMIZZATI (HYBRID: Logica Vecchia + Stile Nuovo)
+// ✅ COMPONENTI DRAG & DROP OTTIMIZZATI CON STILE MIGLIORE
 // ============================================================================
 
 // Componente carta target draggable
@@ -98,39 +89,28 @@ function DraggableTargetCard({ card, position, isCompact }) {
       style={style} 
       {...attributes} 
       {...listeners}
-      className="responsive-card"
+      className={`responsive-card ${isCompact ? 'compact-card' : ''}`}
     >
-      {/* ✅ MANTIENI STRUTTURA VECCHIA MA CON STILE NUOVO */}
-      <div className="text-center mb-1">
-        <Badge bg="warning" className="d-flex align-items-center justify-content-center gap-1" style={{ fontSize: isCompact ? '8px' : '10px' }}>
-          <i className="bi bi-hand-index"></i>
-          Target
-        </Badge>
-      </div>
-      <div 
-        className={`card shadow-sm target-card ${isDragging ? 'border-warning border-3' : ''}`} 
-        style={{ 
-          cursor: 'grab', 
-          height: isCompact ? '200px' : '240px',
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-      >
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <Card className="border-warning border-3 shadow-lg h-100">
+        <Card.Header className="bg-warning text-dark text-center py-1">
+          <Badge bg="dark" className={isCompact ? 'badge-sm' : ''}>
+            <i className="bi bi-hand-index me-1"></i>
+            Target
+          </Badge>
+        </Card.Header>
+        <Card.Body className={`p-2 ${isCompact ? 'p-1' : ''}`}>
           <CardDisplay 
             card={card} 
             showBadLuckIndex={false}
-            isTarget={true}
             compact={isCompact}
           />
-        </div>
-      </div>
-      <div className="text-center mt-1">
-        <small className="text-muted" style={{ fontSize: isCompact ? '8px' : '10px' }}>
-          Trascina per posizionare
-        </small>
-      </div>
+        </Card.Body>
+        <Card.Footer className="text-center py-1">
+          <small className="text-muted">
+            <i className="bi bi-arrows-move"></i> Trascina
+          </small>
+        </Card.Footer>
+      </Card>
     </div>
   );
 }
@@ -155,31 +135,20 @@ function StaticHandCard({ card, position, isDraggedOver, isCompact }) {
     <div 
       ref={setNodeRef} 
       style={style}
-      className={`responsive-card transition-all ${isDraggedOver ? 'ms-2 me-2' : ''}`}
+      className={`responsive-card ${isCompact ? 'compact-card' : ''}`}
     >
-      <div className="text-center mb-1">
-        <Badge bg="secondary" style={{ fontSize: isCompact ? '8px' : '10px' }}>
-          Pos. {position + 1}
-        </Badge>
-      </div>
-      <div 
-        className="card shadow-sm static-card" 
-        style={{ 
-          height: isCompact ? '220px' : '260px',
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-      >
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <Card className="border-primary h-100 shadow">
+        <Card.Header className="bg-primary text-white text-center py-1">
+          <small>Pos. {position + 1}</small>
+        </Card.Header>
+        <Card.Body className={`p-2 ${isCompact ? 'p-1' : ''}`}>
           <CardDisplay 
             card={card} 
             showBadLuckIndex={true}
-            fixedHeight={true}
             compact={isCompact}
           />
-        </div>
-      </div>
+        </Card.Body>
+      </Card>
     </div>
   );
 }
@@ -208,16 +177,15 @@ function InvisibleDropZone({ position, label, isCompact }) {
   };
 
   return (
-    <div 
-      ref={setNodeRef}
-      style={style}
-      className="d-flex align-items-center justify-content-center"
-    >
-      <div className="text-center">
-        <i className="bi bi-plus-circle text-muted fs-6"></i>
-        <small className="d-block text-muted fw-bold" style={{ fontSize: isCompact ? '6px' : '8px' }}>
-          {label}
-        </small>
+    <div ref={setNodeRef} style={style}>
+      <div className="h-100 d-flex align-items-center justify-content-center">
+        <div className="text-center text-muted">
+          <i className="bi bi-arrow-down-up"></i>
+          <br />
+          <small style={{ fontSize: isCompact ? '0.6rem' : '0.75rem' }}>
+            {label}
+          </small>
+        </div>
       </div>
     </div>
   );
@@ -225,6 +193,7 @@ function InvisibleDropZone({ position, label, isCompact }) {
 
 /**
  * FullGameBoard - Gestisce partite complete per utenti autenticati con Drag & Drop
+ * VERSIONE OTTIMIZZATA: Logica corretta dalla versione 1 + Layout migliorato dalla versione 2
  */
 function FullGameBoard() {
    const { user, setMessage, updateCurrentGame, clearCurrentGame, isInActiveGame, setIsInActiveGame } = useContext(UserContext);
@@ -299,7 +268,7 @@ function FullGameBoard() {
    };
    
    // ============================================================================
-   // INIZIALIZZAZIONE
+   // INIZIALIZZAZIONE - LOGICA CORRETTA DALLA VERSIONE 1
    // ============================================================================
    
    useEffect(() => {
@@ -398,7 +367,7 @@ function FullGameBoard() {
    }, [currentGame, setIsInActiveGame]);
    
    // ============================================================================
-   // CREAZIONE NUOVA PARTITA
+   // CREAZIONE NUOVA PARTITA - LOGICA CORRETTA DALLA VERSIONE 1
    // ============================================================================
    
    const handleCreateNewGame = async () => {
@@ -450,7 +419,7 @@ function FullGameBoard() {
     };
    
    // ============================================================================
-   // GESTIONE ROUND - Con setup drag & drop
+   // GESTIONE ROUND - LOGICA CORRETTA + SETUP DRAG & DROP
    // ============================================================================
    
    const startNextRound = async () => {
@@ -504,7 +473,7 @@ function FullGameBoard() {
    };
    
    // ============================================================================
-   // ✅ LOGICA DRAG & DROP CORRETTA (RIPRISTINO VERSIONE FUNZIONANTE)
+   // ✅ LOGICA DRAG & DROP CORRETTA (RIPRISTINO DALLA VERSIONE 1)
    // ============================================================================
    
    const handleDragStart = (event) => {
@@ -575,7 +544,7 @@ function FullGameBoard() {
    };
    
    // ============================================================================
-   // GESTIONE GUESS
+   // GESTIONE GUESS - LOGICA CORRETTA DALLA VERSIONE 1
    // ============================================================================
    
    const handlePositionSelect = async (position) => {
@@ -657,7 +626,7 @@ function FullGameBoard() {
    };
    
    // ============================================================================
-   // GESTIONE TIMER
+   // GESTIONE TIMER - LOGICA CORRETTA DALLA VERSIONE 1
    // ============================================================================
    
    const handleTimeUp = async () => {
@@ -748,7 +717,7 @@ function FullGameBoard() {
     };
    
    // ============================================================================
-   // NAVIGAZIONE
+   // NAVIGAZIONE - LOGICA CORRETTA DALLA VERSIONE 1
    // ============================================================================
    
    const handleContinueAfterResult = () => {
@@ -807,7 +776,7 @@ function FullGameBoard() {
     };
    
    // ============================================================================
-   // RENDER
+   // RENDER - LAYOUT OTTIMIZZATO DALLA VERSIONE 2
    // ============================================================================
    
    if (loading) {
@@ -843,272 +812,272 @@ function FullGameBoard() {
    }
    
    return (
-       <DndContext
-           sensors={sensors}
-           collisionDetection={closestCenter}
-           onDragStart={handleDragStart}
-           onDragEnd={handleDragEnd}
-           onDragCancel={handleDragCancel}
-       >
+       <Container fluid>
            {/* ✅ STILE OTTIMIZZATO */}
            <style>{hiddenScrollbarStyles}</style>
            
-           <Container className="py-4">
-               {/* Header del gioco */}
-               <Row className="mb-4">
-                   <Col className="text-center">
-                       <div className="d-flex justify-content-between align-items-center">
-                           <Button 
-                               variant="outline-secondary" 
-                               onClick={handleBackHome}
-                               className="d-flex align-items-center"
-                           >
-                               <i className="bi bi-arrow-left me-2"></i>
-                               Home
-                           </Button> 
-                            <div className="text-center">
-                               <h2 className="mb-1">
-                                   <i className="bi bi-trophy me-2"></i>
-                                   Partita Completa
-                               </h2>
-                               <p className="text-muted mb-0">
-                                   Benvenuto, {user?.username}!
-                               </p>
-                           </div>
-                           
-                           <div className="d-flex gap-2">
-                               <Button 
-                                   variant="outline-primary" 
-                                   onClick={handleViewProfile}
-                                   className="d-flex align-items-center"
-                               >
-                                   <i className="bi bi-person-lines-fill me-2"></i>
-                                   Profilo
-                               </Button>
-                           </div>
-                       </div>
-                   </Col>
-               </Row>
-               
-               {/* Stato: Gioco attivo */}
-               {gameState === 'playing' && currentGame && (
-                   <>
-                       {/* ✅ LAYOUT: Area di gioco principale */}
-                       {!targetCard ? (
-                           /* Bottone per iniziare il round */
-                           <Row className="justify-content-center mb-4">
-                               <Col md={8}>
-                                   <Card className="border-primary shadow-lg">
-                                       <Card.Body className="text-center p-4">
-                                           <h4 className="mb-3 text-primary">
-                                               <i className="bi bi-play-circle-fill me-2"></i>
-                                               Round {currentGame.current_round}
-                                           </h4>
-                                           <p className="text-muted mb-4">
-                                               Clicca per ricevere la prossima carta da posizionare
-                                           </p>
-                                           <Button 
-                                               variant="primary" 
-                                               size="lg" 
-                                               onClick={startNextRound}
-                                               className="d-flex align-items-center mx-auto"
-                                           >
-                                               <i className="bi bi-play-circle me-2"></i>
-                                               Inizia Round
-                                           </Button>
-                                       </Card.Body>
-                                   </Card>
-                               </Col>
-                           </Row>
-                       ) : (
-                           /* ✅ AREA DRAG & DROP OTTIMIZZATA - NESSUN SCROLL */
-                           <div className="px-0">
-                               {/* Istruzioni compatte */}
-                               <div className="text-center mb-3">
-                                   <Alert variant="info" className="py-2 mb-2">
-                                       <i className="bi bi-cursor me-2"></i>
-                                       <strong>Trascina la carta Target nella posizione corretta</strong>
-                                   </Alert>
-                                   <small className="text-muted">
-                                       Posizionala in base al Bad Luck Index delle altre carte
-                                   </small>
-                               </div>
-                               
-                               {/* ✅ LAYOUT OTTIMIZZATO - RESPONSIVO PER 6 CARTE */}
-                               <SortableContext 
-                                   items={allItems.map(item => item.id)}
-                                   strategy={horizontalListSortingStrategy}
-                               >
-                                   <div 
-                                       className={`d-flex justify-content-center align-items-start gap-1 p-3 ${isCompactLayout ? 'compact-layout' : ''}`}
-                                       style={{ 
-                                           minHeight: isCompactLayout ? '400px' : '430px',
-                                           width: '100%',
-                                           background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                                           borderRadius: '20px',
-                                           border: '3px solid #dee2e6',
-                                           boxShadow: 'inset 0 4px 8px rgba(0,0,0,0.1)',
-                                           overflowX: 'hidden', // ✅ NESSUN SCROLL ORIZZONTALE
-                                           overflowY: 'hidden'
-                                       }}
-                                   >
-                                       {allItems.map((item, visualIndex) => {
-                                           if (item.id === 'invisible-after' && visualIndex === allItems.length - 1) {
-                                               return (
-                                                   <div key={item.id} style={{ flexShrink: 0 }}>
-                                                       <InvisibleDropZone 
-                                                           position={item.position}
-                                                           label="Ultima"
-                                                           isCompact={isCompactLayout}
-                                                       />
-                                                   </div>
-                                               );
-                                           }
-                                           
-                                           return (
-                                               <div key={item.id} style={{ flexShrink: 0 }}>
-                                                   {item.type === 'target' ? (
-                                                       <DraggableTargetCard 
-                                                           card={item.card}
-                                                           position={item.position}
-                                                           isCompact={isCompactLayout}
-                                                       />
-                                                   ) : item.type === 'static' ? (
-                                                       <StaticHandCard 
-                                                           card={item.card}
-                                                           position={item.position}
-                                                           isDraggedOver={false}
-                                                           isCompact={isCompactLayout}
-                                                       />
-                                                   ) : item.type === 'invisible' ? (
-                                                       <InvisibleDropZone 
-                                                           position={item.position}
-                                                           label={item.position === -1 ? "Prima" : "Ultima"}
-                                                           isCompact={isCompactLayout}
-                                                       />
-                                                   ) : null}
-                                               </div>
-                                           );
-                                       })}
-                                   </div>
-                               </SortableContext>
-                               
-                               {/* Info aggiuntive compatte */}
-                               <div className="text-center mt-3">
-                                   <Card className="border-info shadow-sm d-inline-block">
-                                       <Card.Body className="p-2">
-                                           <small className="text-muted">
-                                               <i className="bi bi-lightbulb text-warning me-2"></i>
-                                               <strong>Posizioni:</strong> {isCompactLayout ? 
-                                                   "Prima (0) • Tra carte (1,2,3...) • Ultima" :
-                                                   "Prima di tutte (0) • Dopo ogni carta (1, 2, 3...) • Dopo tutte"
-                                               }
-                                           </small>
-                                       </Card.Body>
-                                   </Card>
-                               </div>
-                           </div>
-                       )}
-                       
-                       {/* ✅ STATS E TIMER COMPATTI */}
-                       <Row className="justify-content-center mt-4">
-                           <Col md={8}>
-                               <Row>
-                                   <Col md={6}>
-                                       {/* GameStatus compatto */}
-                                       <Card className="border-primary shadow-sm mb-3">
-                                           <Card.Body className="p-3">
-                                               <h6 className="text-primary mb-2">
-                                                   <i className="bi bi-trophy me-2"></i>
-                                                   Stato Partita
-                                               </h6>
-                                               <div className="small">
-                                                   <div className="d-flex justify-content-between mb-1">
-                                                       <span>Round:</span>
-                                                       <strong>{currentGame.current_round}</strong>
-                                                   </div>
-                                                   <div className="d-flex justify-content-between mb-1">
-                                                       <span>Carte:</span>
-                                                       <strong>{currentGame.cards_collected}/6</strong>
-                                                   </div>
-                                                   <div className="d-flex justify-content-between">
-                                                       <span>Errori:</span>
-                                                       <strong>{currentGame.wrong_guesses}/3</strong>
-                                                   </div>
-                                               </div>
-                                           </Card.Body>
-                                       </Card>
-                                   </Col>
-                                   
-                                   <Col md={6}>
-                                       {/* Timer compatto */}
-                                       {targetCard && (
-                                        <Card className="border-warning shadow-sm mb-3">
-                                            <Card.Body className="p-3 d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <h6 className="text-warning mb-0">
-                                                        <i className="bi bi-stopwatch me-2"></i>
-                                                        Timer
-                                                    </h6>
-                                                    <Timer 
-                                                        duration={30}
-                                                        isActive={timerActive}
-                                                        onTimeUp={handleTimeUp}
-                                                    />
+           <Row>
+               {/* Header del gioco - LAYOUT MIGLIORATO */}
+               <Col xs={12}>
+                   <Card className="mb-3 bg-primary text-white">
+                       <Card.Body className="py-2">
+                           <Row className="align-items-center">
+                               <Col xs={12} md={8}>
+                                   <div className="d-flex align-items-center gap-3">
+                                       <Button 
+                                           variant="outline-light" 
+                                           size="sm" 
+                                           onClick={handleBackHome}
+                                           className="d-flex align-items-center"
+                                       >
+                                           <i className="bi bi-house-fill me-1"></i>
+                                           Home
+                                        </Button>
+                                        <div className="vr"></div>
+                                        <div>
+                                            <i className="bi bi-lightning-charge-fill me-2"></i>
+                                            Partita Completa
+                                        </div>
+                                        <div className="vr"></div>
+                                        <div>
+                                            Benvenuto, {user?.username}!
+                                        </div>
+                                    </div>
+                                </Col>
+                                <Col xs={12} md={4} className="text-md-end mt-2 mt-md-0">
+                                    <div className="d-flex justify-content-end align-items-center gap-2">                                             
+                                        <Button 
+                                            variant="outline-light" 
+                                            size="sm" 
+                                            onClick={handleViewProfile}
+                                            className="d-flex align-items-center"
+                                        >
+                                            <i className="bi bi-person-lines-fill me-1"></i>
+                                            Profilo
+                                        </Button>
+                                    </div>                                                
+                                </Col>
+                            </Row>
+                        </Card.Body>
+                    </Card>
+                </Col>
+                
+                {/* Stato: Gioco attivo */}
+                {gameState === 'playing' && currentGame && (
+                    <>
+                        {/* ✅ LAYOUT: Area di gioco principale in alto, Stats sotto */}
+                        {!targetCard ? (
+                            /* Bottone per iniziare il round */
+                            <Col xs={12}>
+                                <Card className="shadow-lg border-2 border-success">
+                                    <Card.Body className="text-center py-5 bg-light">
+                                        <div className="mb-4">
+                                            <h2 className="text-success mb-3">
+                                                <i className="bi bi-play-circle-fill me-2"></i>
+                                                Round {currentGame.current_round}
+                                            </h2>
+                                            <p className="lead text-muted mb-4">
+                                                Clicca per ricevere la prossima carta da posizionare
+                                            </p>
+                                            <Button 
+                                                variant="success" 
+                                                size="lg" 
+                                                onClick={startNextRound}
+                                                className="px-5"
+                                            >
+                                                <i className="bi bi-play-fill me-2"></i>
+                                                Inizia Round
+                                            </Button>
+                                        </div>
+                                    </Card.Body>
+                                </Card>
+                            </Col>
+                        ) : (
+                            /* ✅ AREA DRAG & DROP OTTIMIZZATA PER 6 CARTE */
+                            <Col xs={12}>
+                                {/* Istruzioni */}
+                                <Row className="mb-3">
+                                    <Col xs={12}>
+                                        <Alert variant="info" className="mb-2">
+                                            <i className="bi bi-info-circle-fill me-2"></i>
+                                            Trascina la carta Target nella posizione corretta
+                                        </Alert>
+                                        <Alert variant="warning" className="mb-0">
+                                            <i className="bi bi-clock me-2"></i>
+                                            Posizionala in base al Bad Luck Index delle altre carte
+                                        </Alert>
+                                    </Col>
+                                </Row>
+                                
+                                {/* ✅ LAYOUT OTTIMIZZATO PER 6 CARTE - NO SCROLL */}
+                                <DndContext
+                                    sensors={sensors}
+                                    collisionDetection={closestCenter}
+                                    onDragStart={handleDragStart}
+                                    onDragEnd={handleDragEnd}
+                                    onDragCancel={handleDragCancel}
+                                >
+                                    <SortableContext
+                                        items={allItems.map(item => item.id)}
+                                        strategy={horizontalListSortingStrategy}
+                                    >
+                                        <div 
+                                            className={`cards-container d-flex gap-1 p-3 bg-light rounded ${isCompactLayout ? 'compact-layout' : ''}`}
+                                            style={{
+                                                overflowX: 'hidden', // ✅ NESSUN SCROLL
+                                                overflowY: 'hidden',
+                                                minHeight: isCompactLayout ? '220px' : '280px',
+                                                justifyContent: 'center', // ✅ CENTRA LE CARTE
+                                                alignItems: 'flex-start'
+                                            }}
+                                        >
+                                            {allItems.map((item, visualIndex) => {
+                                                return (
+                                                    <div key={item.id} className="responsive-card">
+                                                        {item.type === 'target' ? (
+                                                            <DraggableTargetCard 
+                                                                card={item.card} 
+                                                                position={item.position}
+                                                                isCompact={isCompactLayout}
+                                                            />
+                                                        ) : item.type === 'static' ? (
+                                                            <StaticHandCard 
+                                                                card={item.card} 
+                                                                position={item.position} 
+                                                                isDraggedOver={false}
+                                                                isCompact={isCompactLayout}
+                                                            />
+                                                        ) : item.type === 'invisible' ? (
+                                                            <InvisibleDropZone 
+                                                                position={item.position} 
+                                                                label={item.position === -1 ? "Prima" : "Dopo"}
+                                                                isCompact={isCompactLayout}
+                                                            />
+                                                        ) : null}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </SortableContext>
+                                </DndContext>
+                                
+                                {/* Info aggiuntive */}
+                                <Row className="mt-3">
+                                    <Col xs={12}>
+                                        <Card className="bg-body-secondary">
+                                            <Card.Body className="py-2">
+                                                <small className="text-muted d-flex align-items-center justify-content-center">
+                                                    <i className="bi bi-lightbulb me-2"></i>
+                                                    {isCompactLayout ? 
+                                                        "Posizioni: Prima (0) • Tra carte (1,2,3...) • Dopo tutte" :
+                                                        "Posizioni valide: Prima di tutte (0) • Dopo ogni carta (1, 2, 3...) • Dopo tutte"
+                                                    }
+                                                </small>
+                                            </Card.Body>
+                                        </Card>
+                                    </Col>
+                                </Row>
+                                
+                            </Col>
+                        )}
+                        
+                        {/* ✅ STATS E TIMER SOTTO - VERSIONE COMPATTA */}
+                        <Col xs={12} className="mt-3">
+                            <Row>
+                                <Col md={8}>
+                                    <Card className="h-100">
+                                        <Card.Body className="py-2">
+                                            <div className="d-flex align-items-center justify-content-between">
+                                                <h6 className="mb-0 d-flex align-items-center">
+                                                    <i className="bi bi-info-circle me-2"></i>
+                                                    Stato Partita
+                                                </h6>
+                                                <div className="d-flex gap-2">
+                                                    <span className="badge bg-primary">
+                                                        Round: {currentGame.current_round}
+                                                    </span>
+                                                    <span className="badge bg-success">
+                                                        Carte: {currentGame.cards_collected}/6
+                                                    </span>
+                                                    <span className="badge bg-warning text-dark">
+                                                        Errori: {currentGame.wrong_guesses}/3
+                                                    </span>
                                                 </div>
+                                            </div>
+                                        </Card.Body>
+                                    </Card>
+                                </Col>
+                                
+                                <Col md={4}>
+                                    {/* Timer compatto */}
+                                    {targetCard && (
+                                        <Card className="h-100">
+                                            <Card.Body className="py-2 d-flex align-items-center justify-content-between">
+                                                <h6 className="mb-0 d-flex align-items-center">
+                                                    <i className="bi bi-stopwatch me-2"></i>
+                                                    Timer
+                                                </h6>
+                                                <Timer
+                                                    isActive={timerActive}
+                                                    duration={30}
+                                                    onTimeUp={handleTimeUp}
+                                                />
                                             </Card.Body>
                                         </Card>
                                     )}
-                                   </Col>
-                               </Row>
-                               
-                               {/* Bottone abbandona */}
-                               <div className="text-center">
-                                {gameState === 'playing' && currentGame && (
-                                     <Button 
-                                        variant="outline-danger" 
-                                        size="sm"
-                                        onClick={() => {
-                                            if(window.confirm('Sei sicuro di voler abbandonare la partita? Tutti i progressi andranno persi.')) {
-                                                handleAbandonGame();
-                                            }
-                                        }}
-                                        className="d-flex align-items-center mx-auto"
-                                        title="Abbandona la partita corrente"
-                                    >
-                                        <i className="bi bi-door-open me-1"></i>
-                                        Abbandona
-                                    </Button>
-                                )}           
-                                </div>
-                           </Col>
-                       </Row>
-                   </>
-               )}
-               
-               {/* Stato: Risultato round */}
-               {gameState === 'result' && roundResult && (
-                   <>
-                       <RoundResult 
-                           isCorrect={roundResult.isCorrect}
-                           isTimeout={roundResult.isTimeout}
-                           targetCard={targetCard}
-                           correctPosition={roundResult.correctPosition}
-                           guessedPosition={roundResult.guessedPosition}
-                           allCards={currentCards}
-                           onContinue={handleContinueAfterResult}
-                           onNewGame={handleNewGame}
-                           isDemo={false}
-                           gameCompleted={roundResult.gameStatus !== 'playing'}
-                           gameWon={roundResult.gameStatus === 'won'}
-                       />
-                   </>
-               )}
-               
-               {/* Stato: Partita terminata */}
-               {gameState === 'game-over' && currentGame && (
-                    <>
-                        <GameSummary 
+                                </Col>
+                            </Row>
+                            
+                            {/* Bottone abbandona partita */}
+                            <Row className="mt-2">
+                                <Col xs={12}>
+                                    {gameState === 'playing' && currentGame && (
+                                        <div className="text-center">
+                                            <Button 
+                                                variant="outline-danger" 
+                                                size="sm"
+                                                onClick={() => {
+                                                    if(window.confirm('Sei sicuro di voler abbandonare la partita? Tutti i progressi andranno persi.')) {
+                                                        handleAbandonGame();
+                                                    }
+                                                }}
+                                                className="d-flex align-items-center mx-auto"
+                                                title="Abbandona la partita corrente"
+                                            >
+                                                <i className="bi bi-flag me-2"></i>
+                                                Abbandona
+                                            </Button>
+                                        </div>
+                                    )}           
+                                </Col>
+                            </Row>
+                        </Col>
+                    </>
+                )}
+                
+                {/* Stato: Risultato round */}
+                {gameState === 'result' && roundResult && (
+                    <Col xs={12}>
+                        <RoundResult 
+                            isCorrect={roundResult.isCorrect}
+                            isTimeout={roundResult.isTimeout}
+                            targetCard={targetCard}
+                            correctPosition={roundResult.correctPosition}
+                            guessedPosition={roundResult.guessedPosition}
+                            allCards={currentCards}
+                            onContinue={handleContinueAfterResult}
+                            onNewGame={handleNewGame}
+                            isDemo={false}
+                            gameCompleted={roundResult.gameStatus !== 'playing'}
+                            gameWon={roundResult.gameStatus === 'won'}
+                        />
+                    </Col>
+                )}
+                
+                {/* Stato: Partita terminata */}
+                {gameState === 'game-over' && currentGame && (
+                    <Col xs={12}>
+                        <GameSummary
                             gameWon={currentGame.cards_collected >= 6 && currentGame.wrong_guesses < 3}
                             finalCards={currentCards}
                             allGameCards={allGameCards}
@@ -1119,11 +1088,11 @@ function FullGameBoard() {
                             onBackHome={handleBackHome}
                             isDemo={false}
                         />
-                    </>
+                    </Col>
                 )}
-           </Container>
-       </DndContext>
-   );
+            </Row>
+        </Container>
+    );
 }
 
 export default FullGameBoard;

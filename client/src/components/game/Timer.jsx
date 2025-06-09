@@ -48,10 +48,10 @@ function Timer({ duration = 30, onTimeUp, isActive = false, onReset }) {
         <div className="timer-container">
             <div className="d-flex justify-content-between align-items-center mb-2">
                 <h6 className="mb-0">
-                    <i className="bi bi-clock me-2"></i>
-                    Tempo Rimanente
+                    <i className="bi bi-clock me-2 pr-2 mr-2"></i>
+                    Tempo Rimanente&nbsp;&nbsp;
                 </h6>
-                <span className={`fs-4 fw-bold text-${variant === 'danger' ? 'danger' : variant === 'warning' ? 'warning' : 'success'}`}>
+                <span className={`pl-2 ml-2 fs-4 fw-bold text-${variant === 'danger' ? 'danger' : variant === 'warning' ? 'warning' : 'success'}`}>
                     {timeLeft}s
                 </span>
             </div>

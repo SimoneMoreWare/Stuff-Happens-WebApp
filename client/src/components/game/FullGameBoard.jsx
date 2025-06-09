@@ -249,20 +249,73 @@ function FullGameBoard() {
    }, [currentCards.length]);
 
    // ============================================================================
-   // PROTEZIONI NAVIGAZIONE
+   // PROTEZIONI NAVIGAZIONE - VERSIONE MIGLIORATA CON ABANDON E RETRY
    // ============================================================================
    
-   const handleProtectedNavigation = (path) => {
+   const handleProtectedNavigation = async (path) => {
        if (isInActiveGame && (gameState === 'playing' || timerActive)) {
-           const confirm = window.confirm(
-               'Hai una partita in corso. Abbandonandola perderai tutti i progressi. Continuare?'
-           );
-           if (confirm) {
-               setIsInActiveGame(false);
-               clearCurrentGame();
-               navigate(path);
+           const confirmMessage = 'Hai una partita in corso. Vuoi abbandonarla per continuare? Tutti i progressi andranno persi.';
+           const userConfirmed = window.confirm(confirmMessage);
+           
+           if (userConfirmed) {
+               try {
+                   console.log('🗑️ Auto-abandoning game before navigation to:', path);
+                   
+                   // ✅ ABBANDONA LA PARTITA AUTOMATICAMENTE
+                   if (currentGame) {
+                       await API.abandonGame(currentGame.id);
+                       console.log('✅ Game auto-abandoned successfully');
+                       
+                       // ✅ ATTESA PER DARE TEMPO AL SERVER DI PROCESSARE
+                       await new Promise(resolve => setTimeout(resolve, 500));
+                   }
+                   
+                   // ✅ PULIZIA COMPLETA DELLO STATO
+                   setIsInActiveGame(false);
+                   clearCurrentGame();
+                   setCurrentGame(null);
+                   setCurrentCards([]);
+                   setTargetCard(null);
+                   setCurrentRoundCard(null);
+                   setRoundResult(null);
+                   setAllItems([]);
+                   setAllGameCards([]);
+                   setTimerActive(false);
+                   setError('');
+                   
+                   setMessage({ type: 'info', msg: 'Partita abbandonata automaticamente' });
+                   
+                   // ✅ NAVIGA VERSO LA DESTINAZIONE
+                   navigate(path);
+                   
+               } catch (err) {
+                   console.error('❌ Error auto-abandoning game:', err);
+                   
+                   // ✅ PULIZIA FORZATA ANCHE IN CASO DI ERRORE API
+                   setIsInActiveGame(false);
+                   clearCurrentGame();
+                   setCurrentGame(null);
+                   setCurrentCards([]);
+                   setTargetCard(null);
+                   setCurrentRoundCard(null);
+                   setRoundResult(null);
+                   setAllItems([]);
+                   setAllGameCards([]);
+                   setTimerActive(false);
+                   setError('');
+                   
+                   setMessage({ 
+                       type: 'warning', 
+                       msg: 'Partita abbandonata localmente (errore API)' 
+                   });
+                   
+                   // ✅ NAVIGA COMUNQUE
+                   navigate(path);
+               }
            }
+           // Se dice "Annulla", non fa nulla
        } else {
+           // ✅ NESSUNA PARTITA ATTIVA - NAVIGAZIONE NORMALE
            navigate(path);
        }
    };
@@ -336,12 +389,22 @@ function FullGameBoard() {
                 setGameState('playing');
                 
             } catch (gameError) {
-                console.log('ℹ️ No active game found - creating new game directly');
+                console.log('ℹ️ No active game found');
+                
+                // ✅ PULIZIA STATO PER SICUREZZA
                 setGameState('no-game');
                 setCurrentGame(null);
                 setAllGameCards([]);
+                setCurrentCards([]);
+                setTargetCard(null);
+                setCurrentRoundCard(null);
+                setRoundResult(null);
+                setAllItems([]);
+                setTimerActive(false);
+                setIsInActiveGame(false);
                 clearCurrentGame();
                 
+                // ✅ CREA NUOVA PARTITA DOPO PULIZIA
                 setTimeout(() => {
                     handleCreateNewGame();
                 }, 500);
@@ -408,8 +471,60 @@ function FullGameBoard() {
             console.error('❌ Error creating game:', err);
             
             if (err.type === 'ACTIVE_GAME_EXISTS') {
-                setError('Hai già una partita in corso. Completa quella prima di iniziarne una nuova.');
-                checkCurrentGame();
+                console.log('🔄 Game exists, trying to abandon and retry...');
+                
+                try {
+                    // ✅ ABBANDONA LA PARTITA ESISTENTE
+                    if (err.activeGameId) {
+                        console.log('🗑️ Abandoning existing game:', err.activeGameId);
+                        await API.abandonGame(err.activeGameId);
+                        console.log('✅ Existing game abandoned');
+                        
+                        // ✅ ATTESA PER DARE TEMPO AL SERVER
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        
+                        // ✅ RETRY CREAZIONE PARTITA
+                        console.log('🔄 Retrying game creation...');
+                        const retryGameData = await API.createGame('university_life');
+                        console.log('✅ Game created on retry:', retryGameData);
+                        
+                        setCurrentGame(retryGameData.game);
+                        updateCurrentGame(retryGameData.game);
+                        
+                        const initialCards = retryGameData.initialCards.map(c =>
+                            new CardModel(c.id, c.name, c.image_url, c.bad_luck_index, c.theme)
+                        );
+                        initialCards.sort((a, b) => a.bad_luck_index - b.bad_luck_index);
+                        setCurrentCards(initialCards);
+                        
+                        const allGameCardsData = retryGameData.initialCards.map(c => ({
+                            id: c.id,
+                            name: c.name,
+                            image_url: c.image_url,
+                            bad_luck_index: c.bad_luck_index,
+                            theme: c.theme,
+                            is_initial: true,
+                            round_number: 0,
+                            guessed_correctly: null
+                        }));
+                        setAllGameCards(allGameCardsData);
+                        
+                        setGameState('playing');
+                        setMessage({ type: 'success', msg: 'Nuova partita creata (precedente abbandonata)!' });
+                        
+                    } else {
+                        throw new Error('No activeGameId provided');
+                    }
+                    
+                } catch (retryErr) {
+                    console.error('❌ Error in abandon+retry:', retryErr);
+                    setError('Hai già una partita in corso. Completa quella prima di iniziarne una nuova.');
+                    
+                    // ✅ PROVA A CARICARE LA PARTITA ESISTENTE
+                    setTimeout(() => {
+                        checkCurrentGame();
+                    }, 1000);
+                }
             } else {
                 setError(err.message || 'Errore nella creazione della partita');
             }
@@ -748,31 +863,53 @@ function FullGameBoard() {
         handleCreateNewGame();
     };
    
-   const handleBackHome = () => {
-        handleProtectedNavigation('/');
+   const handleBackHome = async () => {
+        await handleProtectedNavigation('/');
     };
    
-   const handleViewProfile = () => {
-        handleProtectedNavigation('/profile');
+   const handleViewProfile = async () => {
+        await handleProtectedNavigation('/profile');
     };
    
    const handleAbandonGame = async () => {
         if (!currentGame) return;
         
         try {
-            await API.abandonGame(currentGame.id);
-            setIsInActiveGame(false);
-            clearCurrentGame();
-            setMessage({ type: 'info', msg: 'Partita abbandonata' });
-            setGameState('no-game');
+            console.log('🗑️ Abandoning game:', currentGame.id);
             
-            setTimeout(() => {
-                handleCreateNewGame();
-            }, 1000);
+            await API.abandonGame(currentGame.id);
+            console.log('✅ Game abandoned successfully');
+            
+            // ✅ ATTESA PER DARE TEMPO AL SERVER
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
         } catch (err) {
             console.error('❌ Error abandoning game:', err);
-            setError('Errore nell\'abbandono della partita');
+            // ✅ CONTINUA COMUNQUE CON LA PULIZIA LOCALE
         }
+        
+        // ✅ PULIZIA COMPLETA DELLO STATO (SEMPRE)
+        setIsInActiveGame(false);
+        clearCurrentGame();
+        setCurrentGame(null);
+        setCurrentCards([]);
+        setTargetCard(null);
+        setCurrentRoundCard(null);
+        setRoundResult(null);
+        setAllItems([]);
+        setAllGameCards([]);
+        setTimerActive(false);
+        setError('');
+        
+        setMessage({ type: 'info', msg: 'Partita abbandonata' });
+        
+        // ✅ RITORNA ALLA HOME
+        setGameState('abandoned');
+        
+        setTimeout(() => {
+            console.log('🏠 Navigating back to home after abandon');
+            navigate('/');
+        }, 1500);
     };
    
    // ============================================================================
@@ -784,7 +921,9 @@ function FullGameBoard() {
            <Container className="d-flex justify-content-center align-items-center min-vh-100">
                <div className="text-center">
                    <Spinner animation="border" role="status" className="mb-3" />
-                   <p className="text-muted">Caricamento partita...</p>
+                   <p className="text-muted">
+                       {gameState === 'abandoned' ? 'Abbandonando partita...' : 'Caricamento partita...'}
+                   </p>
                </div>
            </Container>
        );
@@ -798,12 +937,24 @@ function FullGameBoard() {
                        <h3 className="text-danger mb-3">Errore</h3>
                        <p className="text-muted mb-4">{error}</p>
                        <div className="d-flex gap-2 justify-content-center">
-                           <Button variant="primary" onClick={() => handleProtectedNavigation('/')}>
+                           <Button variant="primary" onClick={handleBackHome}>
                                Torna alla Home
                            </Button>
                            <Button variant="outline-secondary" onClick={checkCurrentGame}>
                                Ricarica
                            </Button>
+                           {currentGame && (
+                               <Button 
+                                   variant="outline-danger" 
+                                   onClick={() => {
+                                       if(window.confirm('Vuoi abbandonare la partita corrente?')) {
+                                           handleAbandonGame();
+                                       }
+                                   }}
+                               >
+                                   Abbandona Partita
+                               </Button>
+                           )}
                        </div>
                    </Card.Body>
                </Card>
@@ -819,20 +970,12 @@ function FullGameBoard() {
            <Row>
                {/* Header del gioco - LAYOUT MIGLIORATO */}
                <Col xs={12}>
-                   <Card className="mb-3 bg-primary text-white">
+                   <Card className="mb-3 bg-dark text-white">
                        <Card.Body className="py-2">
                            <Row className="align-items-center">
                                <Col xs={12} md={8}>
                                    <div className="d-flex align-items-center gap-3">
-                                       <Button 
-                                           variant="outline-light" 
-                                           size="sm" 
-                                           onClick={handleBackHome}
-                                           className="d-flex align-items-center"
-                                       >
-                                           <i className="bi bi-house-fill me-1"></i>
-                                           Home
-                                        </Button>
+                                       
                                         <div className="vr"></div>
                                         <div>
                                             <i className="bi bi-lightning-charge-fill me-2"></i>
@@ -844,23 +987,30 @@ function FullGameBoard() {
                                         </div>
                                     </div>
                                 </Col>
-                                <Col xs={12} md={4} className="text-md-end mt-2 mt-md-0">
-                                    <div className="d-flex justify-content-end align-items-center gap-2">                                             
-                                        <Button 
-                                            variant="outline-light" 
-                                            size="sm" 
-                                            onClick={handleViewProfile}
-                                            className="d-flex align-items-center"
-                                        >
-                                            <i className="bi bi-person-lines-fill me-1"></i>
-                                            Profilo
-                                        </Button>
-                                    </div>                                                
-                                </Col>
+                                
                             </Row>
                         </Card.Body>
                     </Card>
                 </Col>
+                
+                {/* Stato: Partita abbandonata */}
+                {gameState === 'abandoned' && (
+                    <Col xs={12}>
+                        <Card className="shadow-lg border-warning">
+                            <Card.Body className="text-center py-5">
+                                <div className="mb-4">
+                                    <i className="bi bi-check-circle-fill text-success display-4 mb-3"></i>
+                                    <h3 className="text-success mb-3">Partita Abbandonata</h3>
+                                    <p className="text-muted mb-4">
+                                        La partita è stata abbandonata con successo. 
+                                        Verrai reindirizzato alla home...
+                                    </p>
+                                    <Spinner animation="border" size="sm" />
+                                </div>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                )}
                 
                 {/* Stato: Gioco attivo */}
                 {gameState === 'playing' && currentGame && (

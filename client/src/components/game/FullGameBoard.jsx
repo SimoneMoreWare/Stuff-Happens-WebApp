@@ -59,60 +59,9 @@ const hiddenScrollbarStyles = `
   }
 `;
 
-// ✅ Nel render del container principale, aggiorna il flex container:
-<div 
-  className={`cards-container d-flex gap-1 p-3 bg-light rounded ${isCompactLayout ? 'compact-layout' : ''}`}
-  style={{
-    overflowX: 'hidden',
-    overflowY: 'hidden',
-    minHeight: isCompactLayout ? '220px' : '290px',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    // ✅ FIX: Assicura che tutti gli elementi abbiano lo stesso spazio
-    display: 'flex',
-    flexWrap: 'nowrap'
-  }}
->
-  {allItems.map((item, visualIndex) => {
-    return (
-      // ✅ FIX: Rimuovi la classe responsive-card dal wrapper
-      // per evitare doppio controllo flex
-      <React.Fragment key={item.id}>
-        {item.type === 'target' ? (
-          <div className="responsive-card">
-            <DraggableTargetCard 
-              card={item.card} 
-              position={item.position}
-              isCompact={isCompactLayout}
-            />
-          </div>
-        ) : item.type === 'static' ? (
-          <div className="responsive-card">
-            <StaticHandCard 
-              card={item.card} 
-              position={item.position} 
-              isDraggedOver={false}
-              isCompact={isCompactLayout}
-            />
-          </div>
-        ) : item.type === 'invisible' ? (
-          // ✅ FIX: NO wrapper div con responsive-card, 
-          // la InvisibleDropZone gestisce il proprio flex
-          <InvisibleDropZone 
-            position={item.position} 
-            label={item.position === -1 ? "Prima" : "Dopo"} 
-            isCompact={isCompactLayout}
-          />
-        ) : null}
-      </React.Fragment>
-    );
-  })}
-</div>
-
 // ============================================================================
 // ✅ COMPONENTI DRAG & DROP OTTIMIZZATI CON STILE MIGLIORE
 // ============================================================================
-
 // Componente carta target draggable
 function DraggableTargetCard({ card, position, isCompact }) {
   const {
@@ -126,13 +75,11 @@ function DraggableTargetCard({ card, position, isCompact }) {
     id: `target-${card.id}`,
     data: { card, isTarget: true, position }
   });
-
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.8 : 1,
   };
-
   return (
     <div 
       ref={setNodeRef} 
@@ -175,12 +122,10 @@ function StaticHandCard({ card, position, isDraggedOver, isCompact }) {
     id: `static-${card.id}`,
     data: { card, isStatic: true, position }
   });
-
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
-
   return (
     <div 
       ref={setNodeRef} 
@@ -294,12 +239,12 @@ function FullGameBoard() {
            coordinateGetter: sortableKeyboardCoordinates,
        })
    );
-
+   
    // ✅ AGGIORNA LAYOUT COMPATTO BASATO SUL NUMERO DI CARTE
    useEffect(() => {
        setIsCompactLayout(currentCards.length >= 4);
    }, [currentCards.length]);
-
+   
    // ============================================================================
    // PROTEZIONI NAVIGAZIONE - VERSIONE MIGLIORATA CON ABANDON E RETRY
    // ============================================================================
@@ -470,7 +415,7 @@ function FullGameBoard() {
             setLoading(false);
         }
     };
-
+    
     useEffect(() => {
        if (currentGame?.status === 'playing') {
            setIsInActiveGame(true);
@@ -1021,15 +966,13 @@ function FullGameBoard() {
            
            <Row>
                {/* Header del gioco - LAYOUT MIGLIORATO */}
-               <Col xs={12}>
+                               <Col xs={12}>
                    <Card className="mb-3 bg-dark text-white">
                        <Card.Body className="py-2">
                            <Row className="align-items-center">
-                               <Col xs={12} md={8}>
-                                   <div className="d-flex align-items-center gap-3">
-                                       
-                                        <div className="vr"></div>
-                                        <div>
+                               <Col xs={12}>
+                                   <div className="d-flex align-items-center justify-content-center gap-3">
+                                       <div>
                                             <i className="bi bi-lightning-charge-fill me-2"></i>
                                             Partita Completa
                                         </div>
@@ -1097,19 +1040,7 @@ function FullGameBoard() {
                         ) : (
                             /* ✅ AREA DRAG & DROP OTTIMIZZATA PER 6 CARTE */
                             <Col xs={12}>
-                                {/* Istruzioni */}
-                                <Row className="mb-3">
-                                    <Col xs={12}>
-                                        <Alert variant="info" className="mb-2">
-                                            <i className="bi bi-info-circle-fill me-2"></i>
-                                            Trascina la carta Target nella posizione corretta
-                                        </Alert>
-                                        <Alert variant="warning" className="mb-0">
-                                            <i className="bi bi-clock me-2"></i>
-                                            Posizionala in base al Bad Luck Index delle altre carte
-                                        </Alert>
-                                    </Col>
-                                </Row>
+                                
                                 
                                 {/* ✅ LAYOUT OTTIMIZZATO PER 6 CARTE - NO SCROLL */}
                                 <DndContext
@@ -1130,39 +1061,62 @@ function FullGameBoard() {
                                                 overflowY: 'hidden',
                                                 minHeight: isCompactLayout ? '220px' : '290px',
                                                 justifyContent: 'center', // ✅ CENTRA LE CARTE
-                                                alignItems: 'flex-start'
+                                                alignItems: 'flex-start',
+                                                // ✅ FIX: Assicura che tutti gli elementi abbiano lo stesso spazio
+                                                display: 'flex',
+                                                flexWrap: 'nowrap'
                                             }}
                                         >
                                             {allItems.map((item, visualIndex) => {
                                                 return (
-                                                    <div key={item.id} className="responsive-card">
+                                                    // ✅ FIX: Rimuovi la classe responsive-card dal wrapper
+                                                    // per evitare doppio controllo flex
+                                                    <React.Fragment key={item.id}>
                                                         {item.type === 'target' ? (
-                                                            <DraggableTargetCard 
-                                                                card={item.card} 
-                                                                position={item.position}
-                                                                isCompact={isCompactLayout}
-                                                            />
+                                                            <div className="responsive-card">
+                                                                <DraggableTargetCard 
+                                                                    card={item.card} 
+                                                                    position={item.position}
+                                                                    isCompact={isCompactLayout}
+                                                                />
+                                                            </div>
                                                         ) : item.type === 'static' ? (
-                                                            <StaticHandCard 
-                                                                card={item.card} 
-                                                                position={item.position} 
-                                                                isDraggedOver={false}
-                                                                isCompact={isCompactLayout}
-                                                            />
+                                                            <div className="responsive-card">
+                                                                <StaticHandCard 
+                                                                    card={item.card} 
+                                                                    position={item.position} 
+                                                                    isDraggedOver={false}
+                                                                    isCompact={isCompactLayout}
+                                                                />
+                                                            </div>
                                                         ) : item.type === 'invisible' ? (
+                                                            // ✅ FIX: NO wrapper div con responsive-card, 
+                                                            // la InvisibleDropZone gestisce il proprio flex
                                                             <InvisibleDropZone 
                                                                 position={item.position} 
-                                                                label={item.position === -1 ? "Prima" : "Dopo"}
+                                                                label={item.position === -1 ? "Prima" : "Dopo"} 
                                                                 isCompact={isCompactLayout}
                                                             />
                                                         ) : null}
-                                                    </div>
+                                                    </React.Fragment>
                                                 );
                                             })}
                                         </div>
                                     </SortableContext>
                                 </DndContext>
-                                
+                                {/* Istruzioni */}
+                                <Row className="mb-3 mt-4">
+                                    <Col xs={12}>
+                                        <Alert variant="info" className="mb-2 text-center">
+                                            <i className="bi bi-info-circle-fill me-2"></i>
+                                            Trascina la carta Target nella posizione corretta
+                                        </Alert>
+                                        <Alert variant="warning" className="mb-0 text-center">
+                                            <i className="bi bi-clock me-2"></i>
+                                            Posizionala in base al Bad Luck Index delle altre carte
+                                        </Alert>
+                                    </Col>
+                                </Row>
                                 {/* Info aggiuntive */}
                                 <Row className="mt-3">
                                     <Col xs={12}>

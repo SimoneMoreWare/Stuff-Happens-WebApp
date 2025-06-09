@@ -11,7 +11,6 @@ function HomePage() {
   // GESTIONE NAVIGAZIONE VERSO IL GIOCO
   // ============================================================================
   
-  // ✅ MODIFICA: Aggiungi protezione alle funzioni di navigazione
   const handleStartGame = () => {
     if (isInActiveGame) {
       const confirm = window.confirm(
@@ -22,7 +21,6 @@ function HomePage() {
     navigate('/game');
   };
   
-
   const handleContinueGame = () => {
     navigate('/game');
   };
@@ -50,13 +48,30 @@ function HomePage() {
             <i className="bi bi-lightning-charge-fill me-3"></i>
             Stuff Happens
           </h1>
+          
+          {/* ✅ AGGIUNTA: Badge per il tema */}
+          <div className="mb-3">
+            <Badge bg="info" className="fs-6 px-3 py-2">
+              <i className="bi bi-mortarboard-fill me-2"></i>
+              Tema: Vita Universitaria
+            </Badge>
+          </div>
+          
           <p className="lead text-muted mb-4">
-            Il gioco dove devi ordinare le situazioni più sfortunate della vita!
+            Il gioco dove devi ordinare le situazioni più sfortunate della vita universitaria!
           </p>
           <p className="fs-5">
-            Ricevi carte con situazioni orribili e cerca di metterle nell'ordine giusto 
+            Ricevi carte con <span className="fw-bold text-info">situazioni universitarie disastrose</span> e cerca di metterle nell'ordine giusto 
             dal <span className="text-success fw-bold">meno grave</span> al <span className="text-danger fw-bold">più catastrofico</span>.
           </p>
+          
+          {/* ✅ AGGIUNTA: Esempi di situazioni universitarie */}
+          <div className="mt-4">
+            <small className="text-muted fst-italic">
+              "Dimentichi di iscriverti all'esame", "Ti addormenti durante la lezione del professore più severo", 
+              "Consegni la tesi con il nome sbagliato"...
+            </small>
+          </div>
         </Col>
       </Row>
 
@@ -170,7 +185,7 @@ function HomePage() {
               </div>
               <h4>Come Funziona?</h4>
               <p className="text-muted">
-                Ricevi situazioni sfortunate e devi ordinarle dalla meno grave alla più catastrofica. 
+                Ricevi situazioni universitarie sfortunate e devi ordinarle dalla meno grave alla più catastrofica. 
                 Hai 30 secondi per decidere!
               </p>
               <Link to="/instructions" className="btn btn-outline-primary">
@@ -210,7 +225,7 @@ function HomePage() {
         <Col>
           <p className="text-muted mb-0">
             <i className="bi bi-lightbulb me-2"></i>
-            <strong>Suggerimento:</strong> Non tutte le situazioni sono ovvie! 
+            <strong>Suggerimento:</strong> Non tutte le situazioni universitarie sono ovvie! 
             Pensa bene prima di posizionare una carta.
           </p>
         </Col>

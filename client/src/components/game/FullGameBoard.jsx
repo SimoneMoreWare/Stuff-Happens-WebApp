@@ -1231,7 +1231,7 @@ function FullGameBoard() {
                             gameWon={currentGame.cards_collected >= 6 && currentGame.wrong_guesses < 3}
                             finalCards={currentCards}
                             allGameCards={allGameCards}
-                            totalRounds={currentGame.cards_collected + currentGame.wrong_guesses}
+                            totalRounds={currentGame.cards_collected - 3 + currentGame.wrong_guesses}
                             cardsCollected={currentGame.cards_collected}
                             wrongGuesses={currentGame.wrong_guesses}
                             onNewGame={handleNewGame}

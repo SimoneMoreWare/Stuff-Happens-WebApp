@@ -166,6 +166,4 @@
 - username: user1, password: password, email: u1@p.it
   - Pre-existing user with completed game history
 - username: user2, password: password, email: u2@p.it
-  - User for testing new game creation and gameplay flow
-- username: testuser, password: password, email: u3@p.it
-  
+  - User for testing new game creation and gameplay flow  

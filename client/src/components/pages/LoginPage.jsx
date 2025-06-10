@@ -96,7 +96,6 @@ function LoginPage() {
                                 <strong>Account disponibili:</strong><br />
                                 <strong>user1</strong> / password (utente con cronologia)<br />
                                 <strong>user2</strong> / password (per testare nuove partite)<br />
-                                <strong>testuser</strong> / password (account di test)
                             </small>
                         </Card.Body>
                     </Card>

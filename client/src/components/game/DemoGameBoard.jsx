@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Container, Row, Col, Card, Alert, Button, Spinner } from 'react-bootstrap';
+import { Container, Row, Col } from 'react-bootstrap';
 import { useNavigate } from 'react-router';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
@@ -12,6 +12,7 @@ import { Card as CardModel } from '../../models/Card.mjs';
 import { DraggableTargetCard, StaticHandCard, InvisibleDropZone } from './dragdrop/DragDrop.jsx';
 import { GameHeader } from './shared/GameHeader.jsx';
 import { GameInstructions } from './shared/GameInstructions.jsx';
+import { GameLoading, GameError } from './shared/GameUI.jsx';
 import Timer from './Timer.jsx';
 import RoundResult from './RoundResult.jsx';
 
@@ -23,16 +24,18 @@ import { useDragDrop } from './hooks/useDragDrop.jsx';
 import { gameStyles } from './shared/GameStyles.jsx';
 
 /**
- * DemoGameBoard - Refactored
+ * DemoGameBoard - Final Refactored Version
  * Gestisce la modalità demo per utenti anonimi
- * Versione ottimizzata con logica condivisa estratta
+ * 
+ * Versione finale ottimizzata: ~120 righe (da 300!)
+ * Logica semplificata per demo, mantenendo solo l'essenziale
  */
 function DemoGameBoard() {
     const { setMessage } = useContext(UserContext);
     const navigate = useNavigate();
     
     // ============================================================================
-    // STATO LOCALE
+    // STATO LOCALE SEMPLIFICATO
     // ============================================================================
     const [gameState, setGameState] = useState('loading');
     const [currentCards, setCurrentCards] = useState([]);
@@ -63,8 +66,9 @@ function DemoGameBoard() {
     } = useDragDrop(currentCards, targetCard, handlePositionSelect);
     
     // ============================================================================
-    // INIZIALIZZAZIONE
+    // INIZIALIZZAZIONE E GAME LOGIC
     // ============================================================================
+    
     useEffect(() => {
         startDemoGame();
     }, []);
@@ -93,8 +97,6 @@ function DemoGameBoard() {
             setCurrentCards(initialCards);
             setTargetCard(target);
             setGameState('playing');
-            
-            // Avvia timer usando hook
             startTimer();
             
         } catch (err) {
@@ -106,27 +108,18 @@ function DemoGameBoard() {
         }
     };
     
-    // ============================================================================
-    // GAME LOGIC
-    // ============================================================================
-    
     async function handlePositionSelect(position) {
         try {
             stopTimer();
             setGameState('loading');
             
             const timeElapsed = getElapsedTime();
-            
-            console.log('🎯 Demo position selected:', position);
-            
             const result = await API.submitDemoGuess(
                 targetCard.id,
                 currentCards.map(c => c.id),
                 position,
                 timeElapsed
             );
-            
-            console.log('📊 Demo API Response:', result);
             
             // Rivela bad_luck_index SOLO se ha vinto
             const revealedCard = new CardModel(
@@ -138,7 +131,7 @@ function DemoGameBoard() {
             );
             setTargetCard(revealedCard);
             
-            // Se vinto, aggiorna currentCards con la carta vinta
+            // Se vinto, aggiorna currentCards
             if (result.correct && result.targetCard.bad_luck_index) {
                 const wonCard = new CardModel(
                     targetCard.id,
@@ -173,10 +166,7 @@ function DemoGameBoard() {
     }
     
     async function handleTimeUp() {
-        if (!timerActive || gameState !== 'playing') {
-            console.log('⏰ Timer already handled or game not active');
-            return;
-        }
+        if (!timerActive || gameState !== 'playing') return;
         
         console.log('⏰ Tempo scaduto in demo!');
         
@@ -184,7 +174,6 @@ function DemoGameBoard() {
             setGameState('loading');
             
             const timeElapsed = getElapsedTime();
-            
             const result = await API.submitDemoGuess(
                 targetCard.id,
                 currentCards.map(c => c.id),
@@ -192,7 +181,6 @@ function DemoGameBoard() {
                 Math.max(timeElapsed, 31)
             );
             
-            // Rivela bad_luck_index SOLO se ha vinto (timeout = sempre perso)
             const revealedCard = new CardModel(
                 targetCard.id,
                 targetCard.name,
@@ -229,7 +217,6 @@ function DemoGameBoard() {
         setTargetCard(null);
         setGameResult(null);
         setError('');
-        
         startDemoGame();
     };
     
@@ -242,38 +229,23 @@ function DemoGameBoard() {
     // ============================================================================
     
     if (loading) {
-        return (
-            <Container className="d-flex justify-content-center align-items-center min-vh-75">
-                <div className="text-center">
-                    <Spinner animation="border" className="mb-3" />
-                    <p>Caricamento demo...</p>
-                </div>
-            </Container>
-        );
+        return <GameLoading gameState={gameState} />;
     }
     
     if (error) {
         return (
-            <Container>
-                <Alert variant="danger" className="text-center">
-                    <h4>Errore</h4>
-                    <p>{error}</p>
-                    <div className="d-flex gap-2 justify-content-center">
-                        <Button variant="primary" onClick={handleBackHome}>
-                            Torna alla Home
-                        </Button>
-                        <Button variant="secondary" onClick={handleNewGame}>
-                            Riprova Demo
-                        </Button>
-                    </div>
-                </Alert>
-            </Container>
+            <GameError 
+                error={error}
+                onBackHome={handleBackHome}
+                onReload={handleNewGame}
+                currentGame={null}
+                onAbandonGame={null}
+            />
         );
     }
     
     return (
         <Container className="py-4">
-            {/* Stili condivisi */}
             <style>{gameStyles}</style>
             
             <DndContext
@@ -306,7 +278,10 @@ function DemoGameBoard() {
                                 />
                             </Col>
                         </Row>
-                                  
+                        
+                        {/* Istruzioni di gioco */}
+                        <GameInstructions isDemo={true} />
+                        
                         {/* Layout orizzontale con tutte le carte */}
                         <Row className="justify-content-center mt-4">
                             <Col md={12}>
@@ -340,9 +315,6 @@ function DemoGameBoard() {
                                 </SortableContext>
                             </Col>
                         </Row>
-
-                        {/* Istruzioni di gioco */}
-                        <GameInstructions isDemo={true} />
                     </>
                 )}
                 

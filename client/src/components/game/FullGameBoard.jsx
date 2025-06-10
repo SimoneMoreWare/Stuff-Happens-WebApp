@@ -149,24 +149,15 @@ function FullGameBoard() {
             variant="dark"
           />
         </Col>
-        {/* Timer integrato nelle stats */}
-            {targetCard && (
-              <Col xs={12} className="mt-2">
-                <div className="d-flex justify-content-center">
-                  <Timer
-                    isActive={timerActive}
-                    duration={30}
-                    onTimeUp={handleTimeUp}
-                  />
-                </div>
-              </Col>
-            )}
+        
         {/* Stato: Partita abbandonata */}
         {gameState === 'abandoned' && <GameAbandoned />}
         
         {/* Stato: Gioco attivo */}
         {gameState === 'playing' && currentGame && (
+            
           <>
+                   
             {!targetCard ? (
               /* Bottone per iniziare il round */
               <RoundStartButton 
@@ -175,7 +166,20 @@ function FullGameBoard() {
               />
             ) : (
               /* Area Drag & Drop */
+              
               <Col xs={12}>
+                {/* Timer integrato nelle stats */}
+                {targetCard && (
+                <Col xs={12} className="mt-2">
+                    <div className="d-flex justify-content-center">
+                    <Timer
+                        isActive={timerActive}
+                        duration={30}
+                        onTimeUp={handleTimeUp}
+                    />
+                    </div>
+                </Col>
+                )};  
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}

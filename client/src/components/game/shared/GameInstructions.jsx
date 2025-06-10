@@ -1,0 +1,57 @@
+import React from 'react';
+import { Row, Col, Alert, Card } from 'react-bootstrap';
+
+/**
+ * Componente per le istruzioni di gioco
+ * Condiviso tra Demo e Full con varianti
+ */
+export function GameInstructions({ isCompact = false, isDemo = false }) {
+  return (
+    <>
+      {/* Istruzioni principali */}
+      <Row className="mb-3">
+        <Col xs={12}>
+          <Alert variant="info" className="mb-2 text-center">
+            <i className="bi bi-info-circle-fill me-2"></i>
+            Trascina la carta Target nella posizione corretta
+          </Alert>
+          <Alert variant="warning" className="mb-0 text-center">
+            <i className="bi bi-clock me-2"></i>
+            Posizionala in base al Bad Luck Index delle altre carte
+          </Alert>
+        </Col>
+      </Row>
+
+      {/* Info aggiuntive sulle posizioni */}
+      <Row className="mt-3">
+        <Col xs={12}>
+          <Card className="bg-body-secondary">
+            <Card.Body className="py-2">
+              <small className="text-muted d-flex align-items-center justify-content-center">
+                <i className="bi bi-lightbulb me-2"></i>
+                {isCompact ? 
+                  "Posizioni: Prima (0) • Tra carte (1,2,3...) • Dopo tutte" :
+                  "Posizioni valide: Prima di tutte (0) • Dopo ogni carta (1, 2, 3...) • Dopo tutte"
+                }
+              </small>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Istruzioni specifiche per demo */}
+      {isDemo && (
+        <Row className="mt-2">
+          <Col xs={12}>
+            <Alert variant="secondary" className="text-center mb-0">
+              <small>
+                <i className="bi bi-info-circle me-2"></i>
+                <strong>Modalità Demo:</strong> Una sola carta da posizionare per imparare il gioco
+              </small>
+            </Alert>
+          </Col>
+        </Row>
+      )}
+    </>
+  );
+}

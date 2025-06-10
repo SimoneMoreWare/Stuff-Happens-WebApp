@@ -13,14 +13,22 @@ function UserStats({ user, gameHistory, loading = false }) {
         );
     }
 
-    // Calcola statistiche dalle partite
-    const totalGames = gameHistory.length;
-    const wonGames = gameHistory.filter(game => game.status === 'won').length;
-    const lostGames = gameHistory.filter(game => game.status === 'lost').length;
+    // ✅ FILTRO: considera solo partite COMPLETE
+    const completeGames = gameHistory.filter(game => {
+        // Una partita è completa se:
+        // 1. È stata vinta (6 carte raccolte)
+        // 2. È stata persa (3 errori)
+        return (game.cards_collected >= 6) || (game.wrong_guesses >= 3);
+    });
+
+    // Calcola statistiche dalle partite COMPLETE
+    const totalGames = completeGames.length;
+    const wonGames = completeGames.filter(game => game.status === 'won').length;
+    const lostGames = completeGames.filter(game => game.status === 'lost').length;
     const winPercentage = totalGames > 0 ? Math.round((wonGames / totalGames) * 100) : 0;
     
-    // Calcola carte totali raccolte
-    const totalCardsCollected = gameHistory.reduce((sum, game) => sum + (game.cards_collected || 0), 0);
+    // Calcola carte totali raccolte SOLO dalle partite complete
+    const totalCardsCollected = completeGames.reduce((sum, game) => sum + (game.cards_collected || 0), 0);
     const averageCards = totalGames > 0 ? Math.round((totalCardsCollected / totalGames) * 10) / 10 : 0;
 
     return (
@@ -36,7 +44,7 @@ function UserStats({ user, gameHistory, loading = false }) {
                     <Col md={3} className="mb-3">
                         <div className="bg-body-secondary rounded p-3">
                             <div className="display-6 text-primary mb-1">{totalGames}</div>
-                            <small className="text-muted">Partite Giocate</small>
+                            <small className="text-muted">Partite Complete</small> {/* ✅ Cambiato da "Giocate" a "Complete" */}
                         </div>
                     </Col>
                     <Col md={3} className="mb-3">
@@ -58,7 +66,7 @@ function UserStats({ user, gameHistory, loading = false }) {
                         </div>
                     </Col>
                 </Row>
-
+                
                 {/* Percentuale vittorie */}
                 <Row className="mt-4">
                     <Col>
@@ -75,9 +83,6 @@ function UserStats({ user, gameHistory, loading = false }) {
                         />
                     </Col>
                 </Row>
-
-                {/* Info account */}
-                
             </Card.Body>
         </Card>
     );

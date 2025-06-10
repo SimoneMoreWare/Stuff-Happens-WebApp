@@ -25,14 +25,22 @@ function GameHistory({ gameHistory, loading = false, error = null }) {
         );
     }
 
-    if (!gameHistory || gameHistory.length === 0) {
+    // ✅ FILTRO: considera solo partite COMPLETE (stessa logica di UserStats e GameHistoryItem)
+    const completeGames = gameHistory ? gameHistory.filter(game => {
+        // Una partita è completa se:
+        // 1. È stata vinta (6 carte raccolte)
+        // 2. È stata persa (3 errori)
+        return (game.cards_collected >= 6) || (game.wrong_guesses >= 3);
+    }) : [];
+
+    if (!gameHistory || completeGames.length === 0) {
         return (
             <Card>
                 <Card.Body className="text-center py-5">
                     <div className="text-muted mb-3" style={{ fontSize: '3rem' }}>
                         <i className="bi bi-controller"></i>
                     </div>
-                    <h5>Nessuna partita giocata</h5>
+                    <h5>Nessuna partita completata</h5> {/* ✅ Cambiato da "giocata" a "completata" */}
                     <p className="text-muted mb-4">
                         Non hai ancora completato nessuna partita. Inizia subito a giocare!
                     </p>
@@ -50,12 +58,12 @@ function GameHistory({ gameHistory, loading = false, error = null }) {
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h5 className="mb-0">
                     <i className="bi bi-clock-history me-2"></i>
-                    Cronologia Partite ({gameHistory.length})
+                    Cronologia Partite ({completeGames.length}) {/* ✅ Ora mostra solo quelle complete */}
                 </h5>
                 <small className="text-muted">Ordinate dalla più recente</small>
             </div>
-
-            {gameHistory.map((game, index) => (
+            {/* ✅ Usa completeGames invece di gameHistory */}
+            {completeGames.map((game, index) => (
                 <GameHistoryItem 
                     key={game.id} 
                     game={game} 

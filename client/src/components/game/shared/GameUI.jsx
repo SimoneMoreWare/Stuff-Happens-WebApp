@@ -110,7 +110,7 @@ export function GameStats({ currentGame, targetCard, timerActive, onTimeUp }) {
   return (
     <Col xs={12} className="mt-3">
       <Row>
-        <Col md={8}>
+        <Col md={3}>
           <Card className="h-100">
             <Card.Body className="py-2">
               <div className="d-flex align-items-center justify-content-between">
@@ -134,20 +134,7 @@ export function GameStats({ currentGame, targetCard, timerActive, onTimeUp }) {
           </Card>
         </Col>
         
-        <Col md={4}>
-          {/* Timer compatto */}
-          {targetCard && (
-            <Card className="h-100">
-              <Card.Body className="py-2 d-flex align-items-center justify-content-between">
-                <h6 className="mb-0 d-flex align-items-center">
-                  <i className="bi bi-stopwatch me-2"></i>
-                  Timer
-                </h6>
-                {/* Timer component importato */}
-              </Card.Body>
-            </Card>
-          )}
-        </Col>
+        
       </Row>
     </Col>
   );

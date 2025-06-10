@@ -9,7 +9,7 @@ export function GameInstructions({ isCompact = false, isDemo = false }) {
   return (
     <>
       {/* Istruzioni principali */}
-      <Row className="mb-3">
+      <Row className="mb-3 mt-3">
         <Col xs={12}>
           <Alert variant="info" className="mb-2 text-center">
             <i className="bi bi-info-circle-fill me-2"></i>

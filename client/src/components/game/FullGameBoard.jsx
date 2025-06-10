@@ -149,7 +149,18 @@ function FullGameBoard() {
             variant="dark"
           />
         </Col>
-        
+        {/* Timer integrato nelle stats */}
+            {targetCard && (
+              <Col xs={12} className="mt-2">
+                <div className="d-flex justify-content-center">
+                  <Timer
+                    isActive={timerActive}
+                    duration={30}
+                    onTimeUp={handleTimeUp}
+                  />
+                </div>
+              </Col>
+            )}
         {/* Stato: Partita abbandonata */}
         {gameState === 'abandoned' && <GameAbandoned />}
         
@@ -228,18 +239,7 @@ function FullGameBoard() {
             {/* Stats e Timer */}
             <GameStats currentGame={currentGame} targetCard={targetCard} />
             
-            {/* Timer integrato nelle stats */}
-            {targetCard && (
-              <Col xs={12} className="mt-2">
-                <div className="d-flex justify-content-center">
-                  <Timer
-                    isActive={timerActive}
-                    duration={30}
-                    onTimeUp={handleTimeUp}
-                  />
-                </div>
-              </Col>
-            )}
+            
             
             {/* Bottone abbandona partita */}
             <AbandonGameButton 

@@ -1,16 +1,12 @@
-import { useEffect, useState, useContext } from 'react'; // ✅ AGGIUNGI useContext
+import { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router';
 import { Container, Spinner, Alert } from 'react-bootstrap';
-
 // Context
 import UserContext from './context/UserContext.jsx';
-
 // API
 import API from './API/API.mjs';
-
 // Models
 import { User } from './models/User.mjs';
-
 // Components
 import Navbar from './components/layout/Navbar.jsx';
 import HomePage from './components/pages/HomePage.jsx';
@@ -19,7 +15,6 @@ import GamePage from './components/pages/GamePage.jsx';
 import ProfilePage from './components/pages/ProfilePage/ProfilePage.jsx';
 import InstructionsPage from './components/pages/InstructionsPage.jsx';
 import NotFoundPage from './components/pages/NotFoundPage.jsx';
-
 // Bootstrap CSS
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
@@ -31,29 +26,14 @@ function App() {
   
   const [user, setUser] = useState(null);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [currentGame, setCurrentGame] = useState(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
-  
-  // ✅ AGGIUNGI: Flag per protezione abbandono partita
-  const [isInActiveGame, setIsInActiveGame] = useState(false);
 
   // ============================================================================
-  // ✅ AGGIUNGI: PROTEZIONE BROWSER REFRESH/CLOSE
+  // ✅ RIMOSSO: currentGame, isInActiveGame, protezione beforeunload
   // ============================================================================
   
-  useEffect(() => {
-    const handleBeforeUnload = (e) => {
-      if (isInActiveGame) {
-        e.preventDefault();
-        e.returnValue = 'Hai una partita in corso. Sicuro di voler abbandonare?';
-        return e.returnValue;
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [isInActiveGame]);
+  // Non serve più gestire partite in corso perché vengono sempre abbandonate
 
   // ============================================================================
   // AUTENTICAZIONE - Controllo sessione esistente all'avvio
@@ -62,37 +42,25 @@ function App() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // PRIMO: Controlla se l'utente è autenticato
         const userInfo = await API.getUserInfo();
         setUser(new User(userInfo.id, userInfo.username, userInfo.email));
         setLoggedIn(true);
         
-        // Se l'utente è loggato, controlla se ha una partita in corso
-        try {
-          const gameData = await API.getCurrentGame();
-          setCurrentGame(gameData);
-          
-          // ✅ AGGIUNGI: Se ha una partita in corso, attiva la protezione
-          if (gameData?.game?.status === 'playing') {
-            setIsInActiveGame(true);
-          }
-          
-        } catch (gameError) {
-          // Nessuna partita in corso - normale per utenti senza giochi attivi
-          setCurrentGame(null);
-          setIsInActiveGame(false); // ✅ AGGIUNGI
-        }
+        // ✅ COMPLETAMENTE RIMOSSO: Non controllo più partite esistenti all'avvio
+        // Le partite verranno gestite solo quando l'utente clicca "Nuova Partita"
+        console.log('✅ User authenticated, but skipping game check at startup');
         
-      } catch (error) {
-        // Utente non autenticato - normale per accesso anonimo
-        // NON fare nulla per evitare loop infiniti
+      } catch (authError) {
+        // Utente NON autenticato - comportamento normale
+        console.log('ℹ️ User not authenticated');
         setUser(null);
         setLoggedIn(false);
-        setCurrentGame(null);
-        setIsInActiveGame(false); // ✅ AGGIUNGI
       } finally {
         setLoading(false);
       }
     };
+    
     checkAuth();
   }, []); // IMPORTANTE: array vuoto per eseguire solo una volta
 
@@ -102,8 +70,7 @@ function App() {
   
   /**
    * Gestisce il processo di login
-   * Chiamata dalle pagine di login con le credenziali inserite dall'utente
-   * Nota: il redirect viene gestito nel componente che chiama questa funzione
+   * ✅ NUOVO: Abbandona automaticamente partite esistenti dopo login
    */
   const handleLogin = async (credentials) => {
     try {
@@ -114,25 +81,11 @@ function App() {
       setUser(newUser);
       setLoggedIn(true);
       
-      // Controlla se l'utente ha una partita in corso
-      // IMPORTANTE: non far fallire il login se non ci sono partite!
-      try {
-        const gameData = await API.getCurrentGame();
-        setCurrentGame(gameData);
-        
-        // ✅ AGGIUNGI: Se ha una partita in corso, attiva la protezione
-        if (gameData?.game?.status === 'playing') {
-          setIsInActiveGame(true);
-        }
-        
-      } catch (gameError) {
-        setCurrentGame(null);
-        setIsInActiveGame(false); // ✅ AGGIUNGI
-        // NON rilanciare l'errore - è normale non avere partite!
-      }
+      // ✅ COMPLETAMENTE RIMOSSO: Non controllo partite dopo login
+      // Le partite verranno gestite solo nel GamePage quando necessario
+      console.log('✅ Login successful, skipping game check');
       
       setMessage({ type: 'success', msg: `Benvenuto, ${newUser.username}!` });
-      // Il redirect viene gestito dal componente LoginPage
       
     } catch (error) {
       throw error; // Rilancia l'errore per gestirlo nel form di login
@@ -141,8 +94,6 @@ function App() {
 
   /**
    * Gestisce il processo di logout
-   * Può essere chiamato da qualsiasi componente che ha accesso al context
-   * Nota: il redirect viene gestito nel componente che chiama questa funzione
    */
   const handleLogout = async () => {
     try {
@@ -151,11 +102,8 @@ function App() {
       // Reset stato globale
       setUser(null);
       setLoggedIn(false);
-      setCurrentGame(null);
-      setIsInActiveGame(false); // ✅ AGGIUNGI
       
       setMessage({ type: 'info', msg: 'Logout effettuato con successo' });
-      // Il redirect viene gestito dal componente che chiama logout
       
     } catch (error) {
       setMessage({ type: 'warning', msg: 'Errore durante il logout, ma sei stato disconnesso' });
@@ -163,49 +111,37 @@ function App() {
       // Anche in caso di errore, disconnetti l'utente localmente
       setUser(null);
       setLoggedIn(false);
-      setCurrentGame(null);
-      setIsInActiveGame(false); // ✅ AGGIUNGI
-      // Il redirect viene gestito dal componente che chiama logout
     }
   };
 
   // ============================================================================
-  // GESTIONE STATO PARTITA CORRENTE
+  // ✅ GESTIONE STATO PARTITA SEMPLIFICATA
   // ============================================================================
   
-  /**
-   * Aggiorna lo stato della partita corrente
-   * Utile quando si inizia una nuova partita o si completa quella esistente
-   */
+  // Manteniamo queste funzioni per compatibilità con i componenti esistenti,
+  // ma ora gestiscono solo messaggi e non stato di partite in corso
+  
   const updateCurrentGame = (gameData) => {
-    setCurrentGame(gameData);
-    
-    // ✅ AGGIUNGI: Aggiorna automaticamente la flag di protezione
-    if (gameData && gameData.status === 'playing') {
-      setIsInActiveGame(true);
-    } else {
-      setIsInActiveGame(false);
-    }
+    // Non salviamo più lo stato della partita corrente
+    // I componenti di gioco gestiranno il loro stato localmente
+    console.log('🎮 Game update (no longer stored globally):', gameData);
   };
 
-  /**
-   * Rimuove la partita corrente (quando completata o abbandonata)
-   */
   const clearCurrentGame = () => {
-    setCurrentGame(null);
-    setIsInActiveGame(false); // ✅ AGGIUNGI
+    // Non c'è più stato da pulire
+    console.log('🧹 Game state cleared (was already empty)');
   };
 
   // ============================================================================
-  // VALORE DEL CONTEXT
+  // VALORE DEL CONTEXT SEMPLIFICATO
   // ============================================================================
   
   const contextValue = {
     user,
     loggedIn,
-    currentGame,
-    isInActiveGame,        // ✅ AGGIUNGI
-    setIsInActiveGame,     // ✅ AGGIUNGI
+    currentGame: null,        // ✅ SEMPRE null - no partite in corso memorizzate
+    isInActiveGame: false,    // ✅ SEMPRE false - no protezione browser
+    setIsInActiveGame: () => {}, // ✅ No-op function per compatibilità
     handleLogin,
     handleLogout,
     updateCurrentGame,

@@ -715,11 +715,12 @@ const submitGameGuess = async (gameId, gameCardId, position, timeElapsed = 0) =>
 };
 
 /**
- * Submit a timeout for the current round card
+ * Submit a timeout for the current round card (when 30 seconds expire)
  * 
  * @param {number} gameId - ID of the game
- * @param {number} gameCardId - ID of the GameCard
- * @returns {Promise<Object>} - Result of the timeout
+ * @param {number} gameCardId - ID of the GameCard that timed out
+ * @returns {Promise<Object>} - Result of the timeout with game status
+ * @throws {string} - Error message if request fails
  */
 const submitGameTimeout = async (gameId, gameCardId) => {
   const response = await fetch(`${SERVER_URL}/api/games/${gameId}/timeout`, {
@@ -727,26 +728,25 @@ const submitGameTimeout = async (gameId, gameCardId) => {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
-    body: JSON.stringify({ gameCardId }),
+    credentials: 'include', // Required for authenticated endpoint
+    body: JSON.stringify({
+      gameCardId
+    }),
   });
   
   if (response.ok) {
     const result = await response.json();
-    
-    // ✅ AGGIUNGI CONVERSIONE URL PER LA CARTA RIVELATA
-    return {
-      ...result,
-      revealed_card: result.revealed_card ? {
-        ...result.revealed_card,
-        image_url: result.revealed_card.image_url.startsWith('http') 
-          ? result.revealed_card.image_url 
-          : `${SERVER_URL}/${result.revealed_card.image_url}`
-      } : null
-    };
+    return result;
   } else {
     const errorData = await response.json();
-    throw new Error(errorData.error || "Error processing timeout");
+    if (response.status === 400) {
+      // Invalid game state or other specific error
+      throw { 
+        message: errorData.error, 
+        type: 'INVALID_GAME_STATE'
+      };
+    }
+    throw new Error(errorData.error || "Error processing game timeout");
   }
 };
 

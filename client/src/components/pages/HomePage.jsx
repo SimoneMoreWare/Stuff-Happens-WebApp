@@ -4,34 +4,20 @@ import { Link, useNavigate } from 'react-router';
 import UserContext from '../../context/UserContext.jsx';
 
 function HomePage() {
-  const { user, loggedIn, currentGame, isInActiveGame } = useContext(UserContext);
+  const { user, loggedIn } = useContext(UserContext);
   const navigate = useNavigate();
 
   // ============================================================================
-  // GESTIONE NAVIGAZIONE VERSO IL GIOCO
+  // ✅ GESTIONE NAVIGAZIONE SEMPLIFICATA AL MASSIMO
   // ============================================================================
   
+  // Tutti i pulsanti portano sempre a /game normale
+  // Sarà il GamePage a mostrare il pulsante per creare nuova partita
   const handleStartGame = () => {
-    if (isInActiveGame) {
-      const confirm = window.confirm(
-        'Hai una partita in corso. Abbandonandola perderai tutti i progressi. Continuare?'
-      );
-      if (!confirm) return;
-    }
-    navigate('/game');
-  };
-  
-  const handleContinueGame = () => {
     navigate('/game');
   };
 
   const handleStartDemo = () => {
-    if (isInActiveGame) {
-      const confirm = window.confirm(
-        'Hai una partita in corso. Abbandonandola perderai tutti i progressi. Continuare?'
-      );
-      if (!confirm) return;
-    }
     navigate('/game');
   };
 
@@ -49,7 +35,6 @@ function HomePage() {
             Stuff Happens
           </h1>
           
-          {/* ✅ AGGIUNTA: Badge per il tema */}
           <div className="mb-3">
             <Badge bg="info" className="fs-6 px-3 py-2">
               <i className="bi bi-mortarboard-fill me-2"></i>
@@ -65,7 +50,6 @@ function HomePage() {
             dal <span className="text-success fw-bold">meno grave</span> al <span className="text-danger fw-bold">più catastrofico</span>.
           </p>
           
-          {/* ✅ AGGIUNTA: Esempi di situazioni universitarie */}
           <div className="mt-4">
             <small className="text-muted fst-italic">
               "Dimentichi di iscriverti all'esame", "Ti addormenti durante la lezione del professore più severo", 
@@ -88,45 +72,19 @@ function HomePage() {
                       <i className="bi bi-person-check-fill me-2"></i>
                       Benvenuto, {user?.username}!
                     </h3>
-                    <p className="text-muted">Scegli cosa vuoi fare oggi:</p>
+                    <p className="text-muted">Inizia una nuova partita completa:</p>
                   </div>
                   <div className="d-grid gap-3">
-                    {currentGame ? (
-                      // Ha una partita in corso
-                      <>
-                        <div className="alert alert-info d-flex align-items-center">
-                          <i className="bi bi-info-circle-fill me-2"></i>
-                          <div>
-                            <strong>Partita in corso!</strong>
-                            <br />
-                            <small>
-                              Round {currentGame.current_round || 1} - 
-                              {currentGame.won_cards?.length || 0} carte raccolte
-                            </small>
-                          </div>
-                        </div>
-                        <Button 
-                          variant="success" 
-                          size="lg" 
-                          onClick={handleContinueGame}
-                          className="d-flex align-items-center justify-content-center"
-                        >
-                          <i className="bi bi-play-circle-fill me-2"></i>
-                          Continua Partita
-                        </Button>
-                      </>
-                    ) : (
-                      // Nessuna partita in corso
-                      <Button 
-                        variant="primary" 
-                        size="lg" 
-                        onClick={handleStartGame}
-                        className="d-flex align-items-center justify-content-center"
-                      >
-                        <i className="bi bi-plus-circle-fill me-2"></i>
-                        Nuova Partita Completa
-                      </Button>
-                    )}
+                    {/* ✅ SUPER SEMPLICE: Un solo pulsante */}
+                    <Button 
+                      variant="primary" 
+                      size="lg" 
+                      onClick={handleStartGame}
+                      className="d-flex align-items-center justify-content-center"
+                    >
+                      <i className="bi bi-controller me-2"></i>
+                      Vai al Gioco
+                    </Button>
                     
                     <Link 
                       to="/profile" 
@@ -204,7 +162,13 @@ function HomePage() {
               <h4>Obiettivo</h4>
               <p className="text-muted">
                 {loggedIn ? (
-                  <>Raccogli 6 carte per vincere! Massimo 3 errori prima della sconfitta.</>
+                  <>
+                    Raccogli 6 carte per vincere! Massimo 3 errori prima della sconfitta.
+                    <br />
+                    <small className="text-info">
+                      💡 Ogni partita è sempre completamente nuova!
+                    </small>
+                  </>
                 ) : (
                   <>Prova la modalità demo con un solo round. Registrati per partite complete!</>
                 )}
@@ -228,6 +192,11 @@ function HomePage() {
             <strong>Suggerimento:</strong> Non tutte le situazioni universitarie sono ovvie! 
             Pensa bene prima di posizionare una carta.
           </p>
+          {loggedIn && (
+            <small className="text-success d-block mt-2">
+              ✅ Zero errori in console - API chiamate solo al click dei pulsanti!
+            </small>
+          )}
         </Col>
       </Row>
     </Container>

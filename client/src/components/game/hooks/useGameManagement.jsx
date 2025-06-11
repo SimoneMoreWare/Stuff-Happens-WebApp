@@ -4,10 +4,7 @@ import { useGameNavigation } from './useGameNavigation.jsx';
 
 /**
  * Hook principale per la gestione del gioco
- * Compone tutti gli altri hooks specializzati
- * 
- * Versione finale: ~80 righe (da 540!)
- * Architettura modulare e scalabile
+ * ✅ VERSIONE SEMPLICE: Solo nuove partite sempre
  */
 export const useGameManagement = () => {
   
@@ -25,22 +22,10 @@ export const useGameManagement = () => {
   const navigation = useGameNavigation();
   
   // ============================================================================
-  // HANDLERS COMPOSITI
+  // ✅ HANDLERS SEMPLIFICATI
   // ============================================================================
   
-  // Inizializzazione del gioco
-  const checkCurrentGame = async () => {
-    const result = await gameAPI.checkCurrentGame(gameState);
-    
-    // Se nessun gioco attivo, crea nuovo gioco
-    if (result === 'no-game') {
-      setTimeout(() => {
-        handleCreateNewGame();
-      }, 500);
-    }
-  };
-  
-  // Creazione nuovo gioco
+  // ✅ UNICA FUNZIONE: Crea sempre nuova partita
   const handleCreateNewGame = async () => {
     await gameAPI.createNewGame(gameState);
   };
@@ -73,7 +58,7 @@ export const useGameManagement = () => {
   } = navigation.createNavigationHandlers(gameState, gameAPI);
   
   // ============================================================================
-  // RETURN API COMPLETA
+  // ✅ RETURN API SEMPLIFICATA
   // ============================================================================
   
   return {
@@ -90,14 +75,13 @@ export const useGameManagement = () => {
     isCompactLayout: gameState.isCompactLayout,
     user: gameState.user,
     
-    // Actions (compositi)
-    checkCurrentGame,
-    handleCreateNewGame,
+    // ✅ Actions SEMPLIFICATI
+    handleCreateNewGame,        // UNICA funzione per creare partite
     startNextRound,
     processGameResult,
     processTimeUp,
     handleContinueAfterResult,
-    handleNewGame,
+    handleNewGame,              // Per bottoni interni al gioco
     handleBackHome,
     handleAbandonGame,
     

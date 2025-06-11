@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Container, Row, Col } from 'react-bootstrap';
+import React, { useState } from 'react';
+import { Container, Row, Col, Button } from 'react-bootstrap';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 
@@ -28,18 +28,21 @@ import { useGameManagement } from './hooks/useGameManagement.jsx';
 import { gameStyles } from './shared/GameStyles.jsx';
 
 /**
- * FullGameBoard - Final Refactored Version
- * Gestisce partite complete per utenti autenticati
- * 
- * Versione finale ottimizzata: ~180 righe (da 851!)
- * Tutta la logica complessa è stata estratta in hooks e componenti
+ * FullGameBoard - SUPER SIMPLE VERSION
+ * ✅ UN SOLO PULSANTE: "Inizia Nuova Partita"
+ * ✅ ZERO checkCurrentGame, ZERO force, ZERO parametri URL
  */
 function FullGameBoard() {
+  // ============================================================================
+  // ✅ STATO SEMPLICE
+  // ============================================================================
+  
+  const [gameInitialized, setGameInitialized] = useState(false);
+
   // ============================================================================
   // HOOKS PRINCIPALI
   // ============================================================================
   
-  // Hook per gestione completa del gioco (stato, API, navigazione)
   const {
     gameState,
     currentGame,
@@ -52,7 +55,7 @@ function FullGameBoard() {
     allGameCards,
     isCompactLayout,
     user,
-    checkCurrentGame,
+    handleCreateNewGame,  // ✅ UNICA funzione
     startNextRound,
     processGameResult,
     processTimeUp,
@@ -80,13 +83,8 @@ function FullGameBoard() {
   } = useDragDrop(currentCards, targetCard, handlePositionSelect);
   
   // ============================================================================
-  // EFFECTS E HANDLERS
+  // ✅ EVENT HANDLERS
   // ============================================================================
-  
-  // Inizializzazione
-  useEffect(() => {
-    checkCurrentGame();
-  }, []);
   
   // Handler per selezione posizione
   async function handlePositionSelect(position) {
@@ -108,6 +106,69 @@ function FullGameBoard() {
       startTimer();
     }
   };
+
+  // ✅ EVENT HANDLER: Inizializza gioco (SEMPRE nuova partita)
+  const handleInitializeGame = async () => {
+    setGameInitialized(true);
+    await handleCreateNewGame();
+  };
+  
+  // ============================================================================
+  // ✅ RENDER SCHERMATA INIZIALE
+  // ============================================================================
+  
+  // Se il gioco non è ancora stato inizializzato, mostra solo un pulsante
+  if (!gameInitialized) {
+    return (
+      <Container fluid>
+        <style>{gameStyles}</style>
+        
+        <Row className="justify-content-center">
+          <Col xs={12}>
+            <GameHeader
+              title="Stuff Happens - Partita Completa"
+              subtitle={`Benvenuto, ${user?.username}!`}
+              onBackHome={handleBackHome}
+              variant="dark"
+            />
+          </Col>
+          
+          <Col md={8} lg={6} className="mt-4">
+            <div className="text-center p-4 bg-light rounded shadow">
+              <h4 className="text-primary mb-3">
+                <i className="bi bi-plus-circle-fill me-2"></i>
+                Pronto per una nuova partita?
+              </h4>
+              <p className="text-muted mb-4">
+                Clicca il pulsante per iniziare una nuova partita completa. 
+                Eventuali partite precedenti verranno automaticamente abbandonate.
+              </p>
+              <div className="d-grid gap-2">
+                <Button 
+                  variant="primary" 
+                  size="lg" 
+                  onClick={handleInitializeGame}
+                  className="d-flex align-items-center justify-content-center"
+                >
+                  <i className="bi bi-rocket-takeoff me-2"></i>
+                  Inizia Nuova Partita
+                </Button>
+                <Button 
+                  variant="outline-secondary" 
+                  onClick={handleBackHome}
+                >
+                  <i className="bi bi-arrow-left me-2"></i>
+                  Torna alla Home
+                </Button>
+              </div>
+              
+              
+            </div>
+          </Col>
+        </Row>
+      </Container>
+    );
+  }
   
   // ============================================================================
   // RENDER CONDIZIONALE DEGLI STATI
@@ -124,7 +185,7 @@ function FullGameBoard() {
       <GameError 
         error={error}
         onBackHome={handleBackHome}
-        onReload={checkCurrentGame}
+        onReload={() => setGameInitialized(false)}  // ✅ Torna al pulsante iniziale
         currentGame={currentGame}
         onAbandonGame={handleAbandonGame}
       />
@@ -132,7 +193,7 @@ function FullGameBoard() {
   }
   
   // ============================================================================
-  // RENDER PRINCIPALE
+  // RENDER PRINCIPALE DEL GIOCO
   // ============================================================================
   
   return (
@@ -155,9 +216,7 @@ function FullGameBoard() {
         
         {/* Stato: Gioco attivo */}
         {gameState === 'playing' && currentGame && (
-            
           <>
-                   
             {!targetCard ? (
               /* Bottone per iniziare il round */
               <RoundStartButton 
@@ -166,20 +225,20 @@ function FullGameBoard() {
               />
             ) : (
               /* Area Drag & Drop */
-              
               <Col xs={12}>
                 {/* Timer integrato nelle stats */}
                 {targetCard && (
-                <Col xs={12} className="mt-2">
+                  <Col xs={12} className="mt-2">
                     <div className="d-flex justify-content-center">
-                    <Timer
+                      <Timer
                         isActive={timerActive}
                         duration={30}
                         onTimeUp={handleTimeUp}
-                    />
+                      />
                     </div>
-                </Col>
-                )};  
+                  </Col>
+                )}
+                
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -242,8 +301,6 @@ function FullGameBoard() {
             
             {/* Stats e Timer */}
             <GameStats currentGame={currentGame} targetCard={targetCard} />
-            
-            
             
             {/* Bottone abbandona partita */}
             <AbandonGameButton 

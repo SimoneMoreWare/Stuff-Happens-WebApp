@@ -323,6 +323,7 @@ function FullGameBoard() {
               allCards={currentCards}
               onContinue={handleContinueAfterResult}
               onNewGame={handleNewGame}
+              onBackHome={handleBackHome} 
               isDemo={false}
               gameCompleted={roundResult.gameStatus !== 'playing'}
               gameWon={roundResult.gameStatus === 'won'}
@@ -341,7 +342,7 @@ function FullGameBoard() {
               cardsCollected={currentGame.cards_collected}
               wrongGuesses={currentGame.wrong_guesses}
               onNewGame={handleNewGame}
-              onBackHome={handleBackHome}
+              onBackHome={handleBackHome} 
               isDemo={false}
             />
           </Col>

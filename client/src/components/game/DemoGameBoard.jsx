@@ -279,9 +279,6 @@ function DemoGameBoard() {
                             </Col>
                         </Row>
                         
-                        {/* Istruzioni di gioco */}
-                        <GameInstructions isDemo={true} />
-                        
                         {/* Layout orizzontale con tutte le carte */}
                         <Row className="justify-content-center mt-4">
                             <Col md={12}>
@@ -315,6 +312,9 @@ function DemoGameBoard() {
                                 </SortableContext>
                             </Col>
                         </Row>
+
+                         {/* Istruzioni di gioco */}
+                        <GameInstructions isDemo={true} />
                     </>
                 )}
                 

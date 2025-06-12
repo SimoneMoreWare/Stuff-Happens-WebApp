@@ -171,58 +171,6 @@ const logOut = async() => {
 // ==============================================================================
 
 /**
- * Get all cards (mainly for debugging/admin purposes)
- * 
- * @returns {Promise<Card[]>} - Array of all cards
- * @throws {string} - Error message if request fails
- */
-const getAllCards = async () => {
-  const response = await fetch(SERVER_URL + '/api/cards', {
-    credentials: 'include'
-  });
-  
-  if (response.ok) {
-    const cardsJson = await response.json();
-    return cardsJson.map(c => new Card(
-      c.id, 
-      c.name, 
-      c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`,
-      c.bad_luck_index, 
-      c.theme
-    ));
-  } else {
-    throw new Error("Error fetching cards");
-  }
-};
-
-/**
- * Get cards by theme
- * 
- * @param {string} theme - Theme to filter by (university_life, travel, sports, love_life, work_life)
- * @returns {Promise<Card[]>} - Array of cards for the specified theme
- * @throws {string} - Error message if request fails
- */
-const getCardsByTheme = async (theme) => {
-  const response = await fetch(`${SERVER_URL}/api/cards/theme/${theme}`, {
-    credentials: 'include'
-  });
-  
-  if (response.ok) {
-    const cardsJson = await response.json();
-    return cardsJson.map(c => new Card(
-      c.id, 
-      c.name, 
-      c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`,
-      c.bad_luck_index, 
-      c.theme
-    ));
-  } else {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Error fetching cards by theme");
-  }
-};
-
-/**
  * Get a specific card by ID (with complete details including bad_luck_index)
  * 
  * @param {number} cardId - ID of the card to retrieve
@@ -420,49 +368,6 @@ const submitDemoGuess = async (targetCardId, initialCardIds, position, timeElaps
   } else {
     const errorData = await response.json();
     throw new Error(errorData.error || "Error processing demo guess");
-  }
-};
-
-/**
- * Get game instructions for anonymous users
- * 
- * @returns {Promise<Object>} - Game instructions and rules
- * @throws {string} - Error message if request fails
- */
-const getGameInstructions = async () => {
-  const response = await fetch(SERVER_URL + '/api/demo/instructions');
-  
-  if (response.ok) {
-    const instructions = await response.json();
-    return instructions;
-  } else {
-    throw new Error("Error fetching game instructions");
-  }
-};
-
-/**
- * Get practice cards for learning the scoring system
- * 
- * @param {string} theme - Theme for the cards (default: 'university_life')
- * @param {number} count - Number of cards to return (default: 5, max: 10)
- * @returns {Promise<Object>} - Practice cards with explanations
- * @throws {string} - Error message if request fails
- */
-const getPracticeCards = async (theme = 'university_life', count = 5) => {
-  const response = await fetch(SERVER_URL + '/api/demo/practice-cards', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ theme, count }),
-  });
-  
-  if (response.ok) {
-    const practiceData = await response.json();
-    return practiceData;
-  } else {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Error fetching practice cards");
   }
 };
 
@@ -759,8 +664,8 @@ const submitGameTimeout = async (gameId, gameCardId) => {
  * 
  * Organized by functionality:
  * - Authentication: logIn, getUserInfo, logOut
- * - Cards: getAllCards, getCardsByTheme, getCardById, etc.
- * - Demo Games: startDemoGame, submitDemoGuess, getGameInstructions, etc.
+ * - Cards:getCardById, etc.
+ * - Demo Games: startDemoGame, submitDemoGuess, etc.
  * - Full Games: createGame, getCurrentGame, getGameHistory, etc.
  */
 const API = {
@@ -770,8 +675,6 @@ const API = {
   logOut,
   
   // Cards
-  getAllCards,
-  getCardsByTheme,
   getCardById,
   getRandomCards,
   getCardsByIds,
@@ -779,10 +682,8 @@ const API = {
   
   // Demo Games (anonymous users)
   startDemoGame,
-  submitDemoGuess,
-  getGameInstructions,
-  getPracticeCards,
-  
+  submitDemoGuess, 
+
   // Full Games (authenticated users)
   createGame,
   getCurrentGame,

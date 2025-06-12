@@ -2,47 +2,6 @@ import { Card } from "../models/Card.mjs";
 import db from "../database/db.mjs";
 
 /**
- * Ottiene tutte le carte disponibili
- * @returns {Promise<Card[]>}
- */
-export const getAllCards = () => {
-    return new Promise((resolve, reject) => {
-        const query = "SELECT * FROM Cards ORDER BY bad_luck_index ASC";
-        db.all(query, [], (err, rows) => {
-            if (err) {
-                reject(err);
-            } else {
-                const cards = rows.map((row) => 
-                    new Card(row.id, row.name, row.image_url, row.bad_luck_index, row.theme, row.created_at)
-                );
-                resolve(cards);
-            }
-        });
-    });
-};
-
-/**
- * Ottiene carte per tema
- * @param {string} theme 
- * @returns {Promise<Card[]>}
- */
-export const getCardsByTheme = (theme) => {
-    return new Promise((resolve, reject) => {
-        const query = "SELECT * FROM Cards WHERE theme = ? ORDER BY bad_luck_index ASC";
-        db.all(query, [theme], (err, rows) => {
-            if (err) {
-                reject(err);
-            } else {
-                const cards = rows.map((row) => 
-                    new Card(row.id, row.name, row.image_url, row.bad_luck_index, row.theme, row.created_at)
-                );
-                resolve(cards);
-            }
-        });
-    });
-};
-
-/**
  * Ottiene una carta per ID
  * @param {number} id 
  * @returns {Promise<Card|null>}

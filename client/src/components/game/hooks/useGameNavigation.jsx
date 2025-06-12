@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router';
 
 /**
  * Hook per gestire la navigazione protetta del gioco
- * Separato per mantenere file piccoli e logica chiara
+ * ✅ VERSIONE SENZA ERRORI: Non chiama mai getCurrentGame
  */
 export const useGameNavigation = () => {
   const navigate = useNavigate();
@@ -46,9 +46,8 @@ export const useGameNavigation = () => {
   // NAVIGATION HANDLERS
   // ============================================================================
   
-  // ✅ AGGIUNGI startTimer COME PARAMETRO
   const createNavigationHandlers = (gameState, gameAPI, timerFunctions = {}) => {
-    const { startTimer } = timerFunctions; // ← ESTRAI startTimer
+    const { startTimer } = timerFunctions;
     
     const handleContinueAfterResult = async () => {
       if (gameState.roundResult?.gameStatus === 'playing') {
@@ -62,11 +61,9 @@ export const useGameNavigation = () => {
         // Avvia il prossimo round
         const success = await gameAPI.startNextRound(gameState);
         
-        // ✅ CHIAMA startTimer SOLO SE DISPONIBILE
         if (success && startTimer) {
-          console.log('🎮 CALLING startTimer from continue...');
+          console.log('🎮 Starting timer after continue...');
           startTimer();
-          console.log('🎮 startTimer CALLED from continue');
         }
         
       } else {
@@ -74,10 +71,25 @@ export const useGameNavigation = () => {
       }
     };
     
-    const handleNewGame = () => {
-      gameState.setGameState('loading');
-      gameState.cleanupGameState();
-      gameAPI.createNewGame(gameState);
+    // ✅ FIX: handleNewGame NON chiama più getCurrentGame
+    const handleNewGame = async () => {
+      try {
+        console.log('🔥 Starting completely new game...');
+        
+        // ✅ STEP 1: Cleanup stato locale
+        gameState.setGameState('loading');
+        gameState.cleanupGameState();
+        
+        // ✅ STEP 2: Chiama DIRETTAMENTE createNewGame (che gestisce abbandono internamente)
+        await gameAPI.createNewGame(gameState);
+        
+        console.log('✅ New game created from navigation');
+        
+      } catch (err) {
+        console.error('❌ Error in handleNewGame:', err);
+        gameState.setError('Errore nella creazione della nuova partita');
+        gameState.setGameState('error');
+      }
     };
     
     const handleBackHome = async () => {

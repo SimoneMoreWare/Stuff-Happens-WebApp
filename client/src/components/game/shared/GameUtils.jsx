@@ -1,8 +1,9 @@
 /**
  * Utility functions condivise per i componenti di gioco
  * Funzioni helper e costanti riutilizzabili
+ * Utilizza dayjs per gestione date/tempi
  */
-
+import dayjs from 'dayjs';
 import { Card as CardModel } from '../../../models/Card.mjs';
 
 /**
@@ -71,14 +72,14 @@ export const shouldUseCompactLayout = (cardCount, threshold = 4) => {
 };
 
 /**
- * Calcola il tempo trascorso tra due timestamp
- * @param {number} startTime - Timestamp di inizio (Date.now())
- * @param {number} endTime - Timestamp di fine (Date.now()) - opzionale, default ora
+ * Calcola il tempo trascorso tra due timestamp dayjs
+ * @param {dayjs} startTime - Timestamp di inizio (dayjs)
+ * @param {dayjs} endTime - Timestamp di fine (dayjs) - opzionale, default ora
  * @returns {number} - Tempo trascorso in secondi
  */
-export const calculateElapsedTime = (startTime, endTime = Date.now()) => {
+export const calculateElapsedTime = (startTime, endTime = dayjs()) => {
   if (!startTime) return 0;
-  return Math.floor((endTime - startTime) / 1000);
+  return endTime.diff(startTime, 'second');
 };
 
 /**
@@ -103,7 +104,7 @@ export const createDragDebugInfo = (activeId, overId, cardsLength) => {
     activeId,
     overId,
     cardsLength,
-    timestamp: new Date().toISOString(),
+    timestamp: dayjs().toISOString(),
     isTargetDrag: String(activeId).startsWith('target-'),
     isStaticDrop: String(overId).startsWith('static-'),
     isInvisibleDrop: overId === 'invisible-before' || overId === 'invisible-after'
@@ -181,7 +182,7 @@ export const SUCCESS_MESSAGES = {
  * @param {Object} data - Dati aggiuntivi (opzionale)
  */
 export const gameLog = (level, component, message, data = null) => {
-  const timestamp = new Date().toISOString();
+  const timestamp = dayjs().toISOString();
   const prefix = `[${timestamp}] [${component.toUpperCase()}]`;
   
   switch (level) {

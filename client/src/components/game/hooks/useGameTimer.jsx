@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 
 /**
  * Custom hook per gestire il timer di gioco - SENZA useRef
  * Conforme alle richieste del professore
+ * Utilizza dayjs per gestione date/tempi
  */
 export const useGameTimer = (duration = 30, onTimeUp) => {
   const [timeRemaining, setTimeRemaining] = useState(duration);
@@ -15,7 +17,7 @@ export const useGameTimer = (duration = 30, onTimeUp) => {
     console.log('⏰ Starting timer...');
     setTimeRemaining(duration);
     setIsRunning(true);
-    setGameStartTime(Date.now());
+    setGameStartTime(dayjs());
     setTimeoutHandled(false);
   };
 
@@ -36,7 +38,7 @@ export const useGameTimer = (duration = 30, onTimeUp) => {
 
   // Calcola tempo trascorso
   const getElapsedTime = () => {
-    return gameStartTime ? Math.floor((Date.now() - gameStartTime) / 1000) : 0;
+    return gameStartTime ? dayjs().diff(gameStartTime, 'second') : 0;
   };
 
   // USEEFFECT PRINCIPALE - senza useRef

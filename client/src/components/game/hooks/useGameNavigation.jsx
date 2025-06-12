@@ -2,18 +2,13 @@ import { useNavigate } from 'react-router';
 
 /**
  * Hook per gestire la navigazione protetta del gioco
- * ✅ VERSIONE CORRETTA: Usa componenti React invece di window.confirm
+ * ✅ VERSIONE OTTIMIZZATA: setTimeout ridotti per test veloci
  */
 export const useGameNavigation = () => {
   const navigate = useNavigate();
   
-  // ============================================================================
-  // NAVIGAZIONE PROTETTA
-  // ============================================================================
-  
   const handleProtectedNavigation = async (gameState, gameAPI, path, onConfirmAbandon) => {
     if (gameState.isInActiveGame && (gameState.gameState === 'playing')) {
-      // ✅ CORRETTO: Usa callback invece di window.confirm
       if (onConfirmAbandon) {
         onConfirmAbandon(path, gameState, gameAPI);
       }
@@ -22,16 +17,11 @@ export const useGameNavigation = () => {
     }
   };
   
-  // ============================================================================
-  // NAVIGATION HANDLERS
-  // ============================================================================
-  
   const createNavigationHandlers = (gameState, gameAPI, timerFunctions = {}) => {
     const { startTimer } = timerFunctions;
     
     const handleContinueAfterResult = async () => {
       if (gameState.roundResult?.gameStatus === 'playing') {
-        // Rimuovi console.log per produzione
         gameState.setRoundResult(null);
         gameState.setTargetCard(null);
         gameState.setCurrentRoundCard(null);
@@ -41,7 +31,6 @@ export const useGameNavigation = () => {
         if (success && startTimer) {
           startTimer();
         }
-        
       } else {
         gameState.setGameState('game-over');
       }
@@ -53,7 +42,6 @@ export const useGameNavigation = () => {
         gameState.cleanupGameState();
         
         await gameAPI.createNewGame(gameState);
-        
       } catch (err) {
         gameState.setError('Errore nella creazione della nuova partita');
         gameState.setGameState('error');
@@ -68,9 +56,8 @@ export const useGameNavigation = () => {
       const success = await gameAPI.abandonGame(gameState);
       
       if (success) {
-        setTimeout(() => {
-          navigate('/');
-        }, 1500);
+        // ✅ IMMEDIATO - Navigazione senza delay
+        navigate('/');
       }
     };
     
@@ -81,10 +68,6 @@ export const useGameNavigation = () => {
       handleAbandonGame
     };
   };
-  
-  // ============================================================================
-  // RETURN API
-  // ============================================================================
   
   return {
     handleProtectedNavigation,

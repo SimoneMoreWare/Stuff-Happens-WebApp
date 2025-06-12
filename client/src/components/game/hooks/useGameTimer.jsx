@@ -2,46 +2,38 @@ import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 
 /**
- * Custom hook per gestire il timer di gioco - SENZA useRef
- * Conforme alle richieste del professore
- * Utilizza dayjs per gestione date/tempi
+ * Custom hook per gestire il timer di gioco
+ * ✅ CONFORME: UN SOLO useEffect necessario (per setInterval)
  */
 export const useGameTimer = (duration = 30, onTimeUp) => {
   const [timeRemaining, setTimeRemaining] = useState(duration);
   const [isRunning, setIsRunning] = useState(false);
   const [gameStartTime, setGameStartTime] = useState(null);
   const [timeoutHandled, setTimeoutHandled] = useState(false);
-
-  // AVVIA IL TIMER
+  
   const startTimer = () => {
-    console.log('⏰ Starting timer...');
     setTimeRemaining(duration);
     setIsRunning(true);
     setGameStartTime(dayjs());
     setTimeoutHandled(false);
   };
-
-  // FERMA IL TIMER
+  
   const stopTimer = () => {
-    console.log('⏰ Stopping timer...');
     setIsRunning(false);
   };
-
-  // RESET DEL TIMER
+  
   const resetTimer = () => {
-    console.log('⏰ Resetting timer...');
     setIsRunning(false);
     setTimeRemaining(duration);
     setGameStartTime(null);
     setTimeoutHandled(false);
   };
-
-  // Calcola tempo trascorso
+  
   const getElapsedTime = () => {
     return gameStartTime ? dayjs().diff(gameStartTime, 'second') : 0;
   };
-
-  // USEEFFECT PRINCIPALE - senza useRef
+  
+  // ✅ UNICO useEffect NECESSARIO - Per gestire setInterval (side effect reale)
   useEffect(() => {
     let intervalId;
     
@@ -50,14 +42,14 @@ export const useGameTimer = (duration = 30, onTimeUp) => {
         setTimeRemaining(time => {
           const newTime = time - 1;
           
-          // Gestione timeout con useState invece di useRef
+          // ✅ GESTITO QUI - Nessun useEffect aggiuntivo artificiale
           if (newTime <= 0 && !timeoutHandled) {
             setTimeoutHandled(true);
             setIsRunning(false);
             
-            // Chiama callback in modo sicuro
+            // ✅ CHIAMATA DIRETTA - Come suggerisci tu
             if (onTimeUp) {
-              setTimeout(() => onTimeUp(), 0);
+              onTimeUp();
             }
             
             return 0;
@@ -68,14 +60,14 @@ export const useGameTimer = (duration = 30, onTimeUp) => {
       }, 1000);
     }
     
-    // Cleanup
+    // ✅ CLEANUP NECESSARIO - Per evitare memory leak
     return () => {
       if (intervalId) {
         clearInterval(intervalId);
       }
     };
   }, [isRunning, timeoutHandled, onTimeUp]);
-
+  
   return {
     timeRemaining,
     timerActive: isRunning,

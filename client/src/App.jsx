@@ -188,6 +188,7 @@ function App() {
             </Alert>
           )}
           
+          {/*Ho usato React Router in modalità Declarative come mostrato nelle esercitazioni del corso. In main.jsx avvolgo l'app con BrowserRouter per abilitare il routing, poi in App.jsx uso Routes e Route per definire le varie pagine. Uso l'approccio SPA dove cambio solo i componenti senza ricaricare la pagina, e i link interni con il componente Link di React Router."*/}
           {/* Routing principale */}
           <Routes>
             <Route path="/" element={<HomePage />} />

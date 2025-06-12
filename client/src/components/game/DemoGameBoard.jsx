@@ -212,13 +212,13 @@ function DemoGameBoard() {
     // NAVIGATION HANDLERS
     // ============================================================================
     
-    const handleNewGame = () => {
+    const handleNewGame = async () => {  // ← Aggiungi async
         setGameState('loading');
         setCurrentCards([]);
         setTargetCard(null);
         setGameResult(null);
         setError('');
-        startDemoGame();
+        await startDemoGame();  // ← Aggiungi await
     };
     
     const handleBackHome = () => {

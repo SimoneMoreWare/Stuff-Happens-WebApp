@@ -78,15 +78,23 @@ function FullGameBoard() {
     handleDragCancel
   } = useDragDrop(currentCards, targetCard, handlePositionSelect);
   
+  const [isCreating, setIsCreating] = useState(false);
+
   // ============================================================================
   // EVENT HANDLERS
   // ============================================================================
   
   // Handler per selezione posizione
   async function handlePositionSelect(position) {
-    stopTimer();
-    const timeElapsed = getElapsedTime();
-    await processGameResult(position, timeElapsed);
+    try {
+      stopTimer();
+      const timeElapsed = getElapsedTime();
+      await processGameResult(position, timeElapsed);
+    } catch (error) {
+      console.error('Error in position select:', error);
+      setError('Errore nell\'invio della risposta');
+      // Restart timer or handle appropriately
+    }
   }
   
   // Handler per timeout
@@ -129,8 +137,15 @@ function FullGameBoard() {
   
   // EVENT HANDLER: Inizializza gioco (SEMPRE nuova partita)
   const handleInitializeGame = async () => {
-    setGameInitialized(true);
-    await handleCreateNewGame();
+    if (isCreating) return; // Prevent double clicks
+    
+    setIsCreating(true);
+    try {
+      setGameInitialized(true);
+      await handleCreateNewGame();
+    } finally {
+      setIsCreating(false);
+    }
   };
   
   // ============================================================================

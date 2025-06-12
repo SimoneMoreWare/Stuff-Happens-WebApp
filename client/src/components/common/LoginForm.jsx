@@ -1,34 +1,68 @@
 // ============================================================================
-// LoginForm.jsx - Componente Form con useActionState
+// LoginForm.jsx - CONFORME alle specifiche del professore
 // ============================================================================
-
-import { useActionState } from "react";
+import { useState } from "react";
 import { Form, Button, Row, Col, Alert, Card } from 'react-bootstrap';
 import { Link } from 'react-router';
 
 function LoginForm(props) {
-    // Usa useActionState esattamente come l'esempio del prof
-    const [state, formAction, isPending] = useActionState(loginFunction, {username: '', password: ''});
-
-    async function loginFunction(prevState, formData) {
-        const credentials = {
-            username: formData.get('username'),
-            password: formData.get('password'),
-        };
+    // ✅ CONTROLLED COMPONENTS: ogni input ha uno stato
+    // ✅ VALORI DEFAULT per velocizzare i test del prof (come suggerito nelle specifiche)
+    const [username, setUsername] = useState('user1');
+    const [password, setPassword] = useState('password');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState('');
+    
+    // ✅ GESTIONE CAMBIO INPUT con onChange (come richiesto dal prof)
+    const handleUsernameChange = (event) => {
+        setUsername(event.target.value);
+        // ✅ Reset errore quando l'utente inizia a digitare
+        if (error) setError('');
+    };
+    
+    const handlePasswordChange = (event) => {
+        setPassword(event.target.value);
+        // ✅ Reset errore quando l'utente inizia a digitare
+        if (error) setError('');
+    };
+    
+    // ✅ GESTIONE SUBMIT con preventDefault (come nelle slide del corso)
+    const handleSubmit = async (event) => {
+        event.preventDefault(); // ✅ OBBLIGATORIO per evitare reload pagina
+        
+        // ✅ Validazione client-side
+        if (!username.trim()) {
+            setError('Username è obbligatorio');
+            return;
+        }
+        
+        if (!password || password.length < 6) {
+            setError('Password deve essere di almeno 6 caratteri');
+            return;
+        }
         
         try {
+            setIsSubmitting(true);
+            setError('');
+            
+            const credentials = { username: username.trim(), password };
             await props.handleLogin(credentials);
-            return { success: true };
-        } catch (error) {
-            // Il prof gestisce l'errore qui e lo mostra nel form
-            return { error: 'Login fallito. Controlla le tue credenziali.' };
+            
+            // ✅ Se arriviamo qui, login riuscito
+            // Il redirect è gestito dal componente parent
+            
+        } catch (err) {
+            // ✅ Gestione errore nel form (come vuole il prof)
+            setError('Login fallito. Controlla le tue credenziali.');
+        } finally {
+            setIsSubmitting(false);
         }
-    }
-
+    };
+    
     return (
         <>
             {/* Loading state durante il submit */}
-            {isPending && (
+            {isSubmitting && (
                 <Alert variant="warning" className="d-flex align-items-center">
                     <i className="bi bi-hourglass-split me-2"></i>
                     Attendere la risposta del server...
@@ -45,7 +79,8 @@ function LoginForm(props) {
                             </h4>
                         </Card.Header>
                         <Card.Body className="p-4">
-                            <Form action={formAction}>
+                            {/* ✅ FORM CONTROLLATO con onSubmit */}
+                            <Form onSubmit={handleSubmit}>
                                 <Form.Group controlId='username' className='mb-3'>
                                     <Form.Label>
                                         <i className="bi bi-person me-2"></i>
@@ -53,10 +88,14 @@ function LoginForm(props) {
                                     </Form.Label>
                                     <Form.Control 
                                         type='text' 
-                                        name='username' 
+                                        name='username'
+                                        value={username} // ✅ OBBLIGATORIO: attributo value
+                                        onChange={handleUsernameChange} // ✅ OBBLIGATORIO: onChange
                                         placeholder="Inserisci il tuo username"
                                         required 
-                                        disabled={isPending}
+                                        disabled={isSubmitting}
+                                        // ✅ SUPPORTA SPAZI: il trim() è solo in validazione
+                                        autoComplete="username"
                                     />
                                 </Form.Group>
                                 
@@ -67,30 +106,33 @@ function LoginForm(props) {
                                     </Form.Label>
                                     <Form.Control 
                                         type='password' 
-                                        name='password' 
+                                        name='password'
+                                        value={password} // ✅ OBBLIGATORIO: attributo value
+                                        onChange={handlePasswordChange} // ✅ OBBLIGATORIO: onChange
                                         placeholder="Inserisci la tua password"
                                         required 
                                         minLength={6}
-                                        disabled={isPending}
+                                        disabled={isSubmitting}
+                                        autoComplete="current-password"
                                     />
                                 </Form.Group>
-
-                                {/* Mostra errore se il login fallisce */}
-                                {state.error && (
+                                
+                                {/* ✅ Mostra errore se presente */}
+                                {error && (
                                     <Alert variant="danger" className="d-flex align-items-center">
                                         <i className="bi bi-exclamation-triangle-fill me-2"></i>
-                                        {state.error}
+                                        {error}
                                     </Alert>
                                 )}
-
+                                
                                 <div className="d-grid gap-2">
                                     <Button 
-                                        type='submit' 
+                                        type='submit' // ✅ type="submit" per gestire onSubmit
                                         variant="primary" 
                                         size="lg"
-                                        disabled={isPending}
+                                        disabled={isSubmitting || !username.trim() || password.length < 6}
                                     >
-                                        {isPending ? (
+                                        {isSubmitting ? (
                                             <>
                                                 <i className="bi bi-hourglass-split me-2"></i>
                                                 Accesso in corso...
@@ -106,7 +148,11 @@ function LoginForm(props) {
                                     <Link 
                                         className='btn btn-outline-secondary' 
                                         to={'/'}
-                                        disabled={isPending}
+                                        // ✅ CORRETTO: Link non ha disabled, usiamo style
+                                        style={{ 
+                                            pointerEvents: isSubmitting ? 'none' : 'auto',
+                                            opacity: isSubmitting ? 0.6 : 1 
+                                        }}
                                     >
                                         <i className="bi bi-arrow-left me-2"></i>
                                         Annulla

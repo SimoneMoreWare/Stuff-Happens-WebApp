@@ -51,6 +51,7 @@ function DemoGameBoard() {
     // Timer hook
     const {
         timerActive,
+        timeRemaining,
         startTimer,
         stopTimer,
         getElapsedTime
@@ -268,16 +269,18 @@ function DemoGameBoard() {
                 {/* GAMEPLAY */}
                 {gameState === 'playing' && (
                     <>
-                        {/* Timer */}
-                        <Row className="mb-4">
-                            <Col md={6} className="mx-auto">
-                                <Timer 
-                                    duration={30}
-                                    isActive={timerActive}
-                                    onTimeUp={handleTimeUp}
-                                />
-                            </Col>
-                        </Row>
+                        {/* Timer integrato nelle stats - VERSIONE CORRETTA */}
+                        {targetCard && (
+                        <Col xs={12} className="mt-2">
+                            <div className="d-flex justify-content-center">
+                            <Timer
+                                timeRemaining={timeRemaining}  // ← PASSA IL VALORE DAL HOOK useGameTimer
+                                duration={30}
+                                isActive={timerActive}
+                            />
+                            </div>
+                        </Col>
+                        )}
                         
                         {/* Layout orizzontale con tutte le carte */}
                         <Row className="justify-content-center mt-4">

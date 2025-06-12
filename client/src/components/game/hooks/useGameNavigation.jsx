@@ -46,14 +46,29 @@ export const useGameNavigation = () => {
   // NAVIGATION HANDLERS
   // ============================================================================
   
-  const createNavigationHandlers = (gameState, gameAPI) => {
+  // ✅ AGGIUNGI startTimer COME PARAMETRO
+  const createNavigationHandlers = (gameState, gameAPI, timerFunctions = {}) => {
+    const { startTimer } = timerFunctions; // ← ESTRAI startTimer
     
-    const handleContinueAfterResult = () => {
+    const handleContinueAfterResult = async () => {
       if (gameState.roundResult?.gameStatus === 'playing') {
+        console.log('🎮 Continue after result - starting next round...');
+        
+        // Reset dello stato
         gameState.setRoundResult(null);
         gameState.setTargetCard(null);
         gameState.setCurrentRoundCard(null);
-        gameAPI.startNextRound(gameState);
+        
+        // Avvia il prossimo round
+        const success = await gameAPI.startNextRound(gameState);
+        
+        // ✅ CHIAMA startTimer SOLO SE DISPONIBILE
+        if (success && startTimer) {
+          console.log('🎮 CALLING startTimer from continue...');
+          startTimer();
+          console.log('🎮 startTimer CALLED from continue');
+        }
+        
       } else {
         gameState.setGameState('game-over');
       }

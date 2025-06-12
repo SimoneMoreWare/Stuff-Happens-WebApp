@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
-
 // Componenti condivisi
 import { DraggableTargetCard, StaticHandCard, InvisibleDropZone } from './dragdrop/DragDrop.jsx';
 import { GameHeader } from './shared/GameHeader.jsx';
@@ -18,27 +17,23 @@ import {
 import Timer from './Timer.jsx';
 import RoundResult from './RoundResult.jsx';
 import GameSummary from './GameSummary.jsx';
-
 // Hooks condivisi
 import { useGameTimer } from './hooks/useGameTimer.jsx';
 import { useDragDrop } from './hooks/useDragDrop.jsx';
 import { useGameManagement } from './hooks/useGameManagement.jsx';
-
 // Stili condivisi
 import { gameStyles } from './shared/GameStyles.jsx';
 
 /**
- * FullGameBoard - SUPER SIMPLE VERSION
- * ✅ UN SOLO PULSANTE: "Inizia Nuova Partita"
- * ✅ ZERO checkCurrentGame, ZERO force, ZERO parametri URL
+ * FullGameBoard - VERSIONE CORRETTA CON TIMER FUNZIONANTE
  */
 function FullGameBoard() {
   // ============================================================================
-  // ✅ STATO SEMPLICE
+  // STATO SEMPLICE
   // ============================================================================
   
   const [gameInitialized, setGameInitialized] = useState(false);
-
+  
   // ============================================================================
   // HOOKS PRINCIPALI
   // ============================================================================
@@ -55,11 +50,11 @@ function FullGameBoard() {
     allGameCards,
     isCompactLayout,
     user,
-    handleCreateNewGame,  // ✅ UNICA funzione
+    handleCreateNewGame,
     startNextRound,
     processGameResult,
     processTimeUp,
-    handleContinueAfterResult,
+    handleContinueAfterResult,  // ← USA QUESTA DAL HOOK
     handleNewGame,
     handleBackHome,
     handleAbandonGame
@@ -68,6 +63,7 @@ function FullGameBoard() {
   // Hook per timer
   const {
     timerActive,
+    timeRemaining,
     startTimer,
     stopTimer,
     getElapsedTime
@@ -83,7 +79,7 @@ function FullGameBoard() {
   } = useDragDrop(currentCards, targetCard, handlePositionSelect);
   
   // ============================================================================
-  // ✅ EVENT HANDLERS
+  // EVENT HANDLERS
   // ============================================================================
   
   // Handler per selezione posizione
@@ -101,20 +97,44 @@ function FullGameBoard() {
   
   // Handler per avvio round che avvia anche il timer
   const handleStartRound = async () => {
+    console.log('🎮 BEFORE startNextRound');
     const success = await startNextRound();
+    console.log('🎮 AFTER startNextRound, success:', success);
     if (success) {
+      console.log('🎮 CALLING startTimer...');
       startTimer();
+      console.log('🎮 startTimer CALLED');
     }
   };
 
-  // ✅ EVENT HANDLER: Inizializza gioco (SEMPRE nuova partita)
+  // ✅ CUSTOM HANDLER che chiama il timer + quello del hook
+  const handleContinueWithTimer = async () => {
+    if (roundResult?.gameStatus === 'playing') {
+      console.log('🎮 Continue with timer - starting next round...');
+      
+      // Avvia il prossimo round
+      const success = await startNextRound();
+      
+      // IMPORTANTE: Avvia il timer
+      if (success) {
+        console.log('🎮 CALLING startTimer from continue...');
+        startTimer();
+        console.log('🎮 startTimer CALLED from continue');
+      }
+    } else {
+      // Usa la funzione originale del hook per il game-over
+      await handleContinueAfterResult();
+    }
+  };
+  
+  // EVENT HANDLER: Inizializza gioco (SEMPRE nuova partita)
   const handleInitializeGame = async () => {
     setGameInitialized(true);
     await handleCreateNewGame();
   };
   
   // ============================================================================
-  // ✅ RENDER SCHERMATA INIZIALE
+  // RENDER SCHERMATA INIZIALE
   // ============================================================================
   
   // Se il gioco non è ancora stato inizializzato, mostra solo un pulsante
@@ -161,8 +181,6 @@ function FullGameBoard() {
                   Torna alla Home
                 </Button>
               </div>
-              
-              
             </div>
           </Col>
         </Row>
@@ -185,7 +203,7 @@ function FullGameBoard() {
       <GameError 
         error={error}
         onBackHome={handleBackHome}
-        onReload={() => setGameInitialized(false)}  // ✅ Torna al pulsante iniziale
+        onReload={() => setGameInitialized(false)}
         currentGame={currentGame}
         onAbandonGame={handleAbandonGame}
       />
@@ -226,14 +244,14 @@ function FullGameBoard() {
             ) : (
               /* Area Drag & Drop */
               <Col xs={12}>
-                {/* Timer integrato nelle stats */}
+                {/* Timer integrato nelle stats - VERSIONE CORRETTA */}
                 {targetCard && (
                   <Col xs={12} className="mt-2">
                     <div className="d-flex justify-content-center">
                       <Timer
-                        isActive={timerActive}
+                        timeRemaining={timeRemaining}
                         duration={30}
-                        onTimeUp={handleTimeUp}
+                        isActive={timerActive}
                       />
                     </div>
                   </Col>
@@ -321,7 +339,7 @@ function FullGameBoard() {
               correctPosition={roundResult.correctPosition}
               guessedPosition={roundResult.guessedPosition}
               allCards={currentCards}
-              onContinue={handleContinueAfterResult}
+              onContinue={handleContinueWithTimer}  // ← USA LA FUNZIONE CUSTOM
               onNewGame={handleNewGame}
               onBackHome={handleBackHome} 
               isDemo={false}

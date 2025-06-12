@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router';
 
 /**
  * Hook per gestire la navigazione protetta del gioco
- * ✅ VERSIONE SENZA ERRORI: Non chiama mai getCurrentGame
+ * ✅ VERSIONE CORRETTA: Usa componenti React invece di window.confirm
  */
 export const useGameNavigation = () => {
   const navigate = useNavigate();
@@ -11,31 +11,11 @@ export const useGameNavigation = () => {
   // NAVIGAZIONE PROTETTA
   // ============================================================================
   
-  const handleProtectedNavigation = async (gameState, gameAPI, path) => {
+  const handleProtectedNavigation = async (gameState, gameAPI, path, onConfirmAbandon) => {
     if (gameState.isInActiveGame && (gameState.gameState === 'playing')) {
-      const confirmMessage = 'Hai una partita in corso. Vuoi abbandonarla per continuare? Tutti i progressi andranno persi.';
-      const userConfirmed = window.confirm(confirmMessage);
-      
-      if (userConfirmed) {
-        try {
-          console.log('🗑️ Auto-abandoning game before navigation to:', path);
-          
-          if (gameState.currentGame) {
-            await gameAPI.abandonGame(gameState);
-            console.log('✅ Game auto-abandoned successfully');
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-          
-          gameState.cleanupGameState();
-          gameState.setMessage({ type: 'info', msg: 'Partita abbandonata automaticamente' });
-          navigate(path);
-          
-        } catch (err) {
-          console.error('❌ Error auto-abandoning game:', err);
-          gameState.cleanupGameState();
-          gameState.setMessage({ type: 'warning', msg: 'Partita abbandonata localmente (errore API)' });
-          navigate(path);
-        }
+      // ✅ CORRETTO: Usa callback invece di window.confirm
+      if (onConfirmAbandon) {
+        onConfirmAbandon(path, gameState, gameAPI);
       }
     } else {
       navigate(path);
@@ -51,18 +31,14 @@ export const useGameNavigation = () => {
     
     const handleContinueAfterResult = async () => {
       if (gameState.roundResult?.gameStatus === 'playing') {
-        console.log('🎮 Continue after result - starting next round...');
-        
-        // Reset dello stato
+        // Rimuovi console.log per produzione
         gameState.setRoundResult(null);
         gameState.setTargetCard(null);
         gameState.setCurrentRoundCard(null);
         
-        // Avvia il prossimo round
         const success = await gameAPI.startNextRound(gameState);
         
         if (success && startTimer) {
-          console.log('🎮 Starting timer after continue...');
           startTimer();
         }
         
@@ -71,29 +47,21 @@ export const useGameNavigation = () => {
       }
     };
     
-    // ✅ FIX: handleNewGame NON chiama più getCurrentGame
     const handleNewGame = async () => {
       try {
-        console.log('🔥 Starting completely new game...');
-        
-        // ✅ STEP 1: Cleanup stato locale
         gameState.setGameState('loading');
         gameState.cleanupGameState();
         
-        // ✅ STEP 2: Chiama DIRETTAMENTE createNewGame (che gestisce abbandono internamente)
         await gameAPI.createNewGame(gameState);
         
-        console.log('✅ New game created from navigation');
-        
       } catch (err) {
-        console.error('❌ Error in handleNewGame:', err);
         gameState.setError('Errore nella creazione della nuova partita');
         gameState.setGameState('error');
       }
     };
     
-    const handleBackHome = async () => {
-      await handleProtectedNavigation(gameState, gameAPI, '/');
+    const handleBackHome = async (onConfirmAbandon) => {
+      await handleProtectedNavigation(gameState, gameAPI, '/', onConfirmAbandon);
     };
     
     const handleAbandonGame = async () => {

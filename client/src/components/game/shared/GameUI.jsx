@@ -1,12 +1,31 @@
-import React from 'react';
-import { Container, Row, Col, Card, Alert, Button, Spinner } from 'react-bootstrap';
+import React, { useState } from 'react';
+import { Container, Row, Col, Card, Alert, Button, Spinner, Modal } from 'react-bootstrap';
 
 /**
- * Componenti UI riutilizzabili per gli stati del gioco
- * Raggruppa tutti i componenti di stato/loading/errori per funzionalità logica
+ * ✅ NUOVO: Componente Modal per conferme invece di window.confirm
  */
+export function ConfirmModal({ show, title, message, onConfirm, onCancel, confirmVariant = "danger" }) {
+  return (
+    <Modal show={show} onHide={onCancel} centered>
+      <Modal.Header closeButton>
+        <Modal.Title>{title}</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <p className="mb-0">{message}</p>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={onCancel}>
+          Annulla
+        </Button>
+        <Button variant={confirmVariant} onClick={onConfirm}>
+          Conferma
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+}
 
-// Loading component
+// Loading component (invariato)
 export function GameLoading({ gameState }) {
   return (
     <Container className="d-flex justify-content-center align-items-center min-vh-100">
@@ -20,8 +39,23 @@ export function GameLoading({ gameState }) {
   );
 }
 
-// Error state component
+// ✅ CORRETTO: Error state component senza window.confirm
 export function GameError({ error, onBackHome, onReload, currentGame, onAbandonGame }) {
+  const [showConfirm, setShowConfirm] = useState(false);
+  
+  const handleAbandonClick = () => {
+    setShowConfirm(true);
+  };
+  
+  const handleConfirmAbandon = () => {
+    setShowConfirm(false);
+    onAbandonGame();
+  };
+  
+  const handleCancelAbandon = () => {
+    setShowConfirm(false);
+  };
+  
   return (
     <Container className="d-flex justify-content-center align-items-center min-vh-100">
       <Card className="shadow-lg">
@@ -38,11 +72,7 @@ export function GameError({ error, onBackHome, onReload, currentGame, onAbandonG
             {currentGame && (
               <Button 
                 variant="outline-danger" 
-                onClick={() => {
-                  if(window.confirm('Vuoi abbandonare la partita corrente?')) {
-                    onAbandonGame();
-                  }
-                }}
+                onClick={handleAbandonClick}
               >
                 Abbandona Partita
               </Button>
@@ -50,11 +80,21 @@ export function GameError({ error, onBackHome, onReload, currentGame, onAbandonG
           </div>
         </Card.Body>
       </Card>
+      
+      {/* ✅ CORRETTO: Modal invece di window.confirm */}
+      <ConfirmModal
+        show={showConfirm}
+        title="Abbandona Partita"
+        message="Vuoi abbandonare la partita corrente? Tutti i progressi andranno persi."
+        onConfirm={handleConfirmAbandon}
+        onCancel={handleCancelAbandon}
+        confirmVariant="danger"
+      />
     </Container>
   );
 }
 
-// Abandoned game state component
+// Abandoned game state component (invariato)
 export function GameAbandoned() {
   return (
     <Col xs={12}>
@@ -75,7 +115,7 @@ export function GameAbandoned() {
   );
 }
 
-// Round start button component
+// Round start button component (invariato)
 export function RoundStartButton({ currentGame, onStartRound }) {
   return (
     <Col xs={12}>
@@ -105,7 +145,7 @@ export function RoundStartButton({ currentGame, onStartRound }) {
   );
 }
 
-// Game stats component
+// Game stats component (invariato)
 export function GameStats({ currentGame, targetCard, timerActive, onTimeUp }) {
   return (
     <Col xs={12} className="mt-3">
@@ -133,37 +173,58 @@ export function GameStats({ currentGame, targetCard, timerActive, onTimeUp }) {
             </Card.Body>
           </Card>
         </Col>
-        
-        
       </Row>
     </Col>
   );
 }
 
-// Abandon game button component
+// ✅ CORRETTO: Abandon game button senza window.confirm
 export function AbandonGameButton({ gameState, currentGame, onAbandonGame }) {
+  const [showConfirm, setShowConfirm] = useState(false);
+  
   if (gameState !== 'playing' || !currentGame) return null;
   
+  const handleAbandonClick = () => {
+    setShowConfirm(true);
+  };
+  
+  const handleConfirmAbandon = () => {
+    setShowConfirm(false);
+    onAbandonGame();
+  };
+  
+  const handleCancelAbandon = () => {
+    setShowConfirm(false);
+  };
+  
   return (
-    <Row className="mt-2">
-      <Col xs={12}>
-        <div className="text-center">
-          <Button 
-            variant="outline-danger" 
-            size="sm"
-            onClick={() => {
-              if(window.confirm('Sei sicuro di voler abbandonare la partita? Tutti i progressi andranno persi.')) {
-                onAbandonGame();
-              }
-            }}
-            className="d-flex align-items-center mx-auto"
-            title="Abbandona la partita corrente"
-          >
-            <i className="bi bi-flag me-2"></i>
-            Abbandona
-          </Button>
-        </div>
-      </Col>
-    </Row>
+    <>
+      <Row className="mt-2">
+        <Col xs={12}>
+          <div className="text-center">
+            <Button 
+              variant="outline-danger" 
+              size="sm"
+              onClick={handleAbandonClick}
+              className="d-flex align-items-center mx-auto"
+              title="Abbandona la partita corrente"
+            >
+              <i className="bi bi-flag me-2"></i>
+              Abbandona
+            </Button>
+          </div>
+        </Col>
+      </Row>
+      
+      {/* ✅ CORRETTO: Modal invece di window.confirm */}
+      <ConfirmModal
+        show={showConfirm}
+        title="Abbandona Partita"
+        message="Sei sicuro di voler abbandonare la partita? Tutti i progressi andranno persi."
+        onConfirm={handleConfirmAbandon}
+        onCancel={handleCancelAbandon}
+        confirmVariant="danger"
+      />
+    </>
   );
 }

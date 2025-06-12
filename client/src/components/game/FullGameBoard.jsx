@@ -329,18 +329,20 @@ function FullGameBoard() {
                 
                 {/* Istruzioni di gioco */}
                 <GameInstructions isCompact={isCompactLayout} />
+
+                {/* Stats e Timer */}
+                <GameStats currentGame={currentGame} targetCard={targetCard} />
+                
+                {/* Bottone abbandona partita */}
+                <AbandonGameButton 
+                  gameState={gameState}
+                  currentGame={currentGame}
+                  onAbandonGame={handleAbandonGame}
+                />
               </Col>
             )}
             
-            {/* Stats e Timer */}
-            <GameStats currentGame={currentGame} targetCard={targetCard} />
             
-            {/* Bottone abbandona partita */}
-            <AbandonGameButton 
-              gameState={gameState}
-              currentGame={currentGame}
-              onAbandonGame={handleAbandonGame}
-            />
           </>
         )}
         

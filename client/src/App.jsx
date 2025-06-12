@@ -1,6 +1,6 @@
-// App.jsx - VERSIONE SECONDO LE SLIDE DEL PROF
+// App.jsx - VERSIONE CON PROTEZIONE ROTTE SEGUENDO LO STILE DEL PROF
 import { useEffect, useState } from 'react';
-import { Routes, Route } from 'react-router';
+import { Routes, Route, Navigate } from 'react-router';
 import { Container, Spinner, Alert } from 'react-bootstrap';
 
 // Context - SOLO la definizione come nelle slide
@@ -159,17 +159,21 @@ function App() {
   }
 
   // ============================================================================
-  // RENDER CON PROVIDER - Slide 11
+  // RENDER CON PROVIDER E PROTEZIONE ROTTE - Seguendo stile del prof
   // ============================================================================
   
   /**
-   * Seguendo la slide 11: "Context Provider"
+   * PROTEZIONE ROTTE STILE PROFESSORE:
    * 
-   * "<ExContext.Provider value=...> component
-   *  Injects the context value into all nested components"
+   * Nel codice del prof vediamo questo pattern:
+   * - <Route path="answers/new" element={loggedIn ? <AnswerForm /> : <Navigate replace to='/' />} />
+   * - <Route path='/login' element={loggedIn ? <Navigate replace to='/' /> : <LoginForm />} />
    * 
-   * Il prof mostra che il Provider va wrappato attorno ai componenti
-   * che devono accedere al context
+   * Il prof usa direttamente la condizione loggedIn per decidere cosa renderizzare:
+   * - Se loggedIn è true → component protetto
+   * - Se loggedIn è false → <Navigate> per redirect
+   * 
+   * Questo è molto più semplice e diretto rispetto a un HOC ProtectedRoute
    */
   return (
     <UserContext.Provider value={contextValue}>
@@ -189,13 +193,35 @@ function App() {
             </Alert>
           )}
           
-          {/* Routing principale */}
+          {/* 
+            ROUTING CON PROTEZIONE - Seguendo lo stile del prof
+            
+            Il prof nel suo esempio usa questo pattern:
+            - Route pubbliche: accessibili a tutti
+            - Route protette: loggedIn ? <Component> : <Navigate replace to='/login' />
+            - Route per anonimi: loggedIn ? <Navigate replace to='/' /> : <Component>
+          */}
           <Routes>
+            {/* ✅ ROTTE PUBBLICHE - Accessibili a tutti */}
             <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/game" element={<GamePage />} />
-            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/instructions" element={<InstructionsPage />} />
+            
+            {/* ✅ ROTTA GAME - Accessibile a tutti ma con comportamenti diversi */}
+            <Route path="/game" element={<GamePage />} />
+            
+            {/* ✅ ROTTA LOGIN - Solo per utenti NON autenticati */}
+            <Route 
+              path="/login" 
+              element={loggedIn ? <Navigate replace to='/' /> : <LoginPage />} 
+            />
+            
+            {/* ✅ ROTTE PROTETTE - Solo per utenti autenticati */}
+            <Route 
+              path="/profile" 
+              element={loggedIn ? <ProfilePage /> : <Navigate replace to='/login' />} 
+            />
+            
+            {/* ✅ ROTTA 404 */}
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Container>

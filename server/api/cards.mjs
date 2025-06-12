@@ -1,17 +1,20 @@
 import express from 'express';
 import { body, param, validationResult } from 'express-validator';
 import { getAllCards, getCardsByTheme, getCardById, getRandomCards, getCardsByIds } from '../dao/cardDAO.mjs';
+import { isLoggedIn } from '../middleware/authMiddleware.mjs';
 
 const router = express.Router();
 
 /**
- * GET /api/cards - Get all cards
+ * GET /api/cards - Get all cards (ADMIN/DEBUG ONLY - PROTECTED)
+ * 
+ * ⚠️ SECURITY: This endpoint exposes ALL cards with bad_luck_index!
+ * This could allow players to cheat by knowing all card values.
+ * Only available to authenticated users (admin/debug purposes).
  * 
  * Returns all available cards in the system, ordered by bad_luck_index.
- * This endpoint is mainly for admin purposes or debugging.
- * In a real game, we use more specific endpoints.
  */
-router.get('/', async (req, res) => {
+router.get('/', isLoggedIn, async (req, res) => {
     try {
         const cards = await getAllCards();
         res.json(cards);
@@ -22,14 +25,15 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * GET /api/cards/theme/:theme - Get cards by theme
+ * GET /api/cards/theme/:theme - Get cards by theme (PROTECTED)
  * 
- * Returns all cards of a specific theme, ordered by bad_luck_index.
- * Useful for filtering cards by category.
+ * ⚠️ SECURITY: This shows all cards of a theme with bad_luck_index!
+ * Could be used to cheat by analyzing all possible cards.
+ * Protected to prevent anonymous users from gaining unfair advantage.
  * 
- * @param {string} theme - The theme to filter by (university_life, travel, sports, etc.)
+ * @param {string} theme - The theme to filter by
  */
-router.get('/theme/:theme', [
+router.get('/theme/:theme', isLoggedIn, [
     param('theme').isIn(['university_life', 'travel', 'sports', 'love_life', 'work_life'])
         .withMessage('Invalid theme. Must be one of: university_life, travel, sports, love_life, work_life')
 ], async (req, res) => {
@@ -37,7 +41,7 @@ router.get('/theme/:theme', [
     if (!errors.isEmpty()) {
         return res.status(422).json({ errors: errors.array() });
     }
-
+    
     try {
         const cards = await getCardsByTheme(req.params.theme);
         res.json(cards);
@@ -48,21 +52,22 @@ router.get('/theme/:theme', [
 });
 
 /**
- * GET /api/cards/:id - Get a specific card by ID
+ * GET /api/cards/:id - Get a specific card by ID (PROTECTED)
  * 
- * Returns detailed information about a single card.
- * Used when we need to show complete card details including bad_luck_index.
+ * ⚠️ SECURITY: This exposes the complete card details including bad_luck_index!
+ * Players could use this to cheat by looking up any card's value.
+ * Only authenticated users should access complete card details.
  * 
  * @param {number} id - Card ID
  */
-router.get('/:id', [
+router.get('/:id', isLoggedIn, [
     param('id').isInt({ min: 1 }).withMessage('Card ID must be a positive integer')
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(422).json({ errors: errors.array() });
     }
-
+    
     try {
         const card = await getCardById(req.params.id);
         if (!card) {
@@ -76,22 +81,18 @@ router.get('/:id', [
 });
 
 /**
- * POST /api/cards/random - Get random cards for game initialization
+ * POST /api/cards/random - Get random cards (PROTECTED)
  * 
- * Returns a specified number of random cards from a theme, excluding specified cards.
- * This is the main endpoint used for:
- * - Getting 3 initial cards for a new game
- * - Getting the next round card (excluding already used cards)
- * 
- * For demo games (anonymous users), this can be called without authentication.
- * For registered users' games, this should be used within the game flow.
+ * ⚠️ SECURITY: This could be abused to get unlimited random cards with bad_luck_index!
+ * Anonymous users could use this to study all possible cards before playing.
+ * Protected to ensure only legitimate game sessions can request random cards.
  * 
  * Body parameters:
  * @param {string} theme - Theme of cards to select from
  * @param {number} count - Number of cards to return
  * @param {number[]} excludeIds - Array of card IDs to exclude (optional)
  */
-router.post('/random', [
+router.post('/random', isLoggedIn, [
     body('theme').isIn(['university_life', 'travel', 'sports', 'love_life', 'work_life'])
         .withMessage('Invalid theme'),
     body('count').isInt({ min: 1, max: 10 })
@@ -105,9 +106,9 @@ router.post('/random', [
     if (!errors.isEmpty()) {
         return res.status(422).json({ errors: errors.array() });
     }
-
+    
     const { theme, count, excludeIds = [] } = req.body;
-
+    
     try {
         const cards = await getRandomCards(theme, count, excludeIds);
         
@@ -116,7 +117,7 @@ router.post('/random', [
                 error: `Not enough cards available. Requested ${count}, found ${cards.length}` 
             });
         }
-
+        
         res.json(cards);
     } catch (error) {
         console.error('Error fetching random cards:', error);
@@ -125,15 +126,16 @@ router.post('/random', [
 });
 
 /**
- * POST /api/cards/by-ids - Get multiple cards by their IDs
+ * POST /api/cards/by-ids - Get multiple cards by their IDs (PROTECTED)
  * 
- * Returns an array of cards for the given IDs, ordered by bad_luck_index.
- * Useful for retrieving the complete card details for a user's collection.
+ * ⚠️ SECURITY: This could expose bad_luck_index for multiple cards at once!
+ * Could be used to reverse-engineer card values or cheat in active games.
+ * Protected to ensure only authorized access to batch card data.
  * 
  * Body parameters:
  * @param {number[]} ids - Array of card IDs to retrieve
  */
-router.post('/by-ids', [
+router.post('/by-ids', isLoggedIn, [
     body('ids').isArray({ min: 1 })
         .withMessage('ids must be a non-empty array'),
     body('ids.*').isInt({ min: 1 })
@@ -143,9 +145,9 @@ router.post('/by-ids', [
     if (!errors.isEmpty()) {
         return res.status(422).json({ errors: errors.array() });
     }
-
+    
     const { ids } = req.body;
-
+    
     try {
         const cards = await getCardsByIds(ids);
         res.json(cards);
@@ -156,11 +158,11 @@ router.post('/by-ids', [
 });
 
 /**
- * GET /api/cards/:id/without-index - Get card without bad_luck_index
+ * GET /api/cards/:id/without-index - Get card without bad_luck_index (PUBLIC)
  * 
- * Returns card information WITHOUT the bad_luck_index.
- * This is used during gameplay when showing the current round card
- * to the player - they should see name and image but not the index.
+ * ✅ SECURITY: This endpoint is SAFE for public access!
+ * It deliberately excludes the bad_luck_index, so it cannot be used to cheat.
+ * Used during gameplay when showing the current round card to players.
  * 
  * @param {number} id - Card ID
  */
@@ -171,13 +173,13 @@ router.get('/:id/without-index', [
     if (!errors.isEmpty()) {
         return res.status(422).json({ errors: errors.array() });
     }
-
+    
     try {
         const card = await getCardById(req.params.id);
         if (!card) {
             return res.status(404).json({ error: 'Card not found' });
         }
-
+        
         // Return card without bad_luck_index for gameplay
         const cardWithoutIndex = {
             id: card.id,
@@ -186,7 +188,7 @@ router.get('/:id/without-index', [
             theme: card.theme
             // Deliberately excluding bad_luck_index
         };
-
+        
         res.json(cardWithoutIndex);
     } catch (error) {
         console.error('Error fetching card without index:', error);

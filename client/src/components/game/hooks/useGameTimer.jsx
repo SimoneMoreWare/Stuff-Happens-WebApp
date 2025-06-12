@@ -1,21 +1,22 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 /**
- * Custom hook per gestire il timer di gioco - VERSIONE FINALE
+ * Custom hook per gestire il timer di gioco - SENZA useRef
+ * Conforme alle richieste del professore
  */
 export const useGameTimer = (duration = 30, onTimeUp) => {
   const [timeRemaining, setTimeRemaining] = useState(duration);
   const [isRunning, setIsRunning] = useState(false);
   const [gameStartTime, setGameStartTime] = useState(null);
-  const timeoutHandledRef = useRef(false);
+  const [timeoutHandled, setTimeoutHandled] = useState(false);
 
   // AVVIA IL TIMER
   const startTimer = () => {
     console.log('⏰ Starting timer...');
-    setTimeRemaining(duration);  // Reset a durata piena
+    setTimeRemaining(duration);
     setIsRunning(true);
     setGameStartTime(Date.now());
-    timeoutHandledRef.current = false;
+    setTimeoutHandled(false);
   };
 
   // FERMA IL TIMER
@@ -30,7 +31,7 @@ export const useGameTimer = (duration = 30, onTimeUp) => {
     setIsRunning(false);
     setTimeRemaining(duration);
     setGameStartTime(null);
-    timeoutHandledRef.current = false;
+    setTimeoutHandled(false);
   };
 
   // Calcola tempo trascorso
@@ -38,7 +39,7 @@ export const useGameTimer = (duration = 30, onTimeUp) => {
     return gameStartTime ? Math.floor((Date.now() - gameStartTime) / 1000) : 0;
   };
 
-  // USEEFFECT PRINCIPALE
+  // USEEFFECT PRINCIPALE - senza useRef
   useEffect(() => {
     let intervalId;
     
@@ -47,15 +48,15 @@ export const useGameTimer = (duration = 30, onTimeUp) => {
         setTimeRemaining(time => {
           const newTime = time - 1;
           
-          // Gestione timeout
-          if (newTime <= 0 && !timeoutHandledRef.current) {
-            timeoutHandledRef.current = true;
+          // Gestione timeout con useState invece di useRef
+          if (newTime <= 0 && !timeoutHandled) {
+            setTimeoutHandled(true);
             setIsRunning(false);
             
             // Chiama callback in modo sicuro
-            setTimeout(() => {
-              if (onTimeUp) onTimeUp();
-            }, 0);
+            if (onTimeUp) {
+              setTimeout(() => onTimeUp(), 0);
+            }
             
             return 0;
           }
@@ -71,7 +72,7 @@ export const useGameTimer = (duration = 30, onTimeUp) => {
         clearInterval(intervalId);
       }
     };
-  }, [isRunning, onTimeUp]);
+  }, [isRunning, timeoutHandled, onTimeUp]);
 
   return {
     timeRemaining,

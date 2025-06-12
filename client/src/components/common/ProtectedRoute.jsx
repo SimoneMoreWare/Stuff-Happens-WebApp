@@ -1,5 +1,6 @@
 import { useContext } from 'react';
 import { Navigate } from 'react-router';
+import { Navigate, Link } from 'react-router'; // ✅ Aggiungi Link import
 import { Container, Alert, Spinner } from 'react-bootstrap';
 import UserContext from '../../context/UserContext.jsx';
 
@@ -103,27 +104,25 @@ function RequireRole({
 }) {
     const { loggedIn, user } = useContext(UserContext);
     
-    // Se non è loggato, redirect al login
     if (!loggedIn) {
         return <Navigate to="/login" replace />;
     }
     
-    // Se non ha il ruolo richiesto, mostra messaggio di errore
     if (user && user.role !== requiredRole) {
         return (
             <Container>
                 <Alert variant="warning" className="text-center mt-5">
                     <h4>Accesso Negato</h4>
                     <p>{unauthorizedMessage}</p>
-                    <a href={fallbackPath} className="btn btn-primary">
+                    {/* ✅ CORRETTO: usa Link invece di a href */}
+                    <Link to={fallbackPath} className="btn btn-primary">
                         Torna alla Home
-                    </a>
+                    </Link>
                 </Alert>
             </Container>
         );
     }
     
-    // Tutto ok, renderizza il componente
     return children;
 }
 

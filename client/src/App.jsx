@@ -1,12 +1,17 @@
+// App.jsx - VERSIONE SECONDO LE SLIDE DEL PROF
 import { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router';
 import { Container, Spinner, Alert } from 'react-bootstrap';
-// Context
+
+// Context - SOLO la definizione come nelle slide
 import UserContext from './context/UserContext.jsx';
+
 // API
 import API from './API/API.mjs';
+
 // Models
 import { User } from './models/User.mjs';
+
 // Components
 import Navbar from './components/layout/Navbar.jsx';
 import HomePage from './components/pages/HomePage.jsx';
@@ -15,44 +20,42 @@ import GamePage from './components/pages/GamePage.jsx';
 import ProfilePage from './components/pages/ProfilePage/ProfilePage.jsx';
 import InstructionsPage from './components/pages/InstructionsPage.jsx';
 import NotFoundPage from './components/pages/NotFoundPage.jsx';
+
 // Bootstrap CSS
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 
 function App() {
   // ============================================================================
-  // STATO GLOBALE APPLICAZIONE
+  // STATO LOCALE DEL COMPONENTE APP (seguendo slide 19)
   // ============================================================================
   
+  /**
+   * "Remember: the state is part of the component containing the Provider
+   *  - Not in the provider itself
+   *  - Not in the context object"
+   * 
+   * Seguendo le slide del prof, lo STATO va nel componente che contiene il Provider,
+   * NON nel Context stesso
+   */
   const [user, setUser] = useState(null);
   const [loggedIn, setLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
   // ============================================================================
-  // ✅ RIMOSSO: currentGame, isInActiveGame, protezione beforeunload
-  // ============================================================================
-  
-  // Non serve più gestire partite in corso perché vengono sempre abbandonate
-
-  // ============================================================================
-  // AUTENTICAZIONE - Controllo sessione esistente all'avvio
+  // CONTROLLO AUTENTICAZIONE ALL'AVVIO
   // ============================================================================
   
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // PRIMO: Controlla se l'utente è autenticato
         const userInfo = await API.getUserInfo();
         setUser(new User(userInfo.id, userInfo.username, userInfo.email));
         setLoggedIn(true);
-        
-        // ✅ COMPLETAMENTE RIMOSSO: Non controllo più partite esistenti all'avvio
-        // Le partite verranno gestite solo quando l'utente clicca "Nuova Partita"
-        console.log('✅ User authenticated, but skipping game check at startup');
+        console.log('✅ User authenticated');
         
       } catch (authError) {
-        // Utente NON autenticato - comportamento normale
         console.log('ℹ️ User not authenticated');
         setUser(null);
         setLoggedIn(false);
@@ -62,95 +65,84 @@ function App() {
     };
     
     checkAuth();
-  }, []); // IMPORTANTE: array vuoto per eseguire solo una volta
+  }, []); // Array vuoto - esegue solo una volta
 
   // ============================================================================
   // GESTIONE AUTENTICAZIONE
   // ============================================================================
   
-  /**
-   * Gestisce il processo di login
-   * ✅ NUOVO: Abbandona automaticamente partite esistenti dopo login
-   */
   const handleLogin = async (credentials) => {
     try {
       const userInfo = await API.logIn(credentials);
-      
       const newUser = new User(userInfo.id, userInfo.username, userInfo.email);
       
       setUser(newUser);
       setLoggedIn(true);
-      
-      // ✅ COMPLETAMENTE RIMOSSO: Non controllo partite dopo login
-      // Le partite verranno gestite solo nel GamePage quando necessario
-      console.log('✅ Login successful, skipping game check');
-      
       setMessage({ type: 'success', msg: `Benvenuto, ${newUser.username}!` });
       
     } catch (error) {
-      throw error; // Rilancia l'errore per gestirlo nel form di login
+      throw error; // Rilancia per gestire nel form
     }
   };
 
-  /**
-   * Gestisce il processo di logout
-   */
   const handleLogout = async () => {
     try {
       await API.logOut();
       
-      // Reset stato globale
       setUser(null);
       setLoggedIn(false);
-      
       setMessage({ type: 'info', msg: 'Logout effettuato con successo' });
       
     } catch (error) {
       setMessage({ type: 'warning', msg: 'Errore durante il logout, ma sei stato disconnesso' });
-      
-      // Anche in caso di errore, disconnetti l'utente localmente
       setUser(null);
       setLoggedIn(false);
     }
   };
 
   // ============================================================================
-  // ✅ GESTIONE STATO PARTITA SEMPLIFICATA
+  // FUNZIONI DI UTILITÀ PER COMPATIBILITÀ
   // ============================================================================
   
-  // Manteniamo queste funzioni per compatibilità con i componenti esistenti,
-  // ma ora gestiscono solo messaggi e non stato di partite in corso
-  
   const updateCurrentGame = (gameData) => {
-    // Non salviamo più lo stato della partita corrente
-    // I componenti di gioco gestiranno il loro stato localmente
-    console.log('🎮 Game update (no longer stored globally):', gameData);
+    console.log('🎮 Game update (managed locally by game components):', gameData);
   };
 
   const clearCurrentGame = () => {
-    // Non c'è più stato da pulire
-    console.log('🧹 Game state cleared (was already empty)');
+    console.log('🧹 Game state cleared');
   };
 
   // ============================================================================
-  // VALORE DEL CONTEXT SEMPLIFICATO
+  // CONTEXT VALUE - Slide 11 e 19
   // ============================================================================
   
+  /**
+   * Seguendo la slide 19: "Changing Context Values"
+   * 
+   * "As part of the context value"
+   * "Example: { language: 'English', toggleLanguage : toggleLanguage }"
+   * 
+   * Il prof mostra che si passa sia i VALORI che le FUNZIONI nel context value
+   */
   const contextValue = {
+    // Stati
     user,
     loggedIn,
-    currentGame: null,        // ✅ SEMPRE null - no partite in corso memorizzate
-    isInActiveGame: false,    // ✅ SEMPRE false - no protezione browser
-    setIsInActiveGame: () => {}, // ✅ No-op function per compatibilità
+    currentGame: null,        
+    isInActiveGame: false,    
+    message,
+    
+    // Funzioni - come mostrato nell'esempio del prof
     handleLogin,
     handleLogout,
     updateCurrentGame,
     clearCurrentGame,
-    setMessage
+    setMessage,
+    setIsInActiveGame: () => {} // No-op per compatibilità
   };
 
   // ============================================================================
-  // LOADING INIZIALE
+  // LOADING SCREEN
   // ============================================================================
   
   if (loading) {
@@ -167,16 +159,25 @@ function App() {
   }
 
   // ============================================================================
-  // RENDER PRINCIPALE
+  // RENDER CON PROVIDER - Slide 11
   // ============================================================================
   
+  /**
+   * Seguendo la slide 11: "Context Provider"
+   * 
+   * "<ExContext.Provider value=...> component
+   *  Injects the context value into all nested components"
+   * 
+   * Il prof mostra che il Provider va wrappato attorno ai componenti
+   * che devono accedere al context
+   */
   return (
     <UserContext.Provider value={contextValue}>
       <div className="App">
         <Navbar />
         
         <Container fluid className="mt-3">
-          {/* Messaggi globali dell'applicazione */}
+          {/* Messaggi globali */}
           {message && (
             <Alert 
               variant={message.type} 
@@ -188,7 +189,6 @@ function App() {
             </Alert>
           )}
           
-          {/*Ho usato React Router in modalità Declarative come mostrato nelle esercitazioni del corso. In main.jsx avvolgo l'app con BrowserRouter per abilitare il routing, poi in App.jsx uso Routes e Route per definire le varie pagine. Uso l'approccio SPA dove cambio solo i componenti senza ricaricare la pagina, e i link interni con il componente Link di React Router."*/}
           {/* Routing principale */}
           <Routes>
             <Route path="/" element={<HomePage />} />

@@ -51,13 +51,15 @@ function FullGameBoard() {
     isCompactLayout,
     user,
     handleCreateNewGame,
+    handleAbandonAndCreateNew,
     startNextRound,
     processGameResult,
     processTimeUp,
     handleContinueAfterResult,  // ← USA QUESTA DAL HOOK
     handleNewGame,
     handleBackHome,
-    handleAbandonGame
+    handleAbandonGame,
+    cleanupGameState  // ✅ AGGIUNGI QUESTA RIGA
   } = useGameManagement();
   
   // Hook per timer
@@ -333,11 +335,11 @@ function FullGameBoard() {
                 {/* Stats e Timer */}
                 <GameStats currentGame={currentGame} targetCard={targetCard} />
                 
-                {/* Bottone abbandona partita */}
+                {/* Bottone abbandona partita - VERSIONE AGGIORNATA */}
                 <AbandonGameButton 
                   gameState={gameState}
                   currentGame={currentGame}
-                  onAbandonGame={handleAbandonGame}
+                  cleanupGameState={cleanupGameState}
                 />
               </Col>
             )}

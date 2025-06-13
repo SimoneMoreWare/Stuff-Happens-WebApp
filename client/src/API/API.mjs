@@ -263,7 +263,6 @@ const createGame = async (theme = 'university_life') => {
   if (response.ok) {
     const gameData = await response.json();
     
-    // ✅ AGGIUNGI CONVERSIONE URL PER LE CARTE INIZIALI
     return {
       ...gameData,
       initialCards: gameData.initialCards ? gameData.initialCards.map(c => ({

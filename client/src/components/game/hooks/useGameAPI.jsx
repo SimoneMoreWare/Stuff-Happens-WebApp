@@ -1,35 +1,48 @@
+// useGameAPI.jsx - VERSIONE ORIGINALE FUNZIONANTE (senza errori 400)
+
 import API from '../../../API/API.mjs';
 import { Card as CardModel } from '../../../models/Card.mjs';
 
 /**
- * Hook per gestire le chiamate API del gioco
- * ✅ VERSIONE OTTIMIZZATA: setTimeout ridotti per test veloci
- */
+* Hook per gestire le chiamate API del gioco
+* ✅ VERSIONE ORIGINALE che funzionava perfettamente
+*/
 export const useGameAPI = (gameState) => {
   
   const createNewGame = async (gameState) => {
     try {
+      // ✅ CONTROLLO COMPLETO dello stato
+      const currentState = gameState.gameState;
+      const hadCurrentGame = !!gameState.currentGame;
+      const wasRecentlyAbandoned = gameState.wasAbandoned; // ← NUOVO FLAG
+      
+      const isGameCompleted = currentState === 'result' && 
+                            gameState.roundResult && 
+                            (gameState.roundResult.gameStatus === 'won' || gameState.roundResult.gameStatus === 'lost');
+      
+      const isGameAbandoned = currentState === 'abandoned' || wasRecentlyAbandoned;
+      
+      // ✅ ORA il controllo è preciso
+      const shouldCheckAndAbandon = !isGameCompleted && !isGameAbandoned;
+      
       gameState.setLoading(true);
       gameState.setError('');
       
-      const isGameCompleted = gameState.gameState === 'result' && 
-                             gameState.roundResult && 
-                             (gameState.roundResult.gameStatus === 'won' || gameState.roundResult.gameStatus === 'lost');
+      // ✅ RESET del flag dopo averlo usato
+      if (wasRecentlyAbandoned) {
+        gameState.setWasAbandoned(false);
+      }
       
-      if (isGameCompleted) {
-        // Game completato, crea direttamente
-      } else {
+      if (shouldCheckAndAbandon) {
         try {
           const existingGameData = await API.getCurrentGame();
           
           if (existingGameData && existingGameData.game && existingGameData.game.id) {
             await API.abandonGame(existingGameData.game.id);
-            
-            // ✅ RIDOTTO: 500ms → 100ms per test veloci
             await new Promise(resolve => setTimeout(resolve, 100));
           }
-        } catch (abandonError) {
-          // 404 è normale, continua
+        } catch (checkError) {
+          // 404 è normale = nessuna partita attiva
         }
       }
       
@@ -66,11 +79,8 @@ export const useGameAPI = (gameState) => {
         try {
           if (err.activeGameId) {
             await API.abandonGame(err.activeGameId);
+            await new Promise(resolve => setTimeout(resolve, 100));
             
-            // ✅ RIDOTTO: 1000ms → 150ms per test veloci
-            await new Promise(resolve => setTimeout(resolve, 150));
-            
-            // Retry creazione
             const retryGameData = await API.createGame('university_life');
             gameState.setCurrentGame(retryGameData.game);
             gameState.updateCurrentGame(retryGameData.game);
@@ -232,7 +242,7 @@ export const useGameAPI = (gameState) => {
           revealedCard.bad_luck_index,
           revealedCard.theme
         );
-        gameState.setTargetCard(revealedCardModel);
+        gameState.setTargetCard(revealedCard);
       }
       
       gameState.setRoundResult({
@@ -284,23 +294,31 @@ export const useGameAPI = (gameState) => {
     
     try {
       await API.abandonGame(gameState.currentGame.id);
-      // ✅ NESSUN setTimeout - Cleanup immediato
     } catch (err) {
       // Non bloccare l'operazione anche se l'abbandono fallisce
     }
     
-    // ✅ IMMEDIATO - Operazioni locali non hanno bisogno di delay
+    // Cleanup locale immediato
     gameState.cleanupGameState();
+    gameState.setCurrentGame(null);
     gameState.setMessage({ type: 'info', msg: 'Partita abbandonata' });
     gameState.setGameState('abandoned');
     return true;
   };
-  
+
+  // ✅ NUOVA FUNZIONE SEMPLICE: Abbandona + Crea Nuova
+  const abandonAndCreateNew = async (gameState) => {
+    // Per ora, facciamo la stessa cosa di createNewGame
+    await createNewGame(gameState);
+  };
+
+  // ✅ RETURN DELLE FUNZIONI
   return {
     createNewGame,
     startNextRound,
     processGameResult,
     processTimeUp,
-    abandonGame
+    abandonGame,
+    abandonAndCreateNew
   };
 };

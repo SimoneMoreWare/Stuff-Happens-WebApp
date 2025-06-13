@@ -4,7 +4,7 @@ import { useGameNavigation } from './useGameNavigation.jsx';
 
 /**
  * Hook principale per la gestione del gioco
- * ✅ VERSIONE SEMPLICE: Solo nuove partite sempre
+ * ✅ VERSIONE SEMPLICE: Solo nuove partite sempre + nuova funzione abbandono
  */
 export const useGameManagement = () => {
   
@@ -16,7 +16,7 @@ export const useGameManagement = () => {
   const gameState = useGameState();
   
   // Gestione chiamate API
-  const gameAPI = useGameAPI();
+  const gameAPI = useGameAPI(gameState);  // ✅ CORRETTO: con parametro
   
   // Gestione navigazione protetta
   const navigation = useGameNavigation();
@@ -28,6 +28,11 @@ export const useGameManagement = () => {
   // ✅ UNICA FUNZIONE: Crea sempre nuova partita
   const handleCreateNewGame = async () => {
     await gameAPI.createNewGame(gameState);
+  };
+  
+  // ✅ NUOVA FUNZIONE: Abbandona + Crea Nuova (senza controlli)
+  const handleAbandonAndCreateNew = async () => {
+    await gameAPI.abandonAndCreateNew(gameState);
   };
   
   // Avvio round con integrazione timer
@@ -58,7 +63,7 @@ export const useGameManagement = () => {
   } = navigation.createNavigationHandlers(gameState, gameAPI);
   
   // ============================================================================
-  // ✅ RETURN API SEMPLIFICATA
+  // ✅ RETURN API SEMPLIFICATA + NUOVA FUNZIONE
   // ============================================================================
   
   return {
@@ -75,8 +80,9 @@ export const useGameManagement = () => {
     isCompactLayout: gameState.isCompactLayout,
     user: gameState.user,
     
-    // ✅ Actions SEMPLIFICATI
+    // ✅ Actions SEMPLIFICATI + NUOVA FUNZIONE
     handleCreateNewGame,        // UNICA funzione per creare partite
+    handleAbandonAndCreateNew,  // ✅ NUOVA: Abbandona + Crea senza controlli
     startNextRound,
     processGameResult,
     processTimeUp,
@@ -85,7 +91,7 @@ export const useGameManagement = () => {
     handleBackHome,
     handleAbandonGame,
     
-    // Utils (da useGameState)
-    cleanupGameState: gameState.cleanupGameState
+    // ✅ AGGIUNGI Utils (da useGameState)
+    cleanupGameState: gameState.cleanupGameState  // ← QUESTA MANCAVA!
   };
 };

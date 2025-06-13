@@ -1,5 +1,10 @@
-import React, { useState } from 'react';
+// GameUI.jsx - VERSIONE CORRETTA con abbandono automatico
+
+import React, { useState, useContext } from 'react';
 import { Container, Row, Col, Card, Alert, Button, Spinner, Modal } from 'react-bootstrap';
+import { useNavigate } from 'react-router';
+import UserContext from '../../../context/UserContext.jsx';
+import API from '../../../API/API.mjs';
 
 /**
  * ✅ NUOVO: Componente Modal per conferme invece di window.confirm
@@ -178,9 +183,19 @@ export function GameStats({ currentGame, targetCard, timerActive, onTimeUp }) {
   );
 }
 
-// ✅ CORRETTO: Abandon game button senza window.confirm
-export function AbandonGameButton({ gameState, currentGame, onAbandonGame }) {
+// ✅ PULSANTE IDENTICO AL NAVBAR - COPIA/INCOLLA ESATTA
+export function AbandonGameButton({ gameState, currentGame }) {
   const [showConfirm, setShowConfirm] = useState(false);
+  
+  // ✅ STESSI IDENTICI IMPORT DEL NAVBAR
+  const { 
+    isInActiveGame,
+    setIsInActiveGame,
+    clearCurrentGame,
+    setMessage 
+  } = useContext(UserContext);
+  
+  const navigate = useNavigate();
   
   if (gameState !== 'playing' || !currentGame) return null;
   
@@ -188,9 +203,33 @@ export function AbandonGameButton({ gameState, currentGame, onAbandonGame }) {
     setShowConfirm(true);
   };
   
-  const handleConfirmAbandon = () => {
+  // ✅ FUNZIONE IDENTICA AL NAVBAR - handleNavigationWithAutoAbandon
+  const handleConfirmAbandon = async () => {
     setShowConfirm(false);
-    onAbandonGame();
+    
+    // ✅ COPIA/INCOLLA ESATTA DAL NAVBAR
+    if (isInActiveGame) {
+      try {
+        if (currentGame) {
+          await API.abandonGame(currentGame.id);
+        }
+        
+        setIsInActiveGame(false);
+        clearCurrentGame();
+        setMessage({ type: 'info', msg: 'Partita abbandonata automaticamente' });
+        
+        navigate('/');
+        
+      } catch (err) {
+        setIsInActiveGame(false);
+        clearCurrentGame();
+        setMessage({ type: 'warning', msg: 'Partita abbandonata localmente (errore API)' });
+        
+        navigate('/');
+      }
+    } else {
+      navigate('/');
+    }
   };
   
   const handleCancelAbandon = () => {
@@ -207,20 +246,19 @@ export function AbandonGameButton({ gameState, currentGame, onAbandonGame }) {
               size="sm"
               onClick={handleAbandonClick}
               className="d-flex align-items-center mx-auto"
-              title="Abbandona la partita corrente"
+              title="Abbandona la partita corrente e torna alla home"
             >
               <i className="bi bi-flag me-2"></i>
-              Abbandona
+              Abbandona Partita
             </Button>
           </div>
         </Col>
       </Row>
       
-      {/* ✅ CORRETTO: Modal invece di window.confirm */}
       <ConfirmModal
         show={showConfirm}
         title="Abbandona Partita"
-        message="Sei sicuro di voler abbandonare la partita? Tutti i progressi andranno persi."
+        message="Sei sicuro di voler abbandonare la partita? Verrai riportato alla home e tutti i progressi andranno persi."
         onConfirm={handleConfirmAbandon}
         onCancel={handleCancelAbandon}
         confirmVariant="danger"

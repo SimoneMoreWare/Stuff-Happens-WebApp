@@ -33,7 +33,7 @@ const router = express.Router();
  * Anonymous users should use /api/demo/start for demo games.
  */
 router.post('/', isLoggedIn, [
-    body('theme').optional().isIn(['university_life', 'travel', 'sports', 'love_life', 'work_life'])
+    body('theme').optional().isIn(['university_life'])
         .withMessage('Invalid theme'),
 ], async (req, res) => {
     const errors = validationResult(req);

@@ -49,15 +49,11 @@
  * - getGameHistory() solo quando l'utente visita la pagina storico
  * 
  * Dati filtrati per funzionalità:
- * - getCardWithoutIndex() per il gameplay (nasconde bad_luck_index)
- * - getCardById() per vedere dettagli completi
- * - getRandomCards() per setup iniziale giochi
  * - Ogni API restituisce esattamente quello che serve per quel caso d'uso
  * 
  */
 
 import { User } from "../models/User.mjs";
-import { Card } from "../models/Card.mjs";
 
 // Base server URL - modify if different in production
 const SERVER_URL = 'http://localhost:3001';
@@ -164,134 +160,6 @@ const logOut = async() => {
   });
   if (response.ok)
     return null;
-};
-
-// ==============================================================================
-// CARD APIs
-// ==============================================================================
-
-/**
- * Get a specific card by ID (with complete details including bad_luck_index)
- * 
- * @param {number} cardId - ID of the card to retrieve
- * @returns {Promise<Card>} - Card object with all details
- * @throws {string} - Error message if request fails
- */
-const getCardById = async (cardId) => {
-  const response = await fetch(`${SERVER_URL}/api/cards/${cardId}`, {
-    credentials: 'include'
-  });
-  
-  if (response.ok) {
-    const cardJson = await response.json();
-    // ✅ CORRETTO: cardJson è un oggetto singolo, non un array
-    return new Card(
-      cardJson.id, 
-      cardJson.name, 
-      cardJson.image_url.startsWith('http') ? cardJson.image_url : `${SERVER_URL}/${cardJson.image_url}`,
-      cardJson.bad_luck_index, 
-      cardJson.theme
-    );
-  } else {
-    if (response.status === 404) {
-      throw new Error("Card not found");
-    }
-    throw new Error("Error fetching card");
-  }
-};
-
-/**
- * Get random cards for game setup
- * 
- * @param {string} theme - Theme of cards to select from
- * @param {number} count - Number of cards to return
- * @param {number[]} excludeIds - Array of card IDs to exclude (optional)
- * @returns {Promise<Card[]>} - Array of random cards
- * @throws {string} - Error message if request fails
- */
-const getRandomCards = async (theme, count, excludeIds = []) => {
-  const response = await fetch(SERVER_URL + '/api/cards/random', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify({ theme, count, excludeIds }),
-  });
-  
-  if (response.ok) {
-    const cardsJson = await response.json();
-    return cardsJson.map(c => new Card(
-      c.id, 
-      c.name, 
-      c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`,
-      c.bad_luck_index, 
-      c.theme
-    ));
-  } else {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Error fetching random cards");
-  }
-};
-
-/**
- * Get multiple cards by their IDs
- * 
- * @param {number[]} cardIds - Array of card IDs to retrieve
- * @returns {Promise<Card[]>} - Array of cards ordered by bad_luck_index
- * @throws {string} - Error message if request fails
- */
-const getCardsByIds = async (cardIds) => {
-  const response = await fetch(SERVER_URL + '/api/cards/by-ids', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify({ ids: cardIds }),
-  });
-  
-  if (response.ok) {
-    const cardsJson = await response.json();
-    return cardsJson.map(c => new Card(
-      c.id, 
-      c.name, 
-      c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`,
-      c.bad_luck_index, 
-      c.theme
-    ));
-  } else {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Error fetching cards");
-  }
-};
-
-/**
- * Get card WITHOUT bad_luck_index (for gameplay)
- * 
- * @param {number} cardId - ID of the card to retrieve
- * @returns {Promise<Object>} - Card object without bad_luck_index
- * @throws {string} - Error message if request fails
- */
-const getCardWithoutIndex = async (cardId) => {
-  const response = await fetch(`${SERVER_URL}/api/cards/${cardId}/without-index`, {
-    credentials: 'include'
-  });
-  
-  if (response.ok) {
-    const cardJson = await response.json();
-    return {
-          ...cardJson,
-          image_url: cardJson.image_url.startsWith('http') 
-            ? cardJson.image_url 
-            : `${SERVER_URL}/${cardJson.image_url}`
-        };
-    } else {
-    if (response.status === 404) {
-      throw new Error("Card not found");
-    }
-    throw new Error("Error fetching card");
-  }
 };
 
 // ==============================================================================
@@ -664,7 +532,6 @@ const submitGameTimeout = async (gameId, gameCardId) => {
  * 
  * Organized by functionality:
  * - Authentication: logIn, getUserInfo, logOut
- * - Cards:getCardById, etc.
  * - Demo Games: startDemoGame, submitDemoGuess, etc.
  * - Full Games: createGame, getCurrentGame, getGameHistory, etc.
  */
@@ -673,12 +540,6 @@ const API = {
   logIn,
   getUserInfo,
   logOut,
-  
-  // Cards
-  getCardById,
-  getRandomCards,
-  getCardsByIds,
-  getCardWithoutIndex,
   
   // Demo Games (anonymous users)
   startDemoGame,

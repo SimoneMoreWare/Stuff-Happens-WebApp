@@ -336,8 +336,8 @@ function GameSummary({
                 </Col>
             </Row>
             {/* Pulsanti di azione finale */}
-            <Row className="mt-4">
-                <Col>
+            <Row className="mt-4 mb-4 pb-4 justify-content-center align-items-center">
+                <Col md={10}>
                     <Card className="text-center shadow-sm">
                         <Card.Body>
                             <h5 className="text-secondary mb-3">

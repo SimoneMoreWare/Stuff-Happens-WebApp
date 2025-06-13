@@ -1,4 +1,8 @@
 import { Container, Row, Col, Card, Alert, Button, Badge } from 'react-bootstrap';
+import { useState, useContext } from 'react';
+import { useNavigate } from 'react-router';
+import UserContext from '../../context/UserContext.jsx';
+import API from '../../API/API.mjs';
 import CardDisplay from './CardDisplay.jsx';
 
 function RoundResult({ 
@@ -15,6 +19,69 @@ function RoundResult({
    gameCompleted = false,
    gameWon = false 
 }) {
+   
+   // ✅ CONTEXT E NAVIGATE PER COPIARE LOGICA NAVBAR
+   const { 
+       currentGame, 
+       isInActiveGame,
+       setIsInActiveGame,
+       clearCurrentGame,
+       setMessage 
+   } = useContext(UserContext);
+   const navigate = useNavigate();
+   
+   // ✅ STATO PER GESTIRE LA CONFERMA
+   const [showConfirmAbandon, setShowConfirmAbandon] = useState(false);
+   
+   // ✅ FANCULO, TORNIAMO ALLA HOME CHE FUNZIONA!
+   const handleNewGameWithAutoAbandon = async () => {
+       if (isInActiveGame) {
+           try {
+               if (currentGame) {
+                   await API.abandonGame(currentGame.id);
+               }
+               
+               setIsInActiveGame(false);
+               clearCurrentGame();
+               setMessage({ type: 'info', msg: 'Partita abbandonata - Torna al gioco per iniziarne una nuova' });
+               
+               // ✅ ANDIAMO ALLA HOME CHE FUNZIONA SEMPRE
+               navigate('/');
+               
+           } catch (err) {
+               setIsInActiveGame(false);
+               clearCurrentGame();
+               setMessage({ type: 'warning', msg: 'Partita abbandonata localmente' });
+               
+               // ✅ ALLA HOME ANCHE IN CASO DI ERRORE
+               navigate('/');
+           }
+       } else {
+           // Se non c'è partita attiva, vai alla home
+           navigate('/');
+       }
+   };
+   
+   // ✅ FUNZIONI PER GESTIRE LA CONFERMA (SEMPLIFICATE)
+   const handleRequestNewGame = () => {
+       if (gameCompleted) {
+           // Se la partita è completata, usa la logica navbar
+           handleNewGameWithAutoAbandon();
+       } else {
+           // Se la partita è in corso, mostra la conferma
+           setShowConfirmAbandon(true);
+       }
+   };
+   
+   const handleConfirmAbandon = () => {
+       setShowConfirmAbandon(false);
+       // ✅ USA LA LOGICA NAVBAR CHE FUNZIONA!
+       handleNewGameWithAutoAbandon();
+   };
+   
+   const handleCancelAbandon = () => {
+       setShowConfirmAbandon(false);
+   };
    
    // ✅ LOGICA SEMPLIFICATA
    const getMainIcon = () => {
@@ -55,6 +122,40 @@ function RoundResult({
    
    return (
        <Container className="py-4" style={{ maxWidth: '800px' }}>
+           
+           {/* ✅ MODALE DI CONFERMA REACT-STYLE */}
+           {showConfirmAbandon && (
+               <Row className="mb-4">
+                   <Col>
+                       <Alert variant="warning" className="shadow border-0">
+                           <Alert.Heading className="h5">
+                               <i className="bi bi-exclamation-triangle me-2"></i>
+                               Abbandonare la Partita?
+                           </Alert.Heading>
+                           <p className="mb-3">
+                               Sei sicuro di voler abbandonare la partita in corso e iniziarne una nuova? 
+                               Perderai tutti i progressi attuali.
+                           </p>
+                           <div className="d-flex gap-2 justify-content-end">
+                               <Button 
+                                   variant="outline-secondary" 
+                                   onClick={handleCancelAbandon}
+                               >
+                                   <i className="bi bi-x-circle me-1"></i>
+                                   Annulla
+                               </Button>
+                               <Button 
+                                   variant="danger" 
+                                   onClick={handleConfirmAbandon}
+                               >
+                                   <i className="bi bi-check-circle me-1"></i>
+                                   Sì, Abbandona
+                               </Button>
+                           </div>
+                       </Alert>
+                   </Col>
+               </Row>
+           )}
            
            {/* ✅ PULSANTE PROSSIMO ROUND - SUBITO VISIBILE */}
            {!isDemo && !gameCompleted && (
@@ -228,12 +329,12 @@ function RoundResult({
                                )}
                            </div>
                            
-                           {/* PULSANTI SECONDARI - PIÙ DISCRETI */}
+                           {/* PULSANTI SECONDARI - PIÙ DISCRETI CON FIX */}
                            <div className="d-flex gap-2 justify-content-center flex-wrap">
                                {!isDemo && (
                                    <Button 
                                        variant="outline-secondary"
-                                       onClick={onNewGame}
+                                       onClick={handleRequestNewGame}
                                    >
                                        <i className="bi bi-plus-circle me-1"></i>
                                        Nuova Partita

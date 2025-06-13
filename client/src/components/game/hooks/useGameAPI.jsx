@@ -11,10 +11,10 @@ export const useGameAPI = (gameState) => {
   
   const createNewGame = async (gameState) => {
     try {
-      // ✅ CONTROLLO COMPLETO dello stato (VERSIONE ORIGINALE)
+      // ✅ CONTROLLO COMPLETO dello stato (VERSIONE ORIGINALE + FIX MINIMO)
       const currentState = gameState.gameState;
       const hadCurrentGame = !!gameState.currentGame;
-      const wasRecentlyAbandoned = gameState.wasAbandoned; // ← NUOVO FLAG
+      const wasRecentlyAbandoned = gameState.wasAbandoned;
       
       const isGameCompleted = currentState === 'result' && 
                             gameState.roundResult && 
@@ -22,11 +22,12 @@ export const useGameAPI = (gameState) => {
       
       const isGameAbandoned = currentState === 'abandoned' || wasRecentlyAbandoned;
       
-      // ✅ UNICA MODIFICA: Aggiungi controllo per game-over
+      // ✅ AGGIUNTO: Anche se sei in 'result', consideriamo partita completata
       const isInGameOverState = currentState === 'game-over';
+      const isInResultState = currentState === 'result'; // ← NUOVO!
       
-      // ✅ ORA il controllo è preciso (include game-over)
-      const shouldCheckAndAbandon = !isGameCompleted && !isGameAbandoned && !isInGameOverState;
+      // ✅ ORA il controllo include anche 'result'
+      const shouldCheckAndAbandon = !isGameCompleted && !isGameAbandoned && !isInGameOverState && !isInResultState;
       
       gameState.setLoading(true);
       gameState.setError('');
@@ -48,7 +49,7 @@ export const useGameAPI = (gameState) => {
         }
       }
       
-      // Crea la nuova partita (RESTO IDENTICO ALL'ORIGINALE)
+      // Resto del codice IDENTICO...
       const gameData = await API.createGame('university_life');
       
       // Setup del nuovo gioco
@@ -77,6 +78,7 @@ export const useGameAPI = (gameState) => {
       gameState.setMessage({ type: 'success', msg: 'Nuova partita creata!' });
       
     } catch (err) {
+      // Resto gestione errori IDENTICO...
       if (err.type === 'ACTIVE_GAME_EXISTS') {
         try {
           if (err.activeGameId) {

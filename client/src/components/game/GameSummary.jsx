@@ -15,6 +15,15 @@ function GameSummary({
 }) {
     const navigate = useNavigate();
     
+    // ✅ FUNZIONE AGGIUNTA NEL POSTO GIUSTO
+    const handleNewGameForCompletedGame = () => {
+        // Per le partite completate, usa direttamente onNewGame 
+        // che dovrebbe saltare i controlli di partita attiva
+        if (onNewGame) {
+            onNewGame();
+        }
+    };
+    
     // ✅ CALCOLI INTELLIGENTI per demo vs full game
     const targetCards = isDemo ? 1 : 6;
     const maxErrors = isDemo ? 1 : 3;
@@ -88,7 +97,6 @@ function GameSummary({
                     </Card>
                 </Col>
             </Row>
-
             {/* Statistiche della partita */}
             <Row className="justify-content-center mb-4">
                 <Col md={10}>
@@ -130,7 +138,6 @@ function GameSummary({
                     </Card>
                 </Col>
             </Row>
-
             {/* ✅ SEZIONE CARTE - CORRETTA */}
             <Row className="justify-content-center mb-4">
                 <Col md={10}>
@@ -227,7 +234,6 @@ function GameSummary({
                     </Card>
                 </Col>
             </Row>
-
             {/* Analisi delle performance */}
             <Row className="justify-content-center mb-4">
                 <Col md={10}>
@@ -329,38 +335,39 @@ function GameSummary({
                     </Card>
                 </Col>
             </Row>
-
             {/* Pulsanti di azione finale */}
-            <Row className="justify-content-center mb-4">
-                <Col md={6}>
-                    <Card className="text-center shadow">
-                        <Card.Body className="p-4">
-                            <h5 className="mb-3">
+            <Row className="mt-4">
+                <Col>
+                    <Card className="text-center shadow-sm">
+                        <Card.Body>
+                            <h5 className="text-secondary mb-3">
                                 <i className="bi bi-question-circle me-2"></i>
                                 Cosa vuoi fare ora?
                             </h5>
-                            <div className="d-grid gap-2">
+                            <div className="d-grid gap-2 d-md-flex justify-content-md-center">
                                 <Button 
-                                    variant="primary" 
-                                    size="lg" 
-                                    onClick={onNewGame}
+                                    variant={isDemo ? "success" : (gameWon ? "success" : "primary")}
+                                    size="lg"
+                                    onClick={isDemo ? onNewGame : handleNewGameForCompletedGame}
                                     className="d-flex align-items-center justify-content-center"
                                 >
-                                    <i className="bi bi-arrow-clockwise me-2"></i>
+                                    <i className={`bi ${isDemo ? 'bi-arrow-repeat' : (gameWon ? 'bi-trophy' : 'bi-arrow-clockwise')} me-2`}></i>
                                     {isDemo ? 'Nuova Demo' : (gameWon ? 'Nuova Sfida' : 'Riprova')}
                                 </Button>
                                 {!isDemo && (
                                     <Button 
-                                        variant="outline-primary" 
+                                        variant="outline-info" 
+                                        size="lg"
                                         onClick={() => navigate('/profile')}
                                         className="d-flex align-items-center justify-content-center"
                                     >
-                                        <i className="bi bi-person-lines-fill me-2"></i>
+                                        <i className="bi bi-person-circle me-2"></i>
                                         Vai al Profilo
                                     </Button>
                                 )}
                                 <Button 
                                     variant="outline-secondary" 
+                                    size="lg"
                                     onClick={onBackHome}
                                     className="d-flex align-items-center justify-content-center"
                                 >

@@ -11,7 +11,7 @@ export const useGameAPI = (gameState) => {
   
   const createNewGame = async (gameState) => {
     try {
-      // ✅ CONTROLLO COMPLETO dello stato
+      // ✅ CONTROLLO COMPLETO dello stato (VERSIONE ORIGINALE)
       const currentState = gameState.gameState;
       const hadCurrentGame = !!gameState.currentGame;
       const wasRecentlyAbandoned = gameState.wasAbandoned; // ← NUOVO FLAG
@@ -22,8 +22,11 @@ export const useGameAPI = (gameState) => {
       
       const isGameAbandoned = currentState === 'abandoned' || wasRecentlyAbandoned;
       
-      // ✅ ORA il controllo è preciso
-      const shouldCheckAndAbandon = !isGameCompleted && !isGameAbandoned;
+      // ✅ UNICA MODIFICA: Aggiungi controllo per game-over
+      const isInGameOverState = currentState === 'game-over';
+      
+      // ✅ ORA il controllo è preciso (include game-over)
+      const shouldCheckAndAbandon = !isGameCompleted && !isGameAbandoned && !isInGameOverState;
       
       gameState.setLoading(true);
       gameState.setError('');
@@ -39,14 +42,13 @@ export const useGameAPI = (gameState) => {
           
           if (existingGameData && existingGameData.game && existingGameData.game.id) {
             await API.abandonGame(existingGameData.game.id);
-            await new Promise(resolve => setTimeout(resolve, 100));
           }
         } catch (checkError) {
           // 404 è normale = nessuna partita attiva
         }
       }
       
-      // Crea la nuova partita
+      // Crea la nuova partita (RESTO IDENTICO ALL'ORIGINALE)
       const gameData = await API.createGame('university_life');
       
       // Setup del nuovo gioco
@@ -79,7 +81,6 @@ export const useGameAPI = (gameState) => {
         try {
           if (err.activeGameId) {
             await API.abandonGame(err.activeGameId);
-            await new Promise(resolve => setTimeout(resolve, 100));
             
             const retryGameData = await API.createGame('university_life');
             gameState.setCurrentGame(retryGameData.game);

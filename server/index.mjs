@@ -10,7 +10,6 @@ import session from 'express-session';
 import { configurePassport } from './config/passport.mjs';
 // Import API routes
 import authRoutes from './api/auth.mjs';
-import cardsRoutes from './api/cards.mjs';
 import gamesRoutes from './api/games.mjs';
 import demoRoutes from './api/demo.mjs';
 

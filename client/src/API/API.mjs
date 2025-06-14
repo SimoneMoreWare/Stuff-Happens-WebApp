@@ -343,32 +343,6 @@ const getGameHistory = async () => {
     throw new Error(errorData.error || "Error fetching game history");
   }
 };
-/**
- * Get specific game details by ID
- * 
- * @param {number} gameId - ID of the game to retrieve
- * @returns {Promise<Object>} - Complete game information
- * @throws {string} - Error message if request fails
- */
-const getGameById = async (gameId) => {
-  const response = await fetch(`${SERVER_URL}/api/games/${gameId}`, {
-    credentials: 'include', // Required for authentication check
-  });
-  
-  if (response.ok) {
-    const gameData = await response.json();
-    return gameData;
-  } else {
-    if (response.status === 404) {
-      throw new Error("Game not found");
-    }
-    if (response.status === 403) {
-      throw new Error("You can only access your own games");
-    }
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Error fetching game");
-  }
-};
 
 /**
  * Abandon/delete a game in progress
@@ -548,7 +522,6 @@ const API = {
   createGame,
   getCurrentGame,
   getGameHistory,
-  getGameById,
   abandonGame,
   getNextRoundCard,
   submitGameGuess,

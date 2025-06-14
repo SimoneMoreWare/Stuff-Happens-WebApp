@@ -1,5 +1,6 @@
 import express from 'express';
 import { body, param, validationResult } from 'express-validator';
+import dayjs from 'dayjs';  
 import { 
     createGame, 
     getGameById, 
@@ -18,7 +19,8 @@ import {
     getWonCards,
     getCurrentRoundCard,
     getUsedCardIds,
-    getWonCardIds
+    getWonCardIds,
+    getGameCardById
 } from '../dao/gameCardDAO.mjs';
 import { getRandomCards, getCorrectPosition, getCardsByIds } from '../dao/cardDAO.mjs';
 import { isLoggedIn } from '../middleware/authMiddleware.mjs';
@@ -363,22 +365,26 @@ router.post('/:id/next-round', isLoggedIn, [
 /**
  * POST /api/games/:id/guess - Submit a guess (AUTHENTICATED USERS ONLY)
  * 
- * 🔒 SECURITY FIX: Added isLoggedIn middleware protection!
- * ⚠️ PREVIOUS VULNERABILITY: Anonymous users could submit guesses!
+ * 🔒 SECURITY COMPLETA: 
+ * - Validazione timer server-side (ignora timeElapsed dal client)
+ * - Controllo ownership del game
+ * - Prevenzione guess multipli
+ * - Validazione round corrente
+ * - Autenticazione obbligatoria
  */
 router.post('/:id/guess', isLoggedIn, [
     param('id').isInt({ min: 1 }).withMessage('Game ID must be a positive integer'),
     body('gameCardId').isInt({ min: 1 }).withMessage('Game card ID must be a positive integer'),
-    body('position').isInt({ min: 0 }).withMessage('Position must be a non-negative integer'),
-    body('timeElapsed').optional().isFloat({ min: 0, max: 60 })
-        .withMessage('Time elapsed must be between 0 and 60 seconds')
+    body('position').isInt({ min: 0 }).withMessage('Position must be a non-negative integer')
+    // 🔒 SECURITY: Rimuovo validazione timeElapsed - non ci fidiamo del client!
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(422).json({ errors: errors.array() });
     }
     
-    const { gameCardId, position, timeElapsed = 0 } = req.body;
+    const { gameCardId, position } = req.body;
+    // 🔒 SECURITY: Ignoriamo completamente timeElapsed dal client!
     
     try {
         const game = await getGameById(req.params.id);
@@ -397,12 +403,51 @@ router.post('/:id/guess', isLoggedIn, [
             return res.status(400).json({ error: 'Game is not active' });
         }
         
-        // Server-side time validation (basic check)
+        // Get the card being guessed - CON CONTROLLI COMPLETI
+        const gameCard = await getGameCardById(gameCardId);
+        
+        if (!gameCard) {
+            return res.status(400).json({ error: 'Game card not found' });
+        }
+        
+        // 🔒 SECURITY: Verifica che la carta appartenga al gioco corrente
+        if (gameCard.game_id !== game.id) {
+            return res.status(400).json({ error: 'Game card does not belong to this game' });
+        }
+        
+        // 🔒 SECURITY: Verifica che sia davvero il round corrente
+        if (gameCard.round_number !== game.current_round) {
+            return res.status(400).json({ 
+                error: 'This card is not for the current round',
+                type: 'WRONG_ROUND'
+            });
+        }
+        
+        // 🔒 SECURITY: Verifica che la carta non sia già stata giocata
+        if (gameCard.guessed_correctly !== null) {
+            return res.status(400).json({ 
+                error: 'This card has already been played',
+                type: 'ALREADY_PLAYED'
+            });
+        }
+        
+        // 🔒 SECURITY: VALIDAZIONE TIMER SERVER-SIDE - IL CUORE DELLA SICUREZZA!
+        const now = dayjs();
+        const cardDealtAt = dayjs(gameCard.card_dealt_at);
+        const actualTimeElapsed = now.diff(cardDealtAt, 'second');
+        
         const TIME_LIMIT = 30; // seconds
-        if (timeElapsed > TIME_LIMIT) {
-            // Time's up - mark as wrong guess
+        
+        if (actualTimeElapsed > TIME_LIMIT) {
+            // 🔒 Il SERVER ha determinato che il tempo è scaduto
+            // Non ci fidiamo del client - calcoliamo noi!
+            
             await updateGuess(gameCardId, false, position);
             await incrementWrongGuesses(game.id);
+            
+            // Get card details for response
+            const cardDetails = await getCardsByIds([gameCard.card_id]);
+            const revealedCard = cardDetails[0];
             
             // Check if game is lost
             const updatedGame = await getGameById(game.id);
@@ -410,30 +455,33 @@ router.post('/:id/guess', isLoggedIn, [
                 await completeGame(game.id, 'lost');
                 return res.json({
                     correct: false,
-                    reason: 'time_up',
+                    reason: 'time_up_server',
+                    actualTimeElapsed,
                     gameStatus: 'lost',
-                    message: 'Time is up! Game over.'
+                    game: updatedGame,
+                    revealed_card: revealedCard,
+                    message: `Tempo scaduto! (Server: ${actualTimeElapsed}s > ${TIME_LIMIT}s) Game over.`
                 });
             }
             
             await advanceRound(game.id);
+            const finalUpdatedGame = await getGameById(game.id);
+            
             return res.json({
                 correct: false,
-                reason: 'time_up',
+                reason: 'time_up_server',
+                actualTimeElapsed,
                 gameStatus: 'playing',
-                message: 'Time is up! Try the next round.'
+                game: finalUpdatedGame,
+                revealed_card: revealedCard,
+                message: `Tempo scaduto! (Server: ${actualTimeElapsed}s > ${TIME_LIMIT}s) Prossimo round.`
             });
         }
         
+        // ✅ Tempo valido - procedi con il guess normale
+        
         // Get current won cards to determine correct position
         const wonCardIds = await getWonCardIds(game.id);
-        
-        // Get the card being guessed
-        const gameCard = await getCurrentRoundCard(game.id, game.current_round);
-        
-        if (!gameCard || gameCard.id !== gameCardId) {
-            return res.status(400).json({ error: 'Invalid game card for current round' });
-        }
         
         // Calculate correct position
         const correctPosition = await getCorrectPosition(gameCard.card_id, wonCardIds);
@@ -456,10 +504,11 @@ router.post('/:id/guess', isLoggedIn, [
                 return res.json({
                     correct: true,
                     correctPosition,
+                    actualTimeElapsed,
                     gameStatus: 'won',
                     game: updatedGame,
                     revealed_card: revealedCard,
-                    message: 'Correct! You got the card and won the game!'
+                    message: `Corretto! (Tempo: ${actualTimeElapsed}s) Hai vinto la partita!`
                 });
             }
             
@@ -469,10 +518,11 @@ router.post('/:id/guess', isLoggedIn, [
             return res.json({
                 correct: true,
                 correctPosition,
+                actualTimeElapsed,
                 gameStatus: 'playing',
                 game: finalUpdatedGame,
                 revealed_card: revealedCard,
-                message: 'Correct! You got the card.'
+                message: `Corretto! (Tempo: ${actualTimeElapsed}s) Hai preso la carta.`
             });
         } else {
             // Wrong guess
@@ -487,10 +537,11 @@ router.post('/:id/guess', isLoggedIn, [
                 return res.json({
                     correct: false,
                     correctPosition,
+                    actualTimeElapsed,
                     gameStatus: 'lost',
                     game: updatedGame,
                     revealed_card: revealedCard,
-                    message: 'Wrong guess! Game over.'
+                    message: `Sbagliato! (Tempo: ${actualTimeElapsed}s) Game over.`
                 });
             }
             
@@ -500,10 +551,11 @@ router.post('/:id/guess', isLoggedIn, [
             return res.json({
                 correct: false,
                 correctPosition,
+                actualTimeElapsed,
                 gameStatus: 'playing',
                 game: finalUpdatedGame,
                 revealed_card: revealedCard,
-                message: 'Wrong guess! Try the next round.'
+                message: `Sbagliato! (Tempo: ${actualTimeElapsed}s) Prossimo round.`
             });
         }
     } catch (error) {

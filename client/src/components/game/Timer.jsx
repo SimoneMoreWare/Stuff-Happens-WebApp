@@ -13,7 +13,7 @@ function Timer({ timeRemaining, duration = 30, isActive = false }) {
             <div className="d-flex justify-content-between align-items-center mb-2">
                 <h6 className="mb-0">
                     <i className="bi bi-clock me-2 pr-2 mr-2"></i>
-                    Tempo Rimanente
+                    Tempo Rimanente&nbsp;
                 </h6>
                 <span className={`pl-2 ml-2 fs-4 fw-bold text-${variant === 'danger' ? 'danger' : variant === 'warning' ? 'warning' : 'success'}`}>
                     {timeRemaining}s

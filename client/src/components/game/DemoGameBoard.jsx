@@ -54,7 +54,8 @@ function DemoGameBoard() {
         timeRemaining,
         startTimer,
         stopTimer,
-        getElapsedTime
+        getElapsedTime,
+        isTimeUp
     } = useGameTimer(30, handleTimeUp);
     
     // Drag & Drop hook
@@ -73,6 +74,18 @@ function DemoGameBoard() {
     useEffect(() => {
         startDemoGame();
     }, []);
+
+    // ✅ AGGIUNGI useEffect per gestire timeout
+    useEffect(() => {
+    const handleTimeout = async () => {
+        if (isTimeUp && gameState === 'playing') {
+        console.log('⏰ Demo timeout rilevato dal flag isTimeUp');
+        await handleTimeUp(); // La tua funzione esistente
+        }
+    };
+
+    handleTimeout();
+    }, [isTimeUp, gameState]); // Solo flag come dipendenze
     
     const startDemoGame = async () => {
         try {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
@@ -68,7 +68,8 @@ function FullGameBoard() {
     timeRemaining,
     startTimer,
     stopTimer,
-    getElapsedTime
+    getElapsedTime,
+    isTimeUp 
   } = useGameTimer(30, handleTimeUp);
   
   // Hook per drag & drop
@@ -85,6 +86,18 @@ function FullGameBoard() {
   // ============================================================================
   // EVENT HANDLERS
   // ============================================================================
+
+  // ✅ AGGIUNGI useEffect per gestire timeout
+  useEffect(() => {
+    const handleTimeout = async () => {
+      if (isTimeUp && gameState === 'playing' && !loading) {
+        console.log('⏰ Timeout rilevato dal flag isTimeUp');
+        await processTimeUp();
+      }
+    };
+
+    handleTimeout();
+  }, [isTimeUp, gameState, loading]); // Solo flag come dipendenze
   
   // Handler per selezione posizione
   async function handlePositionSelect(position) {

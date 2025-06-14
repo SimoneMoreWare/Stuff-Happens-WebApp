@@ -1,7 +1,6 @@
 import express from 'express';
-import { body, param, validationResult } from 'express-validator';
-import { getCardById, getRandomCards, getCardsByIds } from '../dao/cardDAO.mjs';
-import { isLoggedIn } from '../middleware/authMiddleware.mjs';
+import { param, validationResult } from 'express-validator';
+import { getCardById } from '../dao/cardDAO.mjs';
 
 const router = express.Router();
 

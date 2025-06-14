@@ -362,14 +362,16 @@ router.post('/:id/next-round', isLoggedIn, [
     }
 });
 
+
 /**
  * POST /api/games/:id/guess - Submit a guess (AUTHENTICATED USERS ONLY)
  * 
- * 🔒 SECURITY COMPLETA: 
+ * 🔒 SECURITY COMPLETA + ✅ CHECK-THEN-ACT PATTERN:
  * - Validazione timer server-side (ignora timeElapsed dal client)
  * - Controllo ownership del game
  * - Prevenzione guess multipli
  * - Validazione round corrente
+ * - Calcolo stato futuro PRIMA delle modifiche
  * - Autenticazione obbligatoria
  */
 router.post('/:id/guess', isLoggedIn, [
@@ -387,6 +389,10 @@ router.post('/:id/guess', isLoggedIn, [
     // 🔒 SECURITY: Ignoriamo completamente timeElapsed dal client!
     
     try {
+        // ====================================================================
+        // FASE 1: CONTROLLI PRELIMINARI (Read-Only)
+        // ====================================================================
+        
         const game = await getGameById(req.params.id);
         
         if (!game) {
@@ -431,133 +437,102 @@ router.post('/:id/guess', isLoggedIn, [
             });
         }
         
-        // 🔒 SECURITY: VALIDAZIONE TIMER SERVER-SIDE - IL CUORE DELLA SICUREZZA!
+        // ====================================================================
+        // FASE 2: CALCOLO STATO FUTURO (Check-Then-Act Pattern)
+        // ====================================================================
+        
+        // 🔒 SECURITY: VALIDAZIONE TIMER SERVER-SIDE
         const now = dayjs();
         const cardDealtAt = dayjs(gameCard.card_dealt_at);
         const actualTimeElapsed = now.diff(cardDealtAt, 'second');
-        
         const TIME_LIMIT = 30; // seconds
-        
-        if (actualTimeElapsed > TIME_LIMIT) {
-            // 🔒 Il SERVER ha determinato che il tempo è scaduto
-            // Non ci fidiamo del client - calcoliamo noi!
-            
-            await updateGuess(gameCardId, false, position);
-            await incrementWrongGuesses(game.id);
-            
-            // Get card details for response
-            const cardDetails = await getCardsByIds([gameCard.card_id]);
-            const revealedCard = cardDetails[0];
-            
-            // Check if game is lost
-            const updatedGame = await getGameById(game.id);
-            if (updatedGame.wrong_guesses >= 3) {
-                await completeGame(game.id, 'lost');
-                return res.json({
-                    correct: false,
-                    reason: 'time_up_server',
-                    actualTimeElapsed,
-                    gameStatus: 'lost',
-                    game: updatedGame,
-                    revealed_card: revealedCard,
-                    message: `Tempo scaduto! (Server: ${actualTimeElapsed}s > ${TIME_LIMIT}s) Game over.`
-                });
-            }
-            
-            await advanceRound(game.id);
-            const finalUpdatedGame = await getGameById(game.id);
-            
-            return res.json({
-                correct: false,
-                reason: 'time_up_server',
-                actualTimeElapsed,
-                gameStatus: 'playing',
-                game: finalUpdatedGame,
-                revealed_card: revealedCard,
-                message: `Tempo scaduto! (Server: ${actualTimeElapsed}s > ${TIME_LIMIT}s) Prossimo round.`
-            });
-        }
-        
-        // ✅ Tempo valido - procedi con il guess normale
+        const isTimeUp = actualTimeElapsed > TIME_LIMIT;
         
         // Get current won cards to determine correct position
         const wonCardIds = await getWonCardIds(game.id);
-        
-        // Calculate correct position
         const correctPosition = await getCorrectPosition(gameCard.card_id, wonCardIds);
-        const isCorrect = position === correctPosition;
+        const isCorrect = !isTimeUp && position === correctPosition;
         
-        // Update the guess
-        await updateGuess(gameCardId, isCorrect, position);
+        // ✅ CHECK-THEN-ACT: Calcola stato futuro PRIMA delle modifiche
+        const futureCardsCollected = isCorrect ? game.cards_collected + 1 : game.cards_collected;
+        const futureWrongGuesses = !isCorrect ? game.wrong_guesses + 1 : game.wrong_guesses;
         
+        // ✅ PREDICTI: Determina risultato finale senza modifiche
+        const willWinGame = futureCardsCollected >= 6;
+        const willLoseGame = futureWrongGuesses >= 3;
+        const finalGameStatus = willWinGame ? 'won' : (willLoseGame ? 'lost' : 'playing');
+        
+        // Get card details for response (preparare ora per evitare query extra)
+        const cardDetails = await getCardsByIds([gameCard.card_id]);
+        const revealedCard = cardDetails[0];
+        
+        // ====================================================================
+        // FASE 3: APPLICAZIONE MODIFICHE (Act)
+        // ====================================================================
+        // Ora che sappiamo esattamente cosa succederà, possiamo applicare le modifiche
+        
+        // 1. Aggiorna sempre il guess
+        await updateGuess(gameCardId, isCorrect, isTimeUp ? null : position);
+        
+        // 2. Aggiorna contatori basandosi sui calcoli precedenti
         if (isCorrect) {
-            // Correct guess - player gets the card
             await incrementCardsCollected(game.id);
-            const cardDetails = await getCardsByIds([gameCard.card_id]);
-            const revealedCard = cardDetails[0];
-            
-            // Check if game is won
-            const updatedGame = await getGameById(game.id);
-            if (updatedGame.cards_collected >= 6) {
-                await completeGame(game.id, 'won');
-                
-                return res.json({
-                    correct: true,
-                    correctPosition,
-                    actualTimeElapsed,
-                    gameStatus: 'won',
-                    game: updatedGame,
-                    revealed_card: revealedCard,
-                    message: `Corretto! (Tempo: ${actualTimeElapsed}s) Hai vinto la partita!`
-                });
-            }
-            
-            await advanceRound(game.id);
-            const finalUpdatedGame = await getGameById(game.id);
-            
-            return res.json({
-                correct: true,
-                correctPosition,
-                actualTimeElapsed,
-                gameStatus: 'playing',
-                game: finalUpdatedGame,
-                revealed_card: revealedCard,
-                message: `Corretto! (Tempo: ${actualTimeElapsed}s) Hai preso la carta.`
-            });
         } else {
-            // Wrong guess
             await incrementWrongGuesses(game.id);
-            const cardDetails = await getCardsByIds([gameCard.card_id]);
-            const revealedCard = cardDetails[0];
-            
-            // Check if game is lost
-            const updatedGame = await getGameById(game.id);
-            if (updatedGame.wrong_guesses >= 3) {
-                await completeGame(game.id, 'lost');
-                return res.json({
-                    correct: false,
-                    correctPosition,
-                    actualTimeElapsed,
-                    gameStatus: 'lost',
-                    game: updatedGame,
-                    revealed_card: revealedCard,
-                    message: `Sbagliato! (Tempo: ${actualTimeElapsed}s) Game over.`
-                });
-            }
-            
-            await advanceRound(game.id);
-            const finalUpdatedGame = await getGameById(game.id);
-            
-            return res.json({
-                correct: false,
-                correctPosition,
-                actualTimeElapsed,
-                gameStatus: 'playing',
-                game: finalUpdatedGame,
-                revealed_card: revealedCard,
-                message: `Sbagliato! (Tempo: ${actualTimeElapsed}s) Prossimo round.`
-            });
         }
+        
+        // 3. Gestisci stato finale del gioco
+        if (willWinGame || willLoseGame) {
+            await completeGame(game.id, finalGameStatus);
+        } else {
+            // Continue to next round only if game continues
+            await advanceRound(game.id);
+        }
+        
+        // ====================================================================
+        // FASE 4: RISPOSTA (Una sola query per stato aggiornato)
+        // ====================================================================
+        
+        // Una sola query finale per ottenere lo stato aggiornato
+        const finalUpdatedGame = await getGameById(game.id);
+        
+        // Costruisci messaggio specifico
+        let message;
+        let reason = null;
+        
+        if (isTimeUp) {
+            reason = 'time_up_server';
+            if (willLoseGame) {
+                message = `Tempo scaduto! (Server: ${actualTimeElapsed}s > ${TIME_LIMIT}s) Game over.`;
+            } else {
+                message = `Tempo scaduto! (Server: ${actualTimeElapsed}s > ${TIME_LIMIT}s) Prossimo round.`;
+            }
+        } else if (isCorrect) {
+            if (willWinGame) {
+                message = `Corretto! (Tempo: ${actualTimeElapsed}s) Hai vinto la partita!`;
+            } else {
+                message = `Corretto! (Tempo: ${actualTimeElapsed}s) Hai preso la carta.`;
+            }
+        } else {
+            if (willLoseGame) {
+                message = `Sbagliato! (Tempo: ${actualTimeElapsed}s) Game over.`;
+            } else {
+                message = `Sbagliato! (Tempo: ${actualTimeElapsed}s) Prossimo round.`;
+            }
+        }
+        
+        // ✅ RISPOSTA UNIFICATA: Un solo punto di uscita
+        return res.json({
+            correct: isCorrect,
+            correctPosition,
+            actualTimeElapsed,
+            gameStatus: finalGameStatus,
+            game: finalUpdatedGame,
+            revealed_card: revealedCard,
+            message,
+            ...(reason && { reason }) // Aggiunge reason solo se presente
+        });
+        
     } catch (error) {
         console.error('Error processing guess:', error);
         res.status(500).json({ error: 'Database error while processing guess' });            

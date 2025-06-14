@@ -10,141 +10,154 @@ import { Card as CardModel } from '../../../models/Card.mjs';
 export const useGameAPI = (gameState) => {
   
   const createNewGame = async (gameState) => {
-  try {
-    // ✅ CONTROLLA PRIMA del cleanup!
-    const currentState = gameState.gameState;
-    const hadCurrentGame = !!gameState.currentGame;
-    const wasRecentlyAbandoned = gameState.wasAbandoned;
-    
-    const isGameJustCompleted = (currentState === 'loading' || currentState === 'result') && 
-                               gameState.roundResult && 
-                               (gameState.roundResult.gameStatus === 'won' || 
-                                gameState.roundResult.gameStatus === 'lost');
-    
-    const shouldCheckAndAbandon = !isGameJustCompleted && 
-                                 !wasRecentlyAbandoned &&
-                                 currentState !== 'result' &&
-                                 currentState !== 'game-over' &&
-                                 currentState !== 'abandoned';
-    
-    console.log('🎮 createNewGame - Before cleanup:');
-    console.log('  - currentState:', currentState);
-    console.log('  - hadCurrentGame:', hadCurrentGame);
-    console.log('  - roundResult:', gameState.roundResult);
-    console.log('  - shouldCheckAndAbandon:', shouldCheckAndAbandon);
-    
-    gameState.setLoading(true);
-    gameState.setError('');
-    
-    // ✅ RESET del flag se presente
-    if (wasRecentlyAbandoned) {
-      gameState.setWasAbandoned(false);
-    }
-    
-    // ✅ ORA fai il controllo PRIMA di pulire
-    if (shouldCheckAndAbandon) {
-      try {
-        console.log('🔍 Checking for existing game...');
-        const existingGameData = await API.getCurrentGame();
-        if (existingGameData && existingGameData.game && existingGameData.game.id) {
-          console.log('🗑️ Abandoning existing game:', existingGameData.game.id);
-          await API.abandonGame(existingGameData.game.id);
-        }
-      } catch (checkError) {
-        console.log('✅ No active game found (404 is normal)');
-        // 404 è normale = nessuna partita attiva
+    try {
+      // ✅ CONTROLLA PRIMA del cleanup (dati ancora presenti)
+      const currentState = gameState.gameState;
+      const hadCurrentGame = !!gameState.currentGame;
+      const roundResult = gameState.roundResult;
+      const wasRecentlyAbandoned = gameState.wasAbandoned;
+      
+      // ✅ LOGICA MIGLIORATA per riconoscere partite appena completate
+      const isGameJustCompleted = roundResult && 
+        (roundResult.gameStatus === 'won' || roundResult.gameStatus === 'lost');
+      
+      const shouldCheckAndAbandon = !isGameJustCompleted &&
+                                  !wasRecentlyAbandoned &&
+                                  currentState !== 'result' &&
+                                  currentState !== 'game-over' &&
+                                  currentState !== 'abandoned';
+      
+      console.log('🎮 createNewGame - Debug values:');
+      console.log('  - currentState:', currentState);
+      console.log('  - hadCurrentGame:', hadCurrentGame);
+      console.log('  - roundResult:', roundResult);
+      console.log('  - isGameJustCompleted:', isGameJustCompleted);
+      console.log('  - shouldCheckAndAbandon:', shouldCheckAndAbandon);
+      
+      gameState.setLoading(true);
+      gameState.setError('');
+      
+      // ✅ RESET del flag se presente
+      if (wasRecentlyAbandoned) {
+        gameState.setWasAbandoned(false);
       }
-    } else {
-      console.log('⏭️ Skipping getCurrentGame check - game just completed');
-    }
-    
-    // ✅ ORA puoi pulire lo stato perché hai già fatto i controlli
-    console.log('🧹 Cleaning up state before creating new game...');
-    gameState.setCurrentGame(null);
-    gameState.setCurrentCards([]);
-    gameState.setTargetCard(null);
-    gameState.setCurrentRoundCard(null);
-    gameState.setRoundResult(null);
-    gameState.setAllGameCards([]);
-    gameState.setError('');
-    
-    // ✅ Crea la nuova partita
-    console.log('🎯 Creating new game...');
-    const gameData = await API.createGame('university_life');
-    
-    // Setup del nuovo gioco
-    gameState.setCurrentGame(gameData.game);
-    gameState.updateCurrentGame(gameData.game);
-    
-    const initialCards = gameData.initialCards.map(c =>
-      new CardModel(c.id, c.name, c.image_url, c.bad_luck_index, c.theme)
-    );
-    initialCards.sort((a, b) => a.bad_luck_index - b.bad_luck_index);
-    
-    gameState.setCurrentCards(initialCards);
-    
-    const allGameCardsData = gameData.initialCards.map(c => ({
-      id: c.id,
-      name: c.name,
-      image_url: c.image_url,
-      bad_luck_index: c.bad_luck_index,
-      theme: c.theme,
-      is_initial: true,
-      round_number: 0,
-      guessed_correctly: null
-    }));
-    
-    gameState.setAllGameCards(allGameCardsData);
-    gameState.setGameState('playing');
-    gameState.setMessage({ type: 'success', msg: 'Nuova partita creata!' });
-    
-    console.log('✅ New game created successfully');
-    
-  } catch (err) {
-    console.error('❌ Error in createNewGame:', err);
-    
-    // Gestione errori...
-    if (err.type === 'ACTIVE_GAME_EXISTS') {
-      try {
-        if (err.activeGameId) {
-          await API.abandonGame(err.activeGameId);
-          const retryGameData = await API.createGame('university_life');
-          gameState.setCurrentGame(retryGameData.game);
-          gameState.updateCurrentGame(retryGameData.game);
-          const initialCards = retryGameData.initialCards.map(c =>
-            new CardModel(c.id, c.name, c.image_url, c.bad_luck_index, c.theme)
-          );
-          initialCards.sort((a, b) => a.bad_luck_index - b.bad_luck_index);
-          gameState.setCurrentCards(initialCards);
-          const allGameCardsData = retryGameData.initialCards.map(c => ({
-            id: c.id,
-            name: c.name,
-            image_url: c.image_url,
-            bad_luck_index: c.bad_luck_index,
-            theme: c.theme,
-            is_initial: true,
-            round_number: 0,
-            guessed_correctly: null
-          }));
-          gameState.setAllGameCards(allGameCardsData);
-          gameState.setGameState('playing');
-          gameState.setMessage({ 
-            type: 'success', 
-            msg: 'Nuova partita creata (precedente partita abbandonata automaticamente)!' 
-          });
+      
+      // ✅ Solo se necessario controlla partite attive (PRIMA del cleanup)
+      if (shouldCheckAndAbandon) {
+        try {
+          console.log('🔍 Checking for existing game...');
+          const existingGameData = await API.getCurrentGame();
+          if (existingGameData && existingGameData.game && existingGameData.game.id) {
+            console.log('🗑️ Abandoning existing game:', existingGameData.game.id);
+            await API.abandonGame(existingGameData.game.id);
+          }
+        } catch (checkError) {
+          console.log('✅ No active game found (404 is normal)');
+          // 404 è normale = nessuna partita attiva
         }
-      } catch (retryErr) {
-        gameState.setError('Errore nella creazione della partita. Riprova tra qualche secondo.');
+      } else {
+        console.log('⏭️ Skipping getCurrentGame check - game just completed');
+      }
+      
+      // ✅ CLEANUP INTERNO dopo i controlli (dati usati, ora posso pulire)
+      console.log('🧹 Cleaning up state before creating new game...');
+      gameState.setCurrentGame(null);
+      gameState.setCurrentCards([]);
+      gameState.setTargetCard(null);
+      gameState.setCurrentRoundCard(null);
+      gameState.setRoundResult(null);
+      gameState.setAllGameCards([]);
+      gameState.setError('');
+      
+      // ✅ Crea la nuova partita
+      console.log('🎯 Creating new game...');
+      const gameData = await API.createGame('university_life');
+      
+      // ✅ Setup del nuovo gioco
+      gameState.setCurrentGame(gameData.game);
+      gameState.updateCurrentGame(gameData.game);
+      
+      // Processa le carte iniziali
+      const initialCards = gameData.initialCards.map(c =>
+        new CardModel(c.id, c.name, c.image_url, c.bad_luck_index, c.theme)
+      );
+      initialCards.sort((a, b) => a.bad_luck_index - b.bad_luck_index);
+      
+      gameState.setCurrentCards(initialCards);
+      
+      // Setup allGameCards per il tracking
+      const allGameCardsData = gameData.initialCards.map(c => ({
+        id: c.id,
+        name: c.name,
+        image_url: c.image_url,
+        bad_luck_index: c.bad_luck_index,
+        theme: c.theme,
+        is_initial: true,
+        round_number: 0,
+        guessed_correctly: null
+      }));
+      
+      gameState.setAllGameCards(allGameCardsData);
+      gameState.setGameState('playing');
+      gameState.setMessage({ type: 'success', msg: 'Nuova partita creata!' });
+      
+      console.log('✅ New game created successfully');
+      
+    } catch (err) {
+      console.error('❌ Error in createNewGame:', err);
+      
+      // ✅ Gestione errori specifici
+      if (err.type === 'ACTIVE_GAME_EXISTS') {
+        try {
+          console.log('🔄 Retrying after abandoning existing game...');
+          if (err.activeGameId) {
+            await API.abandonGame(err.activeGameId);
+            
+            // Retry creazione partita
+            const retryGameData = await API.createGame('university_life');
+            gameState.setCurrentGame(retryGameData.game);
+            gameState.updateCurrentGame(retryGameData.game);
+            
+            const initialCards = retryGameData.initialCards.map(c =>
+              new CardModel(c.id, c.name, c.image_url, c.bad_luck_index, c.theme)
+            );
+            initialCards.sort((a, b) => a.bad_luck_index - b.bad_luck_index);
+            gameState.setCurrentCards(initialCards);
+            
+            const allGameCardsData = retryGameData.initialCards.map(c => ({
+              id: c.id,
+              name: c.name,
+              image_url: c.image_url,
+              bad_luck_index: c.bad_luck_index,
+              theme: c.theme,
+              is_initial: true,
+              round_number: 0,
+              guessed_correctly: null
+            }));
+            
+            gameState.setAllGameCards(allGameCardsData);
+            gameState.setGameState('playing');
+            gameState.setMessage({ 
+              type: 'success', 
+              msg: 'Nuova partita creata (precedente partita abbandonata automaticamente)!' 
+            });
+            
+            console.log('✅ Retry successful');
+          }
+        } catch (retryErr) {
+          console.error('❌ Retry failed:', retryErr);
+          gameState.setError('Errore nella creazione della partita. Riprova tra qualche secondo.');
+          gameState.setGameState('error');
+        }
+      } else {
+        // Altri errori
+        gameState.setError(err.message || 'Errore nella creazione della partita');
         gameState.setGameState('error');
       }
-    } else {
-      gameState.setError(err.message || 'Errore nella creazione della partita');
-      gameState.setGameState('error');
+    } finally {
+      gameState.setLoading(false);
     }
-  } finally {
-    gameState.setLoading(false);
-  }
-};
+  };
   const startNextRound = async (gameState) => {
     try {
       gameState.setError('');

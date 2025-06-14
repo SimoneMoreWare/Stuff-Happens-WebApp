@@ -39,8 +39,8 @@ export const useGameNavigation = () => {
     const handleNewGame = async () => {
       try {
         gameState.setGameState('loading');
-        gameState.cleanupGameState();
-        
+        // ✅ NON chiamare cleanupGameState() qui!
+        // Le informazioni servono ancora a createNewGame per decidere cosa fare
         await gameAPI.createNewGame(gameState);
       } catch (err) {
         gameState.setError('Errore nella creazione della nuova partita');

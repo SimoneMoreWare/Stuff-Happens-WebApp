@@ -107,30 +107,6 @@ export const getGameCards = (game_id) => {
 };
 
 /**
- * Ottiene le carte iniziali di una partita
- * @param {number} game_id 
- * @returns {Promise<GameCard[]>}
- */
-export const getInitialCards = (game_id) => {
-    return new Promise((resolve, reject) => {
-        const query = "SELECT * FROM GameCards WHERE game_id = ? AND is_initial = TRUE ORDER BY id ASC";
-        db.all(query, [game_id], (err, rows) => {
-            if (err) {
-                reject(err);
-            } else {
-                const gameCards = rows.map((row) => 
-                    new GameCard(
-                        row.id, row.game_id, row.card_id, row.round_number,
-                        row.guessed_correctly, row.position_guessed, row.is_initial, row.played_at
-                    )
-                );
-                resolve(gameCards);
-            }
-        });
-    });
-};
-
-/**
  * Ottiene le carte vinte di una partita (con guess corretto o iniziali)
  * @param {number} game_id 
  * @returns {Promise<GameCard[]>}
@@ -228,43 +204,7 @@ export const getWonCardIds = (game_id) => {
     });
 };
 
-/**
- * Conta le carte indovinate correttamente in una partita
- * @param {number} game_id 
- * @returns {Promise<number>}
- */
-export const countCorrectGuesses = (game_id) => {
-    return new Promise((resolve, reject) => {
-        const query = "SELECT COUNT(*) as count FROM GameCards WHERE game_id = ? AND guessed_correctly = TRUE";
-        db.get(query, [game_id], (err, row) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(row.count);
-            }
-        });
-    });
-};
-
-/**
- * Conta le carte sbagliate in una partita
- * @param {number} game_id 
- * @returns {Promise<number>}
- */
-export const countWrongGuesses = (game_id) => {
-    return new Promise((resolve, reject) => {
-        const query = "SELECT COUNT(*) as count FROM GameCards WHERE game_id = ? AND guessed_correctly = FALSE";
-        db.get(query, [game_id], (err, row) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(row.count);
-            }
-        });
-    });
-};
-
-/**
+/**getGameCardById
  * Ottiene una GameCard per ID - NECESSARIA PER I CONTROLLI DI SICUREZZA
  * @param {number} id 
  * @returns {Promise<GameCard|null>}
@@ -284,24 +224,6 @@ export const getGameCardById = (id) => {
                     row.played_at, row.card_dealt_at  // 🔒 AGGIUNTO: card_dealt_at
                 );
                 resolve(gameCard);
-            }
-        });
-    });
-};
-
-/**
- * Elimina tutte le GameCard di una partita (cleanup)
- * @param {number} game_id 
- * @returns {Promise<void>}
- */
-export const deleteGameCards = (game_id) => {
-    return new Promise((resolve, reject) => {
-        const query = "DELETE FROM GameCards WHERE game_id = ?";
-        db.run(query, [game_id], function (err) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
             }
         });
     });

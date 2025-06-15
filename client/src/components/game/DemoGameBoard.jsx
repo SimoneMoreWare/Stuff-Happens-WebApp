@@ -56,7 +56,7 @@ function DemoGameBoard() {
         stopTimer,
         getElapsedTime,
         isTimeUp
-    } = useGameTimer(30, handleTimeUp);
+    } = useGameTimer(30, null);
     
     // Drag & Drop hook
     const {
@@ -75,17 +75,51 @@ function DemoGameBoard() {
         startDemoGame();
     }, []);
 
-    // ✅ AGGIUNGI useEffect per gestire timeout
+    // ✅ GESTIONE CORRETTA - Solo useEffect con flag
     useEffect(() => {
-    const handleTimeout = async () => {
-        if (isTimeUp && gameState === 'playing') {
-        console.log('⏰ Demo timeout rilevato dal flag isTimeUp');
-        await handleTimeUp(); // La tua funzione esistente
-        }
-    };
-
-    handleTimeout();
-    }, [isTimeUp, gameState]); // Solo flag come dipendenze
+        const handleTimeout = async () => {
+            if (isTimeUp && gameState === 'playing' && !loading) {
+                console.log('⏰ Demo timeout rilevato dal flag isTimeUp');
+                
+                try {
+                    setGameState('loading');
+                    
+                    const timeElapsed = getElapsedTime();
+                    const result = await API.submitDemoGuess(
+                        targetCard.id,
+                        currentCards.map(c => c.id),
+                        0,
+                        Math.max(timeElapsed, 31)
+                    );
+                    
+                    const revealedCard = new CardModel(
+                        targetCard.id,
+                        targetCard.name,
+                        targetCard.image_url,
+                        result.correct ? result.targetCard.bad_luck_index : null,
+                        targetCard.theme
+                    );
+                    setTargetCard(revealedCard);
+                    
+                    setGameResult({
+                        isCorrect: result.correct,
+                        isTimeout: result.timeUp || true,
+                        correctPosition: result.correctPosition,
+                        guessedPosition: undefined,
+                        explanation: result.message
+                    });
+                    setGameState('result');
+                    
+                } catch (err) {
+                    console.error('Errore demo timeout:', err);
+                    setError('Errore nella gestione del timeout. Riprova.');
+                    setGameState('playing');
+                    startTimer();
+                }
+            }
+        };
+        handleTimeout();
+    }, [isTimeUp, gameState, loading]); // Aggiungi loading
     
     const startDemoGame = async () => {
         try {
@@ -174,48 +208,6 @@ function DemoGameBoard() {
         } catch (err) {
             console.error('Errore submit demo guess:', err);
             setError('Errore nell\'invio della risposta. Riprova.');
-            setGameState('playing');
-            startTimer();
-        }
-    }
-    
-    async function handleTimeUp() {
-        if (!timerActive || gameState !== 'playing') return;
-        
-        console.log('⏰ Tempo scaduto in demo!');
-        
-        try {
-            setGameState('loading');
-            
-            const timeElapsed = getElapsedTime();
-            const result = await API.submitDemoGuess(
-                targetCard.id,
-                currentCards.map(c => c.id),
-                0,
-                Math.max(timeElapsed, 31)
-            );
-            
-            const revealedCard = new CardModel(
-                targetCard.id,
-                targetCard.name,
-                targetCard.image_url,
-                result.correct ? result.targetCard.bad_luck_index : null,
-                targetCard.theme
-            );
-            setTargetCard(revealedCard);
-            
-            setGameResult({
-                isCorrect: result.correct,
-                isTimeout: result.timeUp,
-                correctPosition: result.correctPosition,
-                guessedPosition: undefined,
-                explanation: result.message
-            });
-            setGameState('result');
-            
-        } catch (err) {
-            console.error('Errore demo timeout:', err);
-            setError('Errore nella gestione del timeout. Riprova.');
             setGameState('playing');
             startTimer();
         }

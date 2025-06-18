@@ -49,15 +49,11 @@
  * - getGameHistory() solo quando l'utente visita la pagina storico
  * 
  * Dati filtrati per funzionalità:
- * - getCardWithoutIndex() per il gameplay (nasconde bad_luck_index)
- * - getCardById() per vedere dettagli completi
- * - getRandomCards() per setup iniziale giochi
  * - Ogni API restituisce esattamente quello che serve per quel caso d'uso
  * 
  */
 
 import { User } from "../models/User.mjs";
-import { Card } from "../models/Card.mjs";
 
 // Base server URL - modify if different in production
 const SERVER_URL = 'http://localhost:3001';
@@ -167,186 +163,6 @@ const logOut = async() => {
 };
 
 // ==============================================================================
-// CARD APIs
-// ==============================================================================
-
-/**
- * Get all cards (mainly for debugging/admin purposes)
- * 
- * @returns {Promise<Card[]>} - Array of all cards
- * @throws {string} - Error message if request fails
- */
-const getAllCards = async () => {
-  const response = await fetch(SERVER_URL + '/api/cards', {
-    credentials: 'include'
-  });
-  
-  if (response.ok) {
-    const cardsJson = await response.json();
-    return cardsJson.map(c => new Card(
-      c.id, 
-      c.name, 
-      c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`,
-      c.bad_luck_index, 
-      c.theme
-    ));
-  } else {
-    throw new Error("Error fetching cards");
-  }
-};
-
-/**
- * Get cards by theme
- * 
- * @param {string} theme - Theme to filter by (university_life, travel, sports, love_life, work_life)
- * @returns {Promise<Card[]>} - Array of cards for the specified theme
- * @throws {string} - Error message if request fails
- */
-const getCardsByTheme = async (theme) => {
-  const response = await fetch(`${SERVER_URL}/api/cards/theme/${theme}`, {
-    credentials: 'include'
-  });
-  
-  if (response.ok) {
-    const cardsJson = await response.json();
-    return cardsJson.map(c => new Card(
-      c.id, 
-      c.name, 
-      c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`,
-      c.bad_luck_index, 
-      c.theme
-    ));
-  } else {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Error fetching cards by theme");
-  }
-};
-
-/**
- * Get a specific card by ID (with complete details including bad_luck_index)
- * 
- * @param {number} cardId - ID of the card to retrieve
- * @returns {Promise<Card>} - Card object with all details
- * @throws {string} - Error message if request fails
- */
-const getCardById = async (cardId) => {
-  const response = await fetch(`${SERVER_URL}/api/cards/${cardId}`, {
-    credentials: 'include'
-  });
-  
-  if (response.ok) {
-    const cardJson = await response.json();
-    // ✅ CORRETTO: cardJson è un oggetto singolo, non un array
-    return new Card(
-      cardJson.id, 
-      cardJson.name, 
-      cardJson.image_url.startsWith('http') ? cardJson.image_url : `${SERVER_URL}/${cardJson.image_url}`,
-      cardJson.bad_luck_index, 
-      cardJson.theme
-    );
-  } else {
-    if (response.status === 404) {
-      throw new Error("Card not found");
-    }
-    throw new Error("Error fetching card");
-  }
-};
-
-/**
- * Get random cards for game setup
- * 
- * @param {string} theme - Theme of cards to select from
- * @param {number} count - Number of cards to return
- * @param {number[]} excludeIds - Array of card IDs to exclude (optional)
- * @returns {Promise<Card[]>} - Array of random cards
- * @throws {string} - Error message if request fails
- */
-const getRandomCards = async (theme, count, excludeIds = []) => {
-  const response = await fetch(SERVER_URL + '/api/cards/random', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify({ theme, count, excludeIds }),
-  });
-  
-  if (response.ok) {
-    const cardsJson = await response.json();
-    return cardsJson.map(c => new Card(
-      c.id, 
-      c.name, 
-      c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`,
-      c.bad_luck_index, 
-      c.theme
-    ));
-  } else {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Error fetching random cards");
-  }
-};
-
-/**
- * Get multiple cards by their IDs
- * 
- * @param {number[]} cardIds - Array of card IDs to retrieve
- * @returns {Promise<Card[]>} - Array of cards ordered by bad_luck_index
- * @throws {string} - Error message if request fails
- */
-const getCardsByIds = async (cardIds) => {
-  const response = await fetch(SERVER_URL + '/api/cards/by-ids', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify({ ids: cardIds }),
-  });
-  
-  if (response.ok) {
-    const cardsJson = await response.json();
-    return cardsJson.map(c => new Card(
-      c.id, 
-      c.name, 
-      c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`,
-      c.bad_luck_index, 
-      c.theme
-    ));
-  } else {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Error fetching cards");
-  }
-};
-
-/**
- * Get card WITHOUT bad_luck_index (for gameplay)
- * 
- * @param {number} cardId - ID of the card to retrieve
- * @returns {Promise<Object>} - Card object without bad_luck_index
- * @throws {string} - Error message if request fails
- */
-const getCardWithoutIndex = async (cardId) => {
-  const response = await fetch(`${SERVER_URL}/api/cards/${cardId}/without-index`, {
-    credentials: 'include'
-  });
-  
-  if (response.ok) {
-    const cardJson = await response.json();
-    return {
-          ...cardJson,
-          image_url: cardJson.image_url.startsWith('http') 
-            ? cardJson.image_url 
-            : `${SERVER_URL}/${cardJson.image_url}`
-        };
-    } else {
-    if (response.status === 404) {
-      throw new Error("Card not found");
-    }
-    throw new Error("Error fetching card");
-  }
-};
-
-// ==============================================================================
 // DEMO GAME APIs (for anonymous users)
 // ==============================================================================
 
@@ -423,49 +239,6 @@ const submitDemoGuess = async (targetCardId, initialCardIds, position, timeElaps
   }
 };
 
-/**
- * Get game instructions for anonymous users
- * 
- * @returns {Promise<Object>} - Game instructions and rules
- * @throws {string} - Error message if request fails
- */
-const getGameInstructions = async () => {
-  const response = await fetch(SERVER_URL + '/api/demo/instructions');
-  
-  if (response.ok) {
-    const instructions = await response.json();
-    return instructions;
-  } else {
-    throw new Error("Error fetching game instructions");
-  }
-};
-
-/**
- * Get practice cards for learning the scoring system
- * 
- * @param {string} theme - Theme for the cards (default: 'university_life')
- * @param {number} count - Number of cards to return (default: 5, max: 10)
- * @returns {Promise<Object>} - Practice cards with explanations
- * @throws {string} - Error message if request fails
- */
-const getPracticeCards = async (theme = 'university_life', count = 5) => {
-  const response = await fetch(SERVER_URL + '/api/demo/practice-cards', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ theme, count }),
-  });
-  
-  if (response.ok) {
-    const practiceData = await response.json();
-    return practiceData;
-  } else {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Error fetching practice cards");
-  }
-};
-
 // ==============================================================================
 // FULL GAME APIs (for authenticated users)
 // ==============================================================================
@@ -490,7 +263,6 @@ const createGame = async (theme = 'university_life') => {
   if (response.ok) {
     const gameData = await response.json();
     
-    // ✅ AGGIUNGI CONVERSIONE URL PER LE CARTE INIZIALI
     return {
       ...gameData,
       initialCards: gameData.initialCards ? gameData.initialCards.map(c => ({
@@ -569,32 +341,6 @@ const getGameHistory = async () => {
   } else {
     const errorData = await response.json();
     throw new Error(errorData.error || "Error fetching game history");
-  }
-};
-/**
- * Get specific game details by ID
- * 
- * @param {number} gameId - ID of the game to retrieve
- * @returns {Promise<Object>} - Complete game information
- * @throws {string} - Error message if request fails
- */
-const getGameById = async (gameId) => {
-  const response = await fetch(`${SERVER_URL}/api/games/${gameId}`, {
-    credentials: 'include', // Required for authentication check
-  });
-  
-  if (response.ok) {
-    const gameData = await response.json();
-    return gameData;
-  } else {
-    if (response.status === 404) {
-      throw new Error("Game not found");
-    }
-    if (response.status === 403) {
-      throw new Error("You can only access your own games");
-    }
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Error fetching game");
   }
 };
 
@@ -715,11 +461,12 @@ const submitGameGuess = async (gameId, gameCardId, position, timeElapsed = 0) =>
 };
 
 /**
- * Submit a timeout for the current round card
+ * Submit a timeout for the current round card (when 30 seconds expire)
  * 
  * @param {number} gameId - ID of the game
- * @param {number} gameCardId - ID of the GameCard
- * @returns {Promise<Object>} - Result of the timeout
+ * @param {number} gameCardId - ID of the GameCard that timed out
+ * @returns {Promise<Object>} - Result of the timeout with game status
+ * @throws {string} - Error message if request fails
  */
 const submitGameTimeout = async (gameId, gameCardId) => {
   const response = await fetch(`${SERVER_URL}/api/games/${gameId}/timeout`, {
@@ -727,26 +474,25 @@ const submitGameTimeout = async (gameId, gameCardId) => {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
-    body: JSON.stringify({ gameCardId }),
+    credentials: 'include', // Required for authenticated endpoint
+    body: JSON.stringify({
+      gameCardId
+    }),
   });
   
   if (response.ok) {
     const result = await response.json();
-    
-    // ✅ AGGIUNGI CONVERSIONE URL PER LA CARTA RIVELATA
-    return {
-      ...result,
-      revealed_card: result.revealed_card ? {
-        ...result.revealed_card,
-        image_url: result.revealed_card.image_url.startsWith('http') 
-          ? result.revealed_card.image_url 
-          : `${SERVER_URL}/${result.revealed_card.image_url}`
-      } : null
-    };
+    return result;
   } else {
     const errorData = await response.json();
-    throw new Error(errorData.error || "Error processing timeout");
+    if (response.status === 400) {
+      // Invalid game state or other specific error
+      throw { 
+        message: errorData.error, 
+        type: 'INVALID_GAME_STATE'
+      };
+    }
+    throw new Error(errorData.error || "Error processing game timeout");
   }
 };
 
@@ -759,8 +505,7 @@ const submitGameTimeout = async (gameId, gameCardId) => {
  * 
  * Organized by functionality:
  * - Authentication: logIn, getUserInfo, logOut
- * - Cards: getAllCards, getCardsByTheme, getCardById, etc.
- * - Demo Games: startDemoGame, submitDemoGuess, getGameInstructions, etc.
+ * - Demo Games: startDemoGame, submitDemoGuess, etc.
  * - Full Games: createGame, getCurrentGame, getGameHistory, etc.
  */
 const API = {
@@ -769,25 +514,14 @@ const API = {
   getUserInfo,
   logOut,
   
-  // Cards
-  getAllCards,
-  getCardsByTheme,
-  getCardById,
-  getRandomCards,
-  getCardsByIds,
-  getCardWithoutIndex,
-  
   // Demo Games (anonymous users)
   startDemoGame,
-  submitDemoGuess,
-  getGameInstructions,
-  getPracticeCards,
-  
+  submitDemoGuess, 
+
   // Full Games (authenticated users)
   createGame,
   getCurrentGame,
   getGameHistory,
-  getGameById,
   abandonGame,
   getNextRoundCard,
   submitGameGuess,

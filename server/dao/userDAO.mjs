@@ -4,68 +4,6 @@ import db from "../database/db.mjs";
 import crypto from 'crypto';
 
 /**
- * Ottiene tutti gli utenti registrati
- * @returns {Promise<User[]>}
- */
-export const getAllUsers = () => {
-    return new Promise((resolve, reject) => {
-        const query = "SELECT * FROM Users";
-        db.all(query, [], (err, rows) => {
-            if (err) {
-                reject(err);
-            } else {
-                const users = rows.map((row) => 
-                    new User(row.id, row.username, row.email, row.password, row.salt, row.created_at)
-                );
-                resolve(users);
-            }
-        });
-    });
-};
-
-/**
- * Ottiene un utente per username
- * @param {string} username 
- * @returns {Promise<User|null>}
- */
-export const getUserByUsername = (username) => {
-    return new Promise((resolve, reject) => {
-        const query = "SELECT * FROM Users WHERE username = ?";
-        db.get(query, [username], (err, row) => {
-            if (err) {
-                reject(err);
-            } else if (row === undefined) {
-                resolve(null);
-            } else {
-                const user = new User(row.id, row.username, row.email, row.password, row.salt, row.created_at);
-                resolve(user);
-            }
-        });
-    });
-};
-
-/**
- * Ottiene un utente per ID
- * @param {number} id 
- * @returns {Promise<User|null>}
- */
-export const getUserById = (id) => {
-    return new Promise((resolve, reject) => {
-        const query = "SELECT * FROM Users WHERE id = ?";
-        db.get(query, [id], (err, row) => {
-            if (err) {
-                reject(err);
-            } else if (row === undefined) {
-                resolve(null);
-            } else {
-                const user = new User(row.id, row.username, row.email, row.password, row.salt, row.created_at);
-                resolve(user);
-            }
-        });
-    });
-};
-
-/**
  * Verifies user login credentials
  * @param {string} username - Username from the login request
  * @param {string} password - Plain text password from the login request
@@ -118,24 +56,6 @@ export const checkUserCredentials = (username, password) => {
                         }
                     }
                 });
-            }
-        });
-    });
-};
-
-/**
- * Aggiorna i dati di un utente
- * @param {User} user 
- * @returns {Promise<void>}
- */
-export const updateUser = (user) => {
-    return new Promise((resolve, reject) => {
-        const query = "UPDATE Users SET username = ?, email = ?, password = ?, salt = ? WHERE id = ?";
-        db.run(query, [user.username, user.email, user.password, user.salt, user.id], function (err) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
             }
         });
     });

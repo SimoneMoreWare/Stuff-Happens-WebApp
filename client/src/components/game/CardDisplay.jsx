@@ -57,7 +57,7 @@ function CardDisplay({ card, showBadLuckIndex = true, isTarget = false, classNam
                 <Card.Title 
                     className="small mb-2 text-center"
                     style={{ 
-                        fontSize: '11px', 
+                        fontSize: '13px', 
                         lineHeight: '1.3',
                         maxHeight: '5em',
                         overflow: 'hidden',

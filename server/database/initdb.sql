@@ -1,4 +1,4 @@
--- Database Schema per "Stuff Happens"
+-- Database Schema per "Stuff Happens" - VERSIONE SICURA
 -- Tema: University Life
 
 -- Tabella Users
@@ -39,7 +39,7 @@ CREATE TABLE Games (
     CHECK (wrong_guesses >= 0 AND wrong_guesses <= 3)
 );
 
--- Tabella GameCards (carte coinvolte nelle partite)
+-- Tabella GameCards (carte coinvolte nelle partite) - AGGIORNATA PER SICUREZZA
 CREATE TABLE GameCards (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     game_id INTEGER NOT NULL,
@@ -49,6 +49,7 @@ CREATE TABLE GameCards (
     position_guessed INTEGER,              -- Dove l'utente ha piazzato la carta
     is_initial BOOLEAN DEFAULT FALSE,      -- Se è una delle 3 carte iniziali
     played_at TIMESTAMP,                   -- Quando è stata giocata
+    card_dealt_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 🔒 SECURITY: Quando la carta è stata distribuita
     FOREIGN KEY (game_id) REFERENCES Games(id) ON DELETE CASCADE,
     FOREIGN KEY (card_id) REFERENCES Cards(id),
     CHECK (round_number >= 0),  -- 0 per carte iniziali, 1+ per round
@@ -59,7 +60,6 @@ CREATE TABLE GameCards (
 INSERT INTO Users (username, email, password, salt) VALUES 
     ('user1', 'u1@p.it', '3fe983f6c4d87ad47e52d5c706c1b261002692570c5877861a0fc807e22e1609322894cb4b3e4f1b0a7047b899feed0541205ebbb0a497500cfac1acbf56c4ea', '1753382924'),
     ('user2', 'u2@p.it', 'd399e53b6515abf6e0d07cb2176c25b3aa05b3ea4561fe7fd9c4b1d0ed79537f69d5a436a9e038955c2087ea196237b2ce8aefe66cb69e0e03c9941f9d704dbb', '7796344101');
-    -- ('testuser', 'u3@p.it', '2ea46ac49fe8cb4ec4f30aa42e59c7d113ec531d52c5dce0d2a0f960efe86cfc3ac692ac33e1bb7c6637e3002559ec4f0f3d127ac86d7f22ebff285b03a4e413', '6432105316');
 
 -- Inserimento carte (tema: University Life) - almeno 50
 INSERT INTO Cards (name, image_url, bad_luck_index, theme) VALUES 
@@ -131,15 +131,16 @@ INSERT INTO Games (user_id, status, cards_collected, wrong_guesses, current_roun
     (1, 'won', 6, 1, 5, '2024-05-13 19:20:00');
 
 -- Inserimento GameCards per le partite completate (esempio per la prima partita)
-INSERT INTO GameCards (game_id, card_id, round_number, guessed_correctly, position_guessed, is_initial, played_at) VALUES 
+-- 🔒 NOTA: Aggiungo card_dealt_at per essere coerenti con il nuovo schema
+INSERT INTO GameCards (game_id, card_id, round_number, guessed_correctly, position_guessed, is_initial, played_at, card_dealt_at) VALUES 
     -- Carte iniziali della prima partita
-    (1, 15, 0, NULL, NULL, TRUE, '2024-05-15 14:00:00'),
-    (1, 25, 0, NULL, NULL, TRUE, '2024-05-15 14:00:00'),
-    (1, 35, 0, NULL, NULL, TRUE, '2024-05-15 14:00:00'),
+    (1, 15, 0, NULL, NULL, TRUE, '2024-05-15 14:00:00', '2024-05-15 14:00:00'),
+    (1, 25, 0, NULL, NULL, TRUE, '2024-05-15 14:00:00', '2024-05-15 14:00:00'),
+    (1, 35, 0, NULL, NULL, TRUE, '2024-05-15 14:00:00', '2024-05-15 14:00:00'),
     -- Round successivi
-    (1, 8, 1, TRUE, 2, FALSE, '2024-05-15 14:05:00'),
-    (1, 18, 2, FALSE, 1, FALSE, '2024-05-15 14:10:00'),
-    (1, 28, 3, TRUE, 3, FALSE, '2024-05-15 14:15:00'),
-    (1, 38, 4, TRUE, 1, FALSE, '2024-05-15 14:20:00'),
-    (1, 48, 5, FALSE, 4, FALSE, '2024-05-15 14:25:00'),
-    (1, 5, 6, TRUE, 5, FALSE, '2024-05-15 14:30:00');
+    (1, 8, 1, TRUE, 2, FALSE, '2024-05-15 14:05:00', '2024-05-15 14:04:30'),
+    (1, 18, 2, FALSE, 1, FALSE, '2024-05-15 14:10:00', '2024-05-15 14:09:30'),
+    (1, 28, 3, TRUE, 3, FALSE, '2024-05-15 14:15:00', '2024-05-15 14:14:30'),
+    (1, 38, 4, TRUE, 1, FALSE, '2024-05-15 14:20:00', '2024-05-15 14:19:30'),
+    (1, 48, 5, FALSE, 4, FALSE, '2024-05-15 14:25:00', '2024-05-15 14:24:30'),
+    (1, 5, 6, TRUE, 5, FALSE, '2024-05-15 14:30:00', '2024-05-15 14:29:30');

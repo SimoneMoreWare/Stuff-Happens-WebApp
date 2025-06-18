@@ -40,14 +40,15 @@ function GameHistory({ gameHistory, loading = false, error = null }) {
                     <div className="text-muted mb-3" style={{ fontSize: '3rem' }}>
                         <i className="bi bi-controller"></i>
                     </div>
-                    <h5>Nessuna partita completata</h5> {/* ✅ Cambiato da "giocata" a "completata" */}
+                    <h5>Nessuna partita completata</h5>
                     <p className="text-muted mb-4">
                         Non hai ancora completato nessuna partita. Inizia subito a giocare!
                     </p>
-                    <a href="/game" className="btn btn-primary">
+                    {/* ✅ CORRETTO: usa Link invece di a href */}
+                    <Link to="/game" className="btn btn-primary">
                         <i className="bi bi-play-circle me-2"></i>
                         Inizia Nuova Partita
-                    </a>
+                    </Link>
                 </Card.Body>
             </Card>
         );

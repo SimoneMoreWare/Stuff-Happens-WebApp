@@ -1,8 +1,9 @@
-import { useEffect, useState, useContext } from 'react'; // ✅ AGGIUNGI useContext
-import { Routes, Route } from 'react-router';
+// App.jsx - VERSIONE CON PROTEZIONE ROTTE SEGUENDO LO STILE DEL PROF
+import { useEffect, useState } from 'react';
+import { Routes, Route, Navigate } from 'react-router';
 import { Container, Spinner, Alert } from 'react-bootstrap';
 
-// Context
+// Context - SOLO la definizione come nelle slide
 import UserContext from './context/UserContext.jsx';
 
 // API
@@ -26,37 +27,24 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 
 function App() {
   // ============================================================================
-  // STATO GLOBALE APPLICAZIONE
+  // STATO LOCALE DEL COMPONENTE APP (seguendo slide 19)
   // ============================================================================
   
+  /**
+   * "Remember: the state is part of the component containing the Provider
+   *  - Not in the provider itself
+   *  - Not in the context object"
+   * 
+   * Seguendo le slide del prof, lo STATO va nel componente che contiene il Provider,
+   * NON nel Context stesso
+   */
   const [user, setUser] = useState(null);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [currentGame, setCurrentGame] = useState(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
-  
-  // ✅ AGGIUNGI: Flag per protezione abbandono partita
-  const [isInActiveGame, setIsInActiveGame] = useState(false);
 
   // ============================================================================
-  // ✅ AGGIUNGI: PROTEZIONE BROWSER REFRESH/CLOSE
-  // ============================================================================
-  
-  useEffect(() => {
-    const handleBeforeUnload = (e) => {
-      if (isInActiveGame) {
-        e.preventDefault();
-        e.returnValue = 'Hai una partita in corso. Sicuro di voler abbandonare?';
-        return e.returnValue;
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [isInActiveGame]);
-
-  // ============================================================================
-  // AUTENTICAZIONE - Controllo sessione esistente all'avvio
+  // CONTROLLO AUTENTICAZIONE ALL'AVVIO
   // ============================================================================
   
   useEffect(() => {
@@ -65,156 +53,96 @@ function App() {
         const userInfo = await API.getUserInfo();
         setUser(new User(userInfo.id, userInfo.username, userInfo.email));
         setLoggedIn(true);
+        console.log('✅ User authenticated');
         
-        // Se l'utente è loggato, controlla se ha una partita in corso
-        try {
-          const gameData = await API.getCurrentGame();
-          setCurrentGame(gameData);
-          
-          // ✅ AGGIUNGI: Se ha una partita in corso, attiva la protezione
-          if (gameData?.game?.status === 'playing') {
-            setIsInActiveGame(true);
-          }
-          
-        } catch (gameError) {
-          // Nessuna partita in corso - normale per utenti senza giochi attivi
-          setCurrentGame(null);
-          setIsInActiveGame(false); // ✅ AGGIUNGI
-        }
-        
-      } catch (error) {
-        // Utente non autenticato - normale per accesso anonimo
-        // NON fare nulla per evitare loop infiniti
+      } catch (authError) {
+        console.log('ℹ️ User not authenticated');
         setUser(null);
         setLoggedIn(false);
-        setCurrentGame(null);
-        setIsInActiveGame(false); // ✅ AGGIUNGI
       } finally {
         setLoading(false);
       }
     };
+    
     checkAuth();
-  }, []); // IMPORTANTE: array vuoto per eseguire solo una volta
+  }, []); // Array vuoto - esegue solo una volta
 
   // ============================================================================
   // GESTIONE AUTENTICAZIONE
   // ============================================================================
   
-  /**
-   * Gestisce il processo di login
-   * Chiamata dalle pagine di login con le credenziali inserite dall'utente
-   * Nota: il redirect viene gestito nel componente che chiama questa funzione
-   */
   const handleLogin = async (credentials) => {
     try {
       const userInfo = await API.logIn(credentials);
-      
       const newUser = new User(userInfo.id, userInfo.username, userInfo.email);
       
       setUser(newUser);
       setLoggedIn(true);
-      
-      // Controlla se l'utente ha una partita in corso
-      // IMPORTANTE: non far fallire il login se non ci sono partite!
-      try {
-        const gameData = await API.getCurrentGame();
-        setCurrentGame(gameData);
-        
-        // ✅ AGGIUNGI: Se ha una partita in corso, attiva la protezione
-        if (gameData?.game?.status === 'playing') {
-          setIsInActiveGame(true);
-        }
-        
-      } catch (gameError) {
-        setCurrentGame(null);
-        setIsInActiveGame(false); // ✅ AGGIUNGI
-        // NON rilanciare l'errore - è normale non avere partite!
-      }
-      
       setMessage({ type: 'success', msg: `Benvenuto, ${newUser.username}!` });
-      // Il redirect viene gestito dal componente LoginPage
       
     } catch (error) {
-      throw error; // Rilancia l'errore per gestirlo nel form di login
+      throw error; // Rilancia per gestire nel form
     }
   };
 
-  /**
-   * Gestisce il processo di logout
-   * Può essere chiamato da qualsiasi componente che ha accesso al context
-   * Nota: il redirect viene gestito nel componente che chiama questa funzione
-   */
   const handleLogout = async () => {
     try {
       await API.logOut();
       
-      // Reset stato globale
       setUser(null);
       setLoggedIn(false);
-      setCurrentGame(null);
-      setIsInActiveGame(false); // ✅ AGGIUNGI
-      
       setMessage({ type: 'info', msg: 'Logout effettuato con successo' });
-      // Il redirect viene gestito dal componente che chiama logout
       
     } catch (error) {
       setMessage({ type: 'warning', msg: 'Errore durante il logout, ma sei stato disconnesso' });
-      
-      // Anche in caso di errore, disconnetti l'utente localmente
       setUser(null);
       setLoggedIn(false);
-      setCurrentGame(null);
-      setIsInActiveGame(false); // ✅ AGGIUNGI
-      // Il redirect viene gestito dal componente che chiama logout
     }
   };
 
   // ============================================================================
-  // GESTIONE STATO PARTITA CORRENTE
+  // FUNZIONI DI UTILITÀ PER COMPATIBILITÀ
   // ============================================================================
   
-  /**
-   * Aggiorna lo stato della partita corrente
-   * Utile quando si inizia una nuova partita o si completa quella esistente
-   */
   const updateCurrentGame = (gameData) => {
-    setCurrentGame(gameData);
-    
-    // ✅ AGGIUNGI: Aggiorna automaticamente la flag di protezione
-    if (gameData && gameData.status === 'playing') {
-      setIsInActiveGame(true);
-    } else {
-      setIsInActiveGame(false);
-    }
+    console.log('🎮 Game update (managed locally by game components):', gameData);
   };
 
-  /**
-   * Rimuove la partita corrente (quando completata o abbandonata)
-   */
   const clearCurrentGame = () => {
-    setCurrentGame(null);
-    setIsInActiveGame(false); // ✅ AGGIUNGI
+    console.log('🧹 Game state cleared');
   };
 
   // ============================================================================
-  // VALORE DEL CONTEXT
+  // CONTEXT VALUE - Slide 11 e 19
   // ============================================================================
   
+  /**
+   * Seguendo la slide 19: "Changing Context Values"
+   * 
+   * "As part of the context value"
+   * "Example: { language: 'English', toggleLanguage : toggleLanguage }"
+   * 
+   * Il prof mostra che si passa sia i VALORI che le FUNZIONI nel context value
+   */
   const contextValue = {
+    // Stati
     user,
     loggedIn,
-    currentGame,
-    isInActiveGame,        // ✅ AGGIUNGI
-    setIsInActiveGame,     // ✅ AGGIUNGI
+    currentGame: null,        
+    isInActiveGame: false,    
+    message,
+    
+    // Funzioni - come mostrato nell'esempio del prof
     handleLogin,
     handleLogout,
     updateCurrentGame,
     clearCurrentGame,
-    setMessage
+    setMessage,
+    setIsInActiveGame: () => {} // No-op per compatibilità
   };
 
   // ============================================================================
-  // LOADING INIZIALE
+  // LOADING SCREEN
   // ============================================================================
   
   if (loading) {
@@ -231,16 +159,29 @@ function App() {
   }
 
   // ============================================================================
-  // RENDER PRINCIPALE
+  // RENDER CON PROVIDER E PROTEZIONE ROTTE - Seguendo stile del prof
   // ============================================================================
   
+  /**
+   * PROTEZIONE ROTTE STILE PROFESSORE:
+   * 
+   * Nel codice del prof vediamo questo pattern:
+   * - <Route path="answers/new" element={loggedIn ? <AnswerForm /> : <Navigate replace to='/' />} />
+   * - <Route path='/login' element={loggedIn ? <Navigate replace to='/' /> : <LoginForm />} />
+   * 
+   * Il prof usa direttamente la condizione loggedIn per decidere cosa renderizzare:
+   * - Se loggedIn è true → component protetto
+   * - Se loggedIn è false → <Navigate> per redirect
+   * 
+   * Questo è molto più semplice e diretto rispetto a un HOC ProtectedRoute
+   */
   return (
     <UserContext.Provider value={contextValue}>
       <div className="App">
         <Navbar />
         
         <Container fluid className="mt-3">
-          {/* Messaggi globali dell'applicazione */}
+          {/* Messaggi globali */}
           {message && (
             <Alert 
               variant={message.type} 
@@ -252,13 +193,35 @@ function App() {
             </Alert>
           )}
           
-          {/* Routing principale */}
+          {/* 
+            ROUTING CON PROTEZIONE - Seguendo lo stile del prof
+            
+            Il prof nel suo esempio usa questo pattern:
+            - Route pubbliche: accessibili a tutti
+            - Route protette: loggedIn ? <Component> : <Navigate replace to='/login' />
+            - Route per anonimi: loggedIn ? <Navigate replace to='/' /> : <Component>
+          */}
           <Routes>
+            {/* ✅ ROTTE PUBBLICHE - Accessibili a tutti */}
             <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/game" element={<GamePage />} />
-            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/instructions" element={<InstructionsPage />} />
+            
+            {/* ✅ ROTTA GAME - Accessibile a tutti ma con comportamenti diversi */}
+            <Route path="/game" element={<GamePage />} />
+            
+            {/* ✅ ROTTA LOGIN - Solo per utenti NON autenticati */}
+            <Route 
+              path="/login" 
+              element={loggedIn ? <Navigate replace to='/' /> : <LoginPage />} 
+            />
+            
+            {/* ✅ ROTTE PROTETTE - Solo per utenti autenticati */}
+            <Route 
+              path="/profile" 
+              element={loggedIn ? <ProfilePage /> : <Navigate replace to='/login' />} 
+            />
+            
+            {/* ✅ ROTTA 404 */}
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Container>

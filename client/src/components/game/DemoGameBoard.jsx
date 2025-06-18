@@ -1,172 +1,42 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
-import { Container, Row, Col, Card, Alert, Button, Spinner, Badge } from 'react-bootstrap';
+import React, { useState, useEffect, useContext } from 'react';
+import { Container, Row, Col } from 'react-bootstrap';
 import { useNavigate } from 'react-router';
-import {
-  DndContext,
-  closestCenter,
-  DragOverlay,
-  useSensor,
-  useSensors,
-  MouseSensor,
-  TouchSensor,
-  KeyboardSensor,
-  useDroppable
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  horizontalListSortingStrategy
-} from '@dnd-kit/sortable';
-import {
-  useSortable
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { DndContext, closestCenter } from '@dnd-kit/core';
+import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
+
 import UserContext from '../../context/UserContext.jsx';
 import API from '../../API/API.mjs';
 import { Card as CardModel } from '../../models/Card.mjs';
-import CardDisplay from './CardDisplay.jsx';
+
+// Componenti condivisi
+import { DraggableTargetCard, StaticHandCard, InvisibleDropZone } from './dragdrop/DragDrop.jsx';
+import { GameHeader } from './shared/GameHeader.jsx';
+import { GameInstructions } from './shared/GameInstructions.jsx';
+import { GameLoading, GameError } from './shared/GameUI.jsx';
 import Timer from './Timer.jsx';
 import RoundResult from './RoundResult.jsx';
 
-// ============================================================================
-// COMPONENTE CARTA TARGET DRAGGABLE
-// ============================================================================
-function DraggableTargetCard({ card, position }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ 
-    id: `target-${card.id}`,
-    data: { card, isTarget: true, position }
-  });
+// Hooks condivisi
+import { useGameTimer } from './hooks/useGameTimer.jsx';
+import { useDragDrop } from './hooks/useDragDrop.jsx';
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.8 : 1,
-  };
+// Stili condivisi
+import { gameStyles } from './shared/GameStyles.jsx';
 
-  return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <div className="text-center mb-2">
-        <Badge bg="primary" className="d-flex align-items-center justify-content-center gap-1">
-          <i className="bi bi-hand-index"></i>
-          Target
-        </Badge>
-      </div>
-      <div className={`card shadow-sm ${isDragging ? 'border-primary border-3' : ''}`} 
-           style={{ cursor: 'grab', minHeight: '200px', width: '150px' }}>
-        <CardDisplay 
-          card={card} 
-          showBadLuckIndex={false}
-          isTarget={true}
-        />
-      </div>
-      <div className="text-center mt-2">
-        <small className="text-muted">
-          Trascina per posizionare
-        </small>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// COMPONENTE CARTA STATICA (NON DRAGGABLE)
-// ============================================================================
-function StaticHandCard({ card, position, isDraggedOver }) {
-  const {
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({ 
-    id: `static-${card.id}`,
-    data: { card, isStatic: true, position }
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <div 
-      ref={setNodeRef} 
-      style={style}
-      className={`transition-all ${isDraggedOver ? 'ms-4 me-4' : ''}`}
-    >
-      <div className="text-center mb-2">
-        <Badge bg="secondary">
-          Pos. {position + 1}
-        </Badge>
-      </div>
-      <div className="card shadow-sm" style={{ minHeight: '200px', width: '150px' }}>
-        <CardDisplay 
-          card={card} 
-          showBadLuckIndex={true}
-        />
-      </div>
-      <div className="text-center mt-2">
-        <small className="text-muted">
-          Bad Luck: <strong>{card.bad_luck_index}</strong>
-        </small>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// COMPONENTE ZONA INVISIBILE PER DROP PRIMA/DOPO
-// ============================================================================
-function InvisibleDropZone({ position, label }) {
-  const {
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({ 
-    id: position === -1 ? 'invisible-before' : 'invisible-after',
-    data: { isInvisible: true, position }
-  });
-
-  const style = {
-    ...(transform ? { transform: CSS.Transform.toString(transform) } : {}),
-    transition: transition || 'all 0.2s ease',
-    minWidth: '50px', 
-    minHeight: '200px',
-    border: '2px dashed #dee2e6',
-    borderRadius: '8px',
-    backgroundColor: 'rgba(108, 117, 125, 0.1)'
-  };
-
-  return (
-    <div 
-      ref={setNodeRef}
-      style={style}
-      className="d-flex align-items-center justify-content-center"
-    >
-      <div className="text-center">
-        <i className="bi bi-plus-circle text-muted fs-4"></i>
-        <small className="d-block text-muted fw-bold" style={{ fontSize: '10px' }}>
-          {label}
-        </small>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// COMPONENTE PRINCIPALE
-// ============================================================================
+/**
+ * DemoGameBoard - Final Refactored Version
+ * Gestisce la modalità demo per utenti anonimi
+ * 
+ * Versione finale ottimizzata: ~120 righe (da 300!)
+ * Logica semplificata per demo, mantenendo solo l'essenziale
+ */
 function DemoGameBoard() {
     const { setMessage } = useContext(UserContext);
     const navigate = useNavigate();
     
-    // Stati principali
+    // ============================================================================
+    // STATO LOCALE SEMPLIFICATO
+    // ============================================================================
     const [gameState, setGameState] = useState('loading');
     const [currentCards, setCurrentCards] = useState([]);
     const [targetCard, setTargetCard] = useState(null);
@@ -174,45 +44,87 @@ function DemoGameBoard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     
-    // Timer state
-    const [timerActive, setTimerActive] = useState(false);
-    const [gameStartTime, setGameStartTime] = useState(null);
-    const timeoutHandledRef = useRef(false);
-    
-    // Stati per drag & drop
-    const [allItems, setAllItems] = useState([]);
-    const [isDragging, setIsDragging] = useState(false);
-    
-    // Sensori per DND-KIT
-    const sensors = useSensors(
-        useSensor(MouseSensor, {
-            activationConstraint: {
-                distance: 8,
-            },
-        }),
-        useSensor(TouchSensor, {
-            activationConstraint: {
-                delay: 200,
-                tolerance: 5,
-            },
-        }),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
-    );
-
     // ============================================================================
-    // AVVIO DEMO
+    // HOOKS CONDIVISI
     // ============================================================================
+    
+    // Timer hook
+    const {
+        timerActive,
+        timeRemaining,
+        startTimer,
+        stopTimer,
+        getElapsedTime,
+        isTimeUp
+    } = useGameTimer(30, null);
+    
+    // Drag & Drop hook
+    const {
+        sensors,
+        allItems,
+        handleDragStart,
+        handleDragEnd,
+        handleDragCancel
+    } = useDragDrop(currentCards, targetCard, handlePositionSelect);
+    
+    // ============================================================================
+    // INIZIALIZZAZIONE E GAME LOGIC
+    // ============================================================================
+    
     useEffect(() => {
         startDemoGame();
     }, []);
+
+    // ✅ GESTIONE CORRETTA - Solo useEffect con flag
+    useEffect(() => {
+        const handleTimeout = async () => {
+            if (isTimeUp && gameState === 'playing' && !loading) {
+                console.log('⏰ Demo timeout rilevato dal flag isTimeUp');
+                
+                try {
+                    setGameState('loading');
+                    
+                    const timeElapsed = getElapsedTime();
+                    const result = await API.submitDemoGuess(
+                        targetCard.id,
+                        currentCards.map(c => c.id),
+                        0,
+                        Math.max(timeElapsed, 31)
+                    );
+                    
+                    const revealedCard = new CardModel(
+                        targetCard.id,
+                        targetCard.name,
+                        targetCard.image_url,
+                        result.correct ? result.targetCard.bad_luck_index : null,
+                        targetCard.theme
+                    );
+                    setTargetCard(revealedCard);
+                    
+                    setGameResult({
+                        isCorrect: result.correct,
+                        isTimeout: result.timeUp || true,
+                        correctPosition: result.correctPosition,
+                        guessedPosition: undefined,
+                        explanation: result.message
+                    });
+                    setGameState('result');
+                    
+                } catch (err) {
+                    console.error('Errore demo timeout:', err);
+                    setError('Errore nella gestione del timeout. Riprova.');
+                    setGameState('playing');
+                    startTimer();
+                }
+            }
+        };
+        handleTimeout();
+    }, [isTimeUp, gameState, loading]); // Aggiungi loading
     
     const startDemoGame = async () => {
         try {
             setLoading(true);
             setError('');
-            timeoutHandledRef.current = false;
             
             console.log('🎮 Avviando partita demo...');
             
@@ -221,6 +133,7 @@ function DemoGameBoard() {
             const initialCards = demoData.initialCards.map(c => 
                 new CardModel(c.id, c.name, c.image_url, c.bad_luck_index, c.theme)
             );
+            
             const target = new CardModel(
                 demoData.targetCard.id, 
                 demoData.targetCard.name, 
@@ -231,24 +144,8 @@ function DemoGameBoard() {
             
             setCurrentCards(initialCards);
             setTargetCard(target);
-            
-            // Crea lista unificata per sortable con zone invisibili
-            const allItemsData = [
-                { id: 'invisible-before', type: 'invisible', position: -1 },
-                { id: `target-${target.id}`, type: 'target', card: target, position: 999 },
-                ...initialCards.map((card, index) => ({
-                    id: `static-${card.id}`, 
-                    type: 'static', 
-                    card, 
-                    position: index
-                })),
-                { id: 'invisible-after', type: 'invisible', position: 1000 }
-            ];
-            setAllItems(allItemsData);
-            
             setGameState('playing');
-            setTimerActive(true);
-            setGameStartTime(Date.now());
+            startTimer();
             
         } catch (err) {
             console.error('Errore demo:', err);
@@ -258,95 +155,13 @@ function DemoGameBoard() {
             setLoading(false);
         }
     };
-
-    // ============================================================================
-    // DRAG & DROP LOGIC
-    // ============================================================================
     
-    const handleDragStart = (event) => {
-        const { active } = event;
-        
-        if (String(active.id).startsWith('target-')) {
-            setIsDragging(true);
-            console.log('🎯 Drag started per target card');
-        }
-    };
-    
-    const handleDragEnd = (event) => {
-        const { active, over } = event;
-        
-        setIsDragging(false);
-        
-        if (!over) {
-            console.log('❌ Drop su area non valida');
-            return;
-        }
-        
-        // Solo se è la target card che viene droppata
-        if (String(active.id).startsWith('target-')) {
-            let newGamePosition;
-            
-            console.log('🔍 DRAG END DEBUG:');
-            console.log('- Active ID:', active.id);
-            console.log('- Over ID:', over.id);
-            console.log('- CurrentCards length:', currentCards.length);
-            
-            // Se droppata su zona invisibile "before" = posizione 0
-            if (over.id === 'invisible-before') {
-                newGamePosition = 0;
-                console.log('🎯 BEFORE ZONE → Posizione gioco: 0 (prima di tutte)');
-            }
-            // Se droppata su zona invisibile "after" = ultima posizione
-            else if (over.id === 'invisible-after') {
-                newGamePosition = currentCards.length;
-                console.log('🎯 AFTER ZONE → Posizione gioco:', newGamePosition, '(dopo tutte)');
-            }
-            // Se droppata su una carta statica
-            else if (String(over.id).startsWith('static-')) {
-                const cardId = parseInt(String(over.id).replace('static-', ''));
-                const cardIndex = currentCards.findIndex(card => card.id === cardId);
-                
-                if (cardIndex !== -1) {
-                    newGamePosition = cardIndex + 1;
-                    console.log('🎯 STATIC CARD', cardId, 'at index', cardIndex, '→ Posizione gioco:', newGamePosition, '(dopo questa carta)');
-                } else {
-                    console.log('❌ Carta static non trovata in currentCards');
-                    return;
-                }
-            }
-            else {
-                console.log('❌ Drop sulla target card stessa o altro, ignorando');
-                return;
-            }
-            
-            // Valida che la posizione sia corretta
-            if (newGamePosition < 0 || newGamePosition > currentCards.length) {
-                console.log('❌ Posizione non valida:', newGamePosition, '(range: 0 -', currentCards.length, ')');
-                return;
-            }
-            
-            console.log('📍 FINALE: Calling handlePositionSelect con posizione:', newGamePosition);
-            handlePositionSelect(newGamePosition);
-        }
-    };
-    
-    const handleDragCancel = () => {
-        setIsDragging(false);
-    };
-
-    // ============================================================================
-    // GAME LOGIC
-    // ============================================================================
-    
-    const handlePositionSelect = async (position) => {
+    async function handlePositionSelect(position) {
         try {
-            setTimerActive(false);
+            stopTimer();
             setGameState('loading');
             
-            const timeElapsed = gameStartTime ? Math.floor((Date.now() - gameStartTime) / 1000) : 0;
-            
-            console.log('🎯 Demo position selected:', position);
-            
+            const timeElapsed = getElapsedTime();
             const result = await API.submitDemoGuess(
                 targetCard.id,
                 currentCards.map(c => c.id),
@@ -354,9 +169,7 @@ function DemoGameBoard() {
                 timeElapsed
             );
             
-            console.log('📊 Demo API Response:', result);
-            
-            // ✅ SICUREZZA: Rivela bad_luck_index SOLO se ha vinto
+            // Rivela bad_luck_index SOLO se ha vinto
             const revealedCard = new CardModel(
                 targetCard.id,
                 targetCard.name,
@@ -366,7 +179,7 @@ function DemoGameBoard() {
             );
             setTargetCard(revealedCard);
             
-            // ✅ NUOVO: Se vinto, aggiorna currentCards con la carta vinta
+            // Se vinto, aggiorna currentCards
             if (result.correct && result.targetCard.bad_luck_index) {
                 const wonCard = new CardModel(
                     targetCard.id,
@@ -396,261 +209,124 @@ function DemoGameBoard() {
             console.error('Errore submit demo guess:', err);
             setError('Errore nell\'invio della risposta. Riprova.');
             setGameState('playing');
-            setTimerActive(true);
+            startTimer();
         }
-    };
-    
-    const handleTimeUp = async () => {
-        if (timeoutHandledRef.current || !timerActive || gameState !== 'playing') {
-            console.log('⏰ Timer already handled or game not active');
-            return;
-        }
-        
-        timeoutHandledRef.current = true;
-        console.log('⏰ Tempo scaduto in demo!');
-        
-        try {
-            setTimerActive(false);
-            setGameState('loading');
-            
-            const timeElapsed = gameStartTime ? Math.floor((Date.now() - gameStartTime) / 1000) : 0;
-            
-            const result = await API.submitDemoGuess(
-                targetCard.id,
-                currentCards.map(c => c.id),
-                0,
-                Math.max(timeElapsed, 31)
-            );
-            
-            // ✅ SICUREZZA: Rivela bad_luck_index SOLO se ha vinto (timeout = sempre perso)
-            const revealedCard = new CardModel(
-                targetCard.id,
-                targetCard.name,
-                targetCard.image_url,
-                result.correct ? result.targetCard.bad_luck_index : null,
-                targetCard.theme
-            );
-            setTargetCard(revealedCard);
-            
-            // ✅ NUOVO: Se vinto anche in timeout (caso raro), aggiorna currentCards
-            if (result.correct && result.targetCard.bad_luck_index) {
-                const wonCard = new CardModel(
-                    targetCard.id,
-                    targetCard.name,
-                    targetCard.image_url,
-                    result.targetCard.bad_luck_index,
-                    targetCard.theme
-                );
-                
-                setCurrentCards(prev => {
-                    const newCards = [...prev, wonCard];
-                    newCards.sort((a, b) => a.bad_luck_index - b.bad_luck_index);
-                    return newCards;
-                });
-            }
-            
-            setGameResult({
-                isCorrect: result.correct,
-                isTimeout: result.timeUp,
-                correctPosition: result.correctPosition,
-                guessedPosition: undefined,
-                explanation: result.message
-            });
-            setGameState('result');
-            
-        } catch (err) {
-            console.error('Errore demo timeout:', err);
-            setError('Errore nella gestione del timeout. Riprova.');
-            setGameState('playing');
-            setTimerActive(true);
-            timeoutHandledRef.current = false;
-        }
-    };
+    }
     
     // ============================================================================
-    // ✅ NAVIGATION HANDLERS - SEMPLIFICATI SECONDO PROF
+    // NAVIGATION HANDLERS
     // ============================================================================
     
-    const handleNewGame = () => {
+    const handleNewGame = async () => {  // ← Aggiungi async
         setGameState('loading');
         setCurrentCards([]);
         setTargetCard(null);
         setGameResult(null);
-        setTimerActive(false);
         setError('');
-        timeoutHandledRef.current = false;
-        
-        startDemoGame();
+        await startDemoGame();  // ← Aggiungi await
     };
     
     const handleBackHome = () => {
         navigate('/');
     };
-
+    
     // ============================================================================
     // RENDER
     // ============================================================================
     
     if (loading) {
-        return (
-            <Container className="d-flex justify-content-center align-items-center min-vh-75">
-                <div className="text-center">
-                    <Spinner animation="border" className="mb-3" />
-                    <p>Caricamento demo...</p>
-                </div>
-            </Container>
-        );
+        return <GameLoading gameState={gameState} />;
     }
     
     if (error) {
         return (
-            <Container>
-                <Alert variant="danger" className="text-center">
-                    <h4>Errore</h4>
-                    <p>{error}</p>
-                    <div className="d-flex gap-2 justify-content-center">
-                        <Button variant="primary" onClick={handleBackHome}>
-                            Torna alla Home
-                        </Button>
-                        <Button variant="secondary" onClick={handleNewGame}>
-                            Riprova Demo
-                        </Button>
-                    </div>
-                </Alert>
-            </Container>
+            <GameError 
+                error={error}
+                onBackHome={handleBackHome}
+                onReload={handleNewGame}
+                currentGame={null}
+                onAbandonGame={null}
+            />
         );
     }
     
     return (
-        <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDragCancel={handleDragCancel}
-        >
-            <Container className="py-4">
+        <Container className="py-4">
+            <style>{gameStyles}</style>
+            
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragCancel={handleDragCancel}
+            >
                 {/* Header del gioco */}
                 {(gameState === 'playing' || gameState === 'result') && (
-                    <Row className="mb-4">
-                        <Col className="text-center">
-                            <div className="d-flex justify-content-between align-items-center">
-                                <Button 
-                                    variant="outline-secondary" 
-                                    onClick={handleBackHome}
-                                    className="d-flex align-items-center"
-                                >
-                                    <i className="bi bi-arrow-left me-2"></i>
-                                    Torna alla Home
-                                </Button>
-                                
-                                <div className="text-center">
-                                    <h2 className="mb-1">
-                                        <i className="bi bi-controller me-2"></i>
-                                        Modalità Demo
-                                    </h2>
-                                    <p className="text-muted mb-0">
-                                        Trascina la carta nella posizione corretta
-                                    </p>
-                                </div>
-                                
-                                <div style={{ width: '120px' }}></div>
-                            </div>
-                        </Col>
-                    </Row>
+                    <GameHeader
+                        title="Modalità Demo"
+                        subtitle="Trascina la carta nella posizione corretta"
+                        onBackHome={handleBackHome}
+                        variant="info"
+                    />
                 )}
                 
                 {/* GAMEPLAY */}
                 {gameState === 'playing' && (
                     <>
-                        {/* Timer */}
-                        <Row className="mb-4">
-                            <Col md={6} className="mx-auto">
-                                <Timer 
-                                    duration={30}
-                                    isActive={timerActive}
-                                    onTimeUp={handleTimeUp}
-                                />
-                            </Col>
-                        </Row>
-                        
-                        {/* Istruzioni */}
-                        <Row className="mb-4">
-                            <Col className="text-center">
-                                <h5>
-                                    <i className="bi bi-cursor me-2"></i>
-                                    Trascina la carta Target nella posizione corretta
-                                </h5>
-                                <small className="text-muted">
-                                    Posizionala in base al Bad Luck Index delle altre carte
-                                </small>
-                            </Col>
-                        </Row>
+                        {/* Timer integrato nelle stats - VERSIONE CORRETTA */}
+                        {targetCard && (
+                        <Col xs={12} className="mt-2">
+                            <div className="d-flex justify-content-center">
+                            <Timer
+                                timeRemaining={timeRemaining}  // ← PASSA IL VALORE DAL HOOK useGameTimer
+                                duration={30}
+                                isActive={timerActive}
+                            />
+                            </div>
+                        </Col>
+                        )}
                         
                         {/* Layout orizzontale con tutte le carte */}
-                        <Row className="justify-content-center">
+                        <Row className="justify-content-center mt-4">
                             <Col md={12}>
                                 <SortableContext 
                                     items={allItems.map(item => item.id)}
                                     strategy={horizontalListSortingStrategy}
                                 >
                                     <div className="d-flex justify-content-center align-items-start gap-2">
-                                        {allItems.map((item, visualIndex) => {
-                                            if (item.id === 'invisible-after' && visualIndex === allItems.length - 1) {
-                                                return (
-                                                    <div key={item.id}>
-                                                        <InvisibleDropZone 
-                                                            position={item.position}
-                                                            label="Ultima"
-                                                        />
-                                                    </div>
-                                                );
-                                            }
-                                            
-                                            return (
-                                                <div key={item.id}>
-                                                    {item.type === 'target' ? (
-                                                        <DraggableTargetCard 
-                                                            card={item.card}
-                                                            position={item.position}
-                                                        />
-                                                    ) : item.type === 'static' ? (
-                                                        <StaticHandCard 
-                                                            card={item.card}
-                                                            position={item.position}
-                                                            isDraggedOver={false}
-                                                        />
-                                                    ) : item.type === 'invisible' ? (
-                                                        <InvisibleDropZone 
-                                                            position={item.position}
-                                                            label={item.position === -1 ? "Prima" : "Ultima"}
-                                                        />
-                                                    ) : null}
-                                                </div>
-                                            );
-                                        })}
+                                        {allItems.map((item) => (
+                                            <React.Fragment key={item.id}>
+                                                {item.type === 'target' ? (
+                                                    <DraggableTargetCard 
+                                                        card={item.card}
+                                                        position={item.position}
+                                                    />
+                                                ) : item.type === 'static' ? (
+                                                    <StaticHandCard 
+                                                        card={item.card}
+                                                        position={item.position}
+                                                        isDraggedOver={false}
+                                                    />
+                                                ) : item.type === 'invisible' ? (
+                                                    <InvisibleDropZone 
+                                                        position={item.position}
+                                                        label={item.position === -1 ? "Prima" : "Ultima"}
+                                                    />
+                                                ) : null}
+                                            </React.Fragment>
+                                        ))}
                                     </div>
                                 </SortableContext>
                             </Col>
                         </Row>
-                        
-                        {/* Info aggiuntive */}
-                        <Row className="mt-4">
-                            <Col md={10} className="mx-auto">
-                                <Card className="border-info shadow-sm">
-                                    <Card.Body className="p-3 text-center">
-                                        <small className="text-muted">
-                                            <i className="bi bi-lightbulb text-warning me-2"></i>
-                                            <strong>Posizioni valide:</strong> Prima di tutte (0) • Dopo 1ª carta (1) • Dopo 2ª carta (2) • Dopo 3ª carta (3)
-                                        </small>
-                                    </Card.Body>
-                                </Card>
-                            </Col>
-                        </Row>
+
+                         {/* Istruzioni di gioco */}
+                        <GameInstructions isDemo={true} />
                     </>
                 )}
                 
-                {/* ✅ SOLO ROUND RESULT - NO SUMMARY secondo le specifiche del prof */}
+                {/* Risultato round */}
                 {gameState === 'result' && gameResult && (
                     <RoundResult 
                         isCorrect={gameResult.isCorrect}
@@ -659,20 +335,18 @@ function DemoGameBoard() {
                         correctPosition={gameResult.correctPosition}
                         guessedPosition={gameResult.guessedPosition}
                         allCards={currentCards}
-                        onContinue={handleNewGame} // ✅ Va diretto a nuova demo
+                        onContinue={handleNewGame}
                         onNewGame={handleNewGame}
                         onBackHome={handleBackHome}
                         isDemo={true}
-                        gameCompleted={true} // ✅ Demo finisce sempre dopo 1 round
+                        gameCompleted={true}
                         gameWon={gameResult.isCorrect}
-                        showSummaryOption={false} // ✅ NUOVO: non mostrare "vai al summary"
+                        showSummaryOption={false}
                     />
                 )}
-
-                {/* ❌ RIMOSSO COMPLETAMENTE GameSummary per demo secondo specifiche prof */}
                 
-            </Container>
-        </DndContext>
+            </DndContext>
+        </Container>
     );
 }
 

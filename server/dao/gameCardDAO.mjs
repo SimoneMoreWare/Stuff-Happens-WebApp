@@ -3,20 +3,22 @@ import db from "../database/db.mjs";
 import dayjs from 'dayjs';
 
 /**
- * Aggiunge una carta iniziale a una partita
+ * Aggiunge una carta iniziale a una partita  
+ * 🔒 SECURITY: Imposta card_dealt_at anche per le carte iniziali
  * @param {number} game_id 
  * @param {number} card_id 
  * @returns {Promise<number>} - ID del GameCard creato
  */
 export const addInitialCard = (game_id, card_id) => {
     return new Promise((resolve, reject) => {
-        const query = `
-            INSERT INTO GameCards (game_id, card_id, round_number, is_initial, played_at) 
-            VALUES (?, ?, 0, TRUE, ?)
-        `;
         const now = dayjs().format('YYYY-MM-DD HH:mm:ss');
+        const query = `
+            INSERT INTO GameCards (game_id, card_id, round_number, is_initial, played_at, card_dealt_at) 
+            VALUES (?, ?, 0, TRUE, ?, ?)
+        `;
         
-        db.run(query, [game_id, card_id, now], function (err) {
+        // 🔒 SECURITY: Per le carte iniziali, card_dealt_at = played_at
+        db.run(query, [game_id, card_id, now, now], function (err) {
             if (err) {
                 reject(err);
             } else {
@@ -28,6 +30,7 @@ export const addInitialCard = (game_id, card_id) => {
 
 /**
  * Aggiunge una carta di round a una partita
+ * 🔒 SECURITY: Imposta card_dealt_at per validazione timer server-side
  * @param {number} game_id 
  * @param {number} card_id 
  * @param {number} round_number 
@@ -35,12 +38,14 @@ export const addInitialCard = (game_id, card_id) => {
  */
 export const addRoundCard = (game_id, card_id, round_number) => {
     return new Promise((resolve, reject) => {
+        const now = dayjs().format('YYYY-MM-DD HH:mm:ss');
         const query = `
-            INSERT INTO GameCards (game_id, card_id, round_number, is_initial) 
-            VALUES (?, ?, ?, FALSE)
+            INSERT INTO GameCards (game_id, card_id, round_number, is_initial, card_dealt_at) 
+            VALUES (?, ?, ?, FALSE, ?)
         `;
         
-        db.run(query, [game_id, card_id, round_number], function (err) {
+        // 🔒 SECURITY: Salviamo l'ora esatta in cui la carta viene distribuita
+        db.run(query, [game_id, card_id, round_number, now], function (err) {
             if (err) {
                 reject(err);
             } else {
@@ -85,30 +90,6 @@ export const updateGuess = (gameCardId, guessed_correctly, position_guessed) => 
 export const getGameCards = (game_id) => {
     return new Promise((resolve, reject) => {
         const query = "SELECT * FROM GameCards WHERE game_id = ? ORDER BY round_number ASC, id ASC";
-        db.all(query, [game_id], (err, rows) => {
-            if (err) {
-                reject(err);
-            } else {
-                const gameCards = rows.map((row) => 
-                    new GameCard(
-                        row.id, row.game_id, row.card_id, row.round_number,
-                        row.guessed_correctly, row.position_guessed, row.is_initial, row.played_at
-                    )
-                );
-                resolve(gameCards);
-            }
-        });
-    });
-};
-
-/**
- * Ottiene le carte iniziali di una partita
- * @param {number} game_id 
- * @returns {Promise<GameCard[]>}
- */
-export const getInitialCards = (game_id) => {
-    return new Promise((resolve, reject) => {
-        const query = "SELECT * FROM GameCards WHERE game_id = ? AND is_initial = TRUE ORDER BY id ASC";
         db.all(query, [game_id], (err, rows) => {
             if (err) {
                 reject(err);
@@ -174,7 +155,7 @@ export const getCurrentRoundCard = (game_id, round_number) => {
             } else {
                 const gameCard = new GameCard(
                     row.id, row.game_id, row.card_id, row.round_number,
-                    row.guessed_correctly, row.position_guessed, row.is_initial, row.played_at
+                    row.guessed_correctly, row.position_guessed, row.is_initial, row.played_at, row.card_dealt_at
                 );
                 resolve(gameCard);
             }
@@ -223,44 +204,8 @@ export const getWonCardIds = (game_id) => {
     });
 };
 
-/**
- * Conta le carte indovinate correttamente in una partita
- * @param {number} game_id 
- * @returns {Promise<number>}
- */
-export const countCorrectGuesses = (game_id) => {
-    return new Promise((resolve, reject) => {
-        const query = "SELECT COUNT(*) as count FROM GameCards WHERE game_id = ? AND guessed_correctly = TRUE";
-        db.get(query, [game_id], (err, row) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(row.count);
-            }
-        });
-    });
-};
-
-/**
- * Conta le carte sbagliate in una partita
- * @param {number} game_id 
- * @returns {Promise<number>}
- */
-export const countWrongGuesses = (game_id) => {
-    return new Promise((resolve, reject) => {
-        const query = "SELECT COUNT(*) as count FROM GameCards WHERE game_id = ? AND guessed_correctly = FALSE";
-        db.get(query, [game_id], (err, row) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(row.count);
-            }
-        });
-    });
-};
-
-/**
- * Ottiene una GameCard per ID
+/**getGameCardById
+ * Ottiene una GameCard per ID - NECESSARIA PER I CONTROLLI DI SICUREZZA
  * @param {number} id 
  * @returns {Promise<GameCard|null>}
  */
@@ -275,27 +220,10 @@ export const getGameCardById = (id) => {
             } else {
                 const gameCard = new GameCard(
                     row.id, row.game_id, row.card_id, row.round_number,
-                    row.guessed_correctly, row.position_guessed, row.is_initial, row.played_at
+                    row.guessed_correctly, row.position_guessed, row.is_initial, 
+                    row.played_at, row.card_dealt_at  // 🔒 AGGIUNTO: card_dealt_at
                 );
                 resolve(gameCard);
-            }
-        });
-    });
-};
-
-/**
- * Elimina tutte le GameCard di una partita (cleanup)
- * @param {number} game_id 
- * @returns {Promise<void>}
- */
-export const deleteGameCards = (game_id) => {
-    return new Promise((resolve, reject) => {
-        const query = "DELETE FROM GameCards WHERE game_id = ?";
-        db.run(query, [game_id], function (err) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
             }
         });
     });

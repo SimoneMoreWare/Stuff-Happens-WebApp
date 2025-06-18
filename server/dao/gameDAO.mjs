@@ -74,40 +74,6 @@ export const getActiveGameByUser = (user_id) => {
 };
 
 /**
- * Aggiorna lo stato di una partita
- * @param {number} gameId 
- * @param {Object} updates - Oggetto con i campi da aggiornare
- * @returns {Promise<void>}
- */
-export const updateGame = (gameId, updates) => {
-    return new Promise((resolve, reject) => {
-        const fields = [];
-        const values = [];
-        
-        Object.keys(updates).forEach(key => {
-            fields.push(`${key} = ?`);
-            values.push(updates[key]);
-        });
-        
-        if (fields.length === 0) {
-            resolve();
-            return;
-        }
-        
-        values.push(gameId);
-        const query = `UPDATE Games SET ${fields.join(', ')} WHERE id = ?`;
-        
-        db.run(query, values, function (err) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        });
-    });
-};
-
-/**
  * Incrementa i guess sbagliati di una partita
  * @param {number} gameId 
  * @returns {Promise<void>}
@@ -206,27 +172,6 @@ export const getUserGameHistory = (user_id) => {
                     )
                 );
                 resolve(games);
-            }
-        });
-    });
-};
-
-/**
- * Elimina partite incomplete più vecchie di X giorni
- * @param {number} days 
- * @returns {Promise<void>}
- */
-export const cleanupOldGames = (days = 7) => {
-    return new Promise((resolve, reject) => {
-        const cutoffDate = dayjs().subtract(days, 'day').format('YYYY-MM-DD HH:mm:ss');
-        const query = "DELETE FROM Games WHERE status = 'playing' AND created_at < ?";
-        
-        db.run(query, [cutoffDate], function (err) {
-            if (err) {
-                reject(err);
-            } else {
-                console.log(`Cleaned up ${this.changes} old incomplete games`);
-                resolve();
             }
         });
     });

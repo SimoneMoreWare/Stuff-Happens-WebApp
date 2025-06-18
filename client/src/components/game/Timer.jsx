@@ -1,58 +1,22 @@
-import { useState, useEffect, useRef } from 'react';
 import { ProgressBar, Alert } from 'react-bootstrap';
 
-function Timer({ duration = 30, onTimeUp, isActive = false, onReset }) {
-    const [timeLeft, setTimeLeft] = useState(duration);
-    const [isRunning, setIsRunning] = useState(false);
-    const timeUpCalledRef = useRef(false); // ⬅️ AGGIUNGI QUESTO
-    
-    useEffect(() => {
-        if (isActive && !isRunning) {
-            setTimeLeft(duration);
-            setIsRunning(true);
-            timeUpCalledRef.current = false; // ⬅️ RESET FLAG
-        } else if (!isActive) {
-            setIsRunning(false);
-            setTimeLeft(duration);
-            timeUpCalledRef.current = false; // ⬅️ RESET FLAG
-        }
-    }, [isActive, duration]);
-    
-    useEffect(() => {
-        let intervalId;
-        
-        if (isRunning && timeLeft > 0) {
-            intervalId = setInterval(() => {
-                setTimeLeft(time => {
-                    if (time <= 1) {
-                        setIsRunning(false);
-                        // ⬅️ CHIAMATA PROTETTA
-                        if (!timeUpCalledRef.current) {
-                            timeUpCalledRef.current = true;
-                            setTimeout(() => onTimeUp(), 0);
-                        }
-                        return 0;
-                    }
-                    return time - 1;
-                });
-            }, 1000);
-        }
-        
-        return () => clearInterval(intervalId);
-    }, [isRunning, timeLeft, onTimeUp]);
-    
-    const percentage = ((duration - timeLeft) / duration) * 100;
-    const variant = timeLeft <= 5 ? 'danger' : timeLeft <= 10 ? 'warning' : 'success';
+/**
+ * Timer Component - VERSIONE FINALE
+ * Componente puro che riceve solo props dal hook useGameTimer
+ */
+function Timer({ timeRemaining, duration = 30, isActive = false }) {
+    const percentage = ((duration - timeRemaining) / duration) * 100;
+    const variant = timeRemaining <= 5 ? 'danger' : timeRemaining <= 10 ? 'warning' : 'success';
     
     return (
         <div className="timer-container">
             <div className="d-flex justify-content-between align-items-center mb-2">
                 <h6 className="mb-0">
                     <i className="bi bi-clock me-2 pr-2 mr-2"></i>
-                    Tempo Rimanente&nbsp;&nbsp;
+                    Tempo Rimanente&nbsp;
                 </h6>
                 <span className={`pl-2 ml-2 fs-4 fw-bold text-${variant === 'danger' ? 'danger' : variant === 'warning' ? 'warning' : 'success'}`}>
-                    {timeLeft}s
+                    {timeRemaining}s
                 </span>
             </div>
             
@@ -63,7 +27,7 @@ function Timer({ duration = 30, onTimeUp, isActive = false, onReset }) {
                 style={{ height: '8px' }}
             />
             
-            {timeLeft <= 5 && timeLeft > 0 && (
+            {timeRemaining <= 5 && timeRemaining > 0 && (
                 <Alert variant="danger" className="mb-0 py-2">
                     <i className="bi bi-exclamation-triangle-fill me-2"></i>
                     <strong>Tempo quasi scaduto!</strong>

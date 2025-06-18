@@ -10,7 +10,6 @@ import session from 'express-session';
 import { configurePassport } from './config/passport.mjs';
 // Import API routes
 import authRoutes from './api/auth.mjs';
-import cardsRoutes from './api/cards.mjs';
 import gamesRoutes from './api/games.mjs';
 import demoRoutes from './api/demo.mjs';
 
@@ -47,7 +46,6 @@ app.use(passport.authenticate('session'));
 
 // API Routes
 app.use('/api', authRoutes);       // Authentication routes: /api/sessions/*
-app.use('/api/cards', cardsRoutes); // Cards routes: /api/cards/*
 app.use('/api/games', gamesRoutes); // Games routes: /api/games/*
 app.use('/api/demo', demoRoutes);   // Demo routes: /api/demo/*
 

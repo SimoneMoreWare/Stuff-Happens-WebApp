@@ -1,12 +1,19 @@
+// DragDrop.jsx - Shared drag and drop components for game interface
 import React from 'react';
 import { Card, Badge } from 'react-bootstrap';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import CardDisplay from '../CardDisplay.jsx';
+import CardDisplay from '../shared/CardDisplay.jsx';
 
 /**
- * Componente carta target draggable
- * Condiviso tra DemoGameBoard e FullGameBoard
+ * DraggableTargetCard - Draggable target card component
+ * 
+ * Represents the card that the player needs to position among their existing cards.
+ * Shows card without bad luck index and provides visual feedback during drag operations.
+ * 
+ * @param {Object} card - Target card object
+ * @param {number} position - Current position in the sequence
+ * @param {boolean} isCompact - Whether to use compact layout
  */
 export function DraggableTargetCard({ card, position, isCompact = false }) {
   const {
@@ -60,8 +67,15 @@ export function DraggableTargetCard({ card, position, isCompact = false }) {
 }
 
 /**
- * Componente carta statica (non draggable)
- * Condiviso tra DemoGameBoard e FullGameBoard
+ * StaticHandCard - Non-draggable card component for player's hand
+ * 
+ * Represents cards already in the player's possession. Shows the bad luck index
+ * and serves as a drop target for positioning the target card.
+ * 
+ * @param {Object} card - Player's card object
+ * @param {number} position - Position in player's hand
+ * @param {boolean} isDraggedOver - Whether a card is being dragged over this card
+ * @param {boolean} isCompact - Whether to use compact layout
  */
 export function StaticHandCard({ card, position, isDraggedOver = false, isCompact = false }) {
   const {
@@ -106,8 +120,14 @@ export function StaticHandCard({ card, position, isDraggedOver = false, isCompac
 }
 
 /**
- * Componente zone invisibili per drop prima/dopo
- * Condiviso tra DemoGameBoard e FullGameBoard
+ * InvisibleDropZone - Drop zone for positioning cards before or after the sequence
+ * 
+ * Provides invisible drop areas at the beginning and end of the card sequence
+ * for positioning the target card at the extremes.
+ * 
+ * @param {number} position - Position identifier (-1 for before, 1000 for after)
+ * @param {string} label - Display label for the drop zone
+ * @param {boolean} isCompact - Whether to use compact layout
  */
 export function InvisibleDropZone({ position, label, isCompact = false }) {
   const {

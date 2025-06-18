@@ -1,7 +1,20 @@
 import { Card, Row, Col, Button, Badge, Alert, ListGroup, Container } from 'react-bootstrap';
 import { useNavigate } from 'react-router';
-import CardDisplay from './CardDisplay.jsx';
+import CardDisplay from '../shared/CardDisplay.jsx';
 
+/**
+ * GameSummary - Comprehensive game completion summary component
+ * 
+ * Displays detailed game results with performance analysis and card collection.
+ * Handles both demo and full game modes with appropriate UI adaptations.
+ * 
+ * Architecture Features:
+ * - Responsive layout design for various screen sizes
+ * - Contextual messaging based on game outcome
+ * - Card display with proper sorting and categorization
+ * - Performance metrics calculation and display
+ * - Navigation options based on game type and outcome
+ */
 function GameSummary({ 
     gameWon, 
     finalCards, 
@@ -15,30 +28,31 @@ function GameSummary({
 }) {
     const navigate = useNavigate();
     
-    // ✅ FUNZIONE AGGIUNTA NEL POSTO GIUSTO
+    // Game completion handler - different logic for completed vs active games
     const handleNewGameForCompletedGame = () => {
-        // Per le partite completate, usa direttamente onNewGame 
-        // che dovrebbe saltare i controlli di partita attiva
+        // For completed games, directly use onNewGame callback
+        // This bypasses active game checks since game is already finished
         if (onNewGame) {
             onNewGame();
         }
     };
     
-    // ✅ CALCOLI INTELLIGENTI per demo vs full game
+    // Game mode adaptive calculations
     const targetCards = isDemo ? 1 : 6;
     const maxErrors = isDemo ? 1 : 3;
     const precision = totalRounds > 0 ? Math.round(((totalRounds - wrongGuesses) / totalRounds) * 100) : 0;
     
-    // ✅ SEPARAZIONE carte iniziali da carte vinte per partite complete
+    // Card categorization logic - handles demo vs full game differences
     const getCardsDisplay = () => {
         if (isDemo) {
+            // Demo mode: simple card array handling
             return {
                 initialCards: finalCards?.slice(0, 3) || [],
                 wonCards: finalCards?.slice(3) || [],
                 allCards: finalCards || []
             };
         } else {
-            // Partite complete: usa is_initial dal database
+            // Full game: use database metadata for proper categorization
             if (allGameCards && allGameCards.length > 0) {
                 const initialCards = allGameCards
                     .filter(card => card.is_initial)
@@ -53,6 +67,7 @@ function GameSummary({
                     
                 return { initialCards, wonCards, allCards };
             } else {
+                // Fallback to simple array handling if metadata unavailable
                 return {
                     initialCards: finalCards?.slice(0, 3) || [],
                     wonCards: finalCards?.slice(3) || [],
@@ -64,6 +79,7 @@ function GameSummary({
     
     const { initialCards, wonCards, allCards } = getCardsDisplay();
     
+    // Dynamic content generation based on game mode and outcome
     const getMainTitle = () => {
         if (isDemo) {
             return gameWon ? 'Demo Completata! ⭐' : 'Demo Completata 📝';
@@ -86,7 +102,8 @@ function GameSummary({
     
     return (
         <Container>
-            {/* Header principale con risultato */}
+            
+            {/* Main result header with outcome-based styling */}
             <Row className="justify-content-center mb-4">
                 <Col md={10}>
                     <Card className="text-center shadow-lg border-0">
@@ -97,7 +114,8 @@ function GameSummary({
                     </Card>
                 </Col>
             </Row>
-            {/* Statistiche della partita */}
+            
+            {/* Game statistics section with performance metrics */}
             <Row className="justify-content-center mb-4">
                 <Col md={10}>
                     <Card className="shadow">
@@ -138,7 +156,8 @@ function GameSummary({
                     </Card>
                 </Col>
             </Row>
-            {/* ✅ SEZIONE CARTE - CORRETTA */}
+            
+            {/* Card collection display - adaptive for demo vs full game */}
             <Row className="justify-content-center mb-4">
                 <Col md={10}>
                     <Card className="shadow">
@@ -150,7 +169,7 @@ function GameSummary({
                         </Card.Header>
                         <Card.Body>
                             {isDemo ? (
-                                /* DEMO: Comportamento originale */
+                                /* Demo mode: simplified card display */
                                 <>
                                     <Alert variant="info" className="mb-3">
                                         Ecco tutte le carte che possiedi al termine della demo:
@@ -184,7 +203,7 @@ function GameSummary({
                                     </Row>
                                 </>
                             ) : (
-                                /* ✅ PARTITE COMPLETE: VERSIONE CORRETTA */
+                                /* Full game mode: detailed card categorization */
                                 <>
                                     <Alert variant="info" className="mb-3">
                                         Ecco tutte le tue carte ordinate per Bad Luck Index crescente. 
@@ -193,7 +212,7 @@ function GameSummary({
                                     </Alert>
                                     <Row className="justify-content-center g-3">
                                         {allCards.map((card, index) => {
-                                            // ✅ Usa i dati reali da allGameCards
+                                            // Use real metadata from allGameCards for accurate categorization
                                             const gameCard = allGameCards ? 
                                                 allGameCards.find(gc => gc.id === card.id) : null;
                                             const isInitialCard = gameCard?.is_initial || false;
@@ -220,6 +239,7 @@ function GameSummary({
                                         })}
                                     </Row>
                                     
+                                    {/* Summary statistics for full game */}
                                     <div className="mt-4 pt-4 text-center">
                                         <small className="text-muted">
                                             <i className="bi bi-info-circle me-2"></i>
@@ -234,7 +254,8 @@ function GameSummary({
                     </Card>
                 </Col>
             </Row>
-            {/* Analisi delle performance */}
+            
+            {/* Performance analysis section with contextual feedback */}
             <Row className="justify-content-center mb-4">
                 <Col md={10}>
                     <Card className="shadow">
@@ -335,7 +356,8 @@ function GameSummary({
                     </Card>
                 </Col>
             </Row>
-            {/* Pulsanti di azione finale */}
+            
+            {/* Action buttons section with contextual options */}
             <Row className="mt-4 mb-4 pb-4 justify-content-center align-items-center">
                 <Col md={10}>
                     <Card className="text-center shadow-sm">

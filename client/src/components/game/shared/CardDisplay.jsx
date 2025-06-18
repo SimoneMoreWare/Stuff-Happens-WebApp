@@ -1,14 +1,26 @@
+// CardDisplay.jsx - Reusable card component for displaying game cards
 import { useState } from 'react';
 import { Card, Badge, Spinner } from 'react-bootstrap';
 
+/**
+ * CardDisplay Component - Displays a single game card with image, name, and optional bad luck index
+ * 
+ * @param {Object} card - Card object with id, name, image_url, bad_luck_index
+ * @param {boolean} showBadLuckIndex - Whether to show the bad luck index badge
+ * @param {boolean} isTarget - Whether this card is the current target card
+ * @param {string} className - Additional CSS classes
+ * @param {boolean} fixedHeight - Whether to use fixed height for consistency
+ */
 function CardDisplay({ card, showBadLuckIndex = true, isTarget = false, className = "", fixedHeight = false }) {
     const [imageLoading, setImageLoading] = useState(true);
     const [imageError, setImageError] = useState(false);
 
+    // Handle successful image load
     const handleImageLoad = () => {
         setImageLoading(false);
     };
 
+    // Handle image load error
     const handleImageError = () => {
         setImageLoading(false);
         setImageError(true);
@@ -16,7 +28,7 @@ function CardDisplay({ card, showBadLuckIndex = true, isTarget = false, classNam
 
     return (
         <Card className={`h-100 shadow-sm ${isTarget ? 'border-warning border-3' : ''} ${className}`}>
-            {/* Immagine della carta - PIÙ PICCOLA PER DARE SPAZIO AL TESTO */}
+            {/* Card image section with loading and error handling */}
             <div 
                 className="position-relative" 
                 style={{ 
@@ -24,12 +36,14 @@ function CardDisplay({ card, showBadLuckIndex = true, isTarget = false, classNam
                     overflow: 'hidden' 
                 }}
             >
+                {/* Loading spinner */}
                 {imageLoading && (
                     <div className="position-absolute top-50 start-50 translate-middle">
                         <Spinner animation="border" size="sm" />
                     </div>
                 )}
                 
+                {/* Image error fallback */}
                 {imageError ? (
                     <div className="d-flex align-items-center justify-content-center h-100 bg-body-secondary">
                         <div className="text-center text-muted">
@@ -48,12 +62,12 @@ function CardDisplay({ card, showBadLuckIndex = true, isTarget = false, classNam
                 )}
             </div>
 
-            {/* Corpo della carta - PIÙ SPAZIO PER IL TESTO */}
+            {/* Card body with title and badge */}
             <Card.Body 
                 className="p-2 d-flex flex-column justify-content-between"
                 style={{ height: '130px', overflow: 'hidden' }}
             >
-                {/* Titolo carta - PIÙ RIGHE E PIÙ LEGGIBILE */}
+                {/* Card title with text overflow handling */}
                 <Card.Title 
                     className="small mb-2 text-center"
                     style={{ 
@@ -72,7 +86,7 @@ function CardDisplay({ card, showBadLuckIndex = true, isTarget = false, classNam
                     {card.name}
                 </Card.Title>
                 
-                {/* Badge centrale - solo se necessario */}
+                {/* Badge section for bad luck index or target indicator */}
                 <div className="text-center mt-auto">
                     {showBadLuckIndex && card.bad_luck_index !== undefined ? (
                         <Badge 
@@ -95,13 +109,18 @@ function CardDisplay({ card, showBadLuckIndex = true, isTarget = false, classNam
     );
 }
 
-// Funzione helper per determinare il colore del badge
+/**
+ * Helper function to determine badge color based on bad luck index
+ * 
+ * @param {number} index - Bad luck index from 1 to 100
+ * @returns {string} Bootstrap color variant
+ */
 function getBadLuckColor(index) {
-    if (index <= 20) return 'success';
-    if (index <= 40) return 'warning';
-    if (index <= 60) return 'primary';
-    if (index <= 80) return 'danger';
-    return 'dark';
+    if (index <= 20) return 'success';     // Green for minor issues
+    if (index <= 40) return 'warning';     // Yellow for annoying situations
+    if (index <= 60) return 'primary';     // Blue for problematic situations
+    if (index <= 80) return 'danger';      // Red for serious problems
+    return 'dark';                         // Dark for catastrophic events
 }
 
 export default CardDisplay;

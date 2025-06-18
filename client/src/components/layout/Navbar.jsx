@@ -1,5 +1,6 @@
+// Navbar.jsx - Application navigation bar with user authentication
 import { useContext } from 'react';
-import { Navbar, Nav, Container, Button, NavDropdown } from 'react-bootstrap';
+import { Navbar, Nav, Container, NavDropdown } from 'react-bootstrap';
 import { Link, useLocation, useNavigate } from 'react-router';
 import UserContext from '../../context/UserContext.jsx';
 import API from '../../API/API.mjs';
@@ -19,23 +20,23 @@ function AppNavbar() {
   const location = useLocation();
   const navigate = useNavigate();
   
+  // Check if current path is active for navigation highlighting
   const isActivePath = (path) => {
     return location.pathname === path;
   };
   
+  // Handle navigation with automatic game abandonment for active games
   const handleNavigationWithAutoAbandon = async (path) => {
     if (isInActiveGame) {
       try {
         if (currentGame) {
           await API.abandonGame(currentGame.id);
-          // ✅ RIMUOVI IL setTimeout - Non serve aspettare
         }
         
         setIsInActiveGame(false);
         clearCurrentGame();
         setMessage({ type: 'info', msg: 'Partita abbandonata automaticamente' });
         
-        // ✅ IMMEDIATO
         navigate(path);
         
       } catch (err) {
@@ -43,7 +44,6 @@ function AppNavbar() {
         clearCurrentGame();
         setMessage({ type: 'warning', msg: 'Partita abbandonata localmente (errore API)' });
         
-        // ✅ IMMEDIATO
         navigate(path);
       }
     } else {
@@ -51,6 +51,7 @@ function AppNavbar() {
     }
   };
   
+  // Handle logout with game cleanup
   const handleLogoutClick = async () => {
     if (isInActiveGame) {
       try {
@@ -72,6 +73,7 @@ function AppNavbar() {
   return (
     <Navbar bg="primary" variant="dark" expand="lg" className="shadow-sm">
       <Container fluid>
+        {/* Brand logo and title */}
         <Navbar.Brand 
           onClick={() => handleNavigationWithAutoAbandon('/')}
           style={{ cursor: 'pointer' }}
@@ -84,6 +86,7 @@ function AppNavbar() {
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         
         <Navbar.Collapse id="basic-navbar-nav">
+          {/* Main navigation links */}
           <Nav className="me-auto">
             <Nav.Link 
               onClick={() => handleNavigationWithAutoAbandon('/')}
@@ -105,6 +108,7 @@ function AppNavbar() {
               Regole
             </Nav.Link>
             
+            {/* Authenticated user navigation */}
             {loggedIn && (
               <>
                 <Nav.Link 
@@ -136,8 +140,10 @@ function AppNavbar() {
             )}
           </Nav>
           
+          {/* User authentication section */}
           <Nav className="align-items-center">
             {loggedIn ? (
+              // Authenticated user dropdown
               <NavDropdown 
                 title={
                   <span>
@@ -171,6 +177,7 @@ function AppNavbar() {
                 </NavDropdown.Item>
               </NavDropdown>
             ) : (
+              // Anonymous user buttons
               <div className="d-flex align-items-center gap-2">
                 <Link 
                   to="/game" 

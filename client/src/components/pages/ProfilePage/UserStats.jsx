@@ -1,6 +1,8 @@
+// UserStats.jsx - User statistics component for profile page
 import { Card, Row, Col, Badge, ProgressBar } from 'react-bootstrap';
 
 function UserStats({ user, gameHistory, loading = false }) {
+    // Loading state with placeholder
     if (loading) {
         return (
             <Card>
@@ -13,21 +15,21 @@ function UserStats({ user, gameHistory, loading = false }) {
         );
     }
 
-    // ✅ FILTRO: considera solo partite COMPLETE
+    // Filter only completed games for accurate statistics
     const completeGames = gameHistory.filter(game => {
-        // Una partita è completa se:
-        // 1. È stata vinta (6 carte raccolte)
-        // 2. È stata persa (3 errori)
+        // A game is complete if:
+        // 1. It was won (6 cards collected)
+        // 2. It was lost (3 wrong guesses)
         return (game.cards_collected >= 6) || (game.wrong_guesses >= 3);
     });
 
-    // Calcola statistiche dalle partite COMPLETE
+    // Calculate statistics from completed games only
     const totalGames = completeGames.length;
     const wonGames = completeGames.filter(game => game.status === 'won').length;
     const lostGames = completeGames.filter(game => game.status === 'lost').length;
     const winPercentage = totalGames > 0 ? Math.round((wonGames / totalGames) * 100) : 0;
     
-    // Calcola carte totali raccolte SOLO dalle partite complete
+    // Calculate total cards collected from completed games only
     const totalCardsCollected = completeGames.reduce((sum, game) => sum + (game.cards_collected || 0), 0);
     const averageCards = totalGames > 0 ? Math.round((totalCardsCollected / totalGames) * 10) / 10 : 0;
 
@@ -40,11 +42,12 @@ function UserStats({ user, gameHistory, loading = false }) {
                 </h4>
             </Card.Header>
             <Card.Body className="p-4">
+                {/* Main statistics grid */}
                 <Row className="text-center">
                     <Col md={3} className="mb-3">
                         <div className="bg-body-secondary rounded p-3">
                             <div className="display-6 text-primary mb-1">{totalGames}</div>
-                            <small className="text-muted">Partite Complete</small> {/* ✅ Cambiato da "Giocate" a "Complete" */}
+                            <small className="text-muted">Partite Complete</small>
                         </div>
                     </Col>
                     <Col md={3} className="mb-3">
@@ -67,7 +70,7 @@ function UserStats({ user, gameHistory, loading = false }) {
                     </Col>
                 </Row>
                 
-                {/* Percentuale vittorie */}
+                {/* Win percentage with progress bar */}
                 <Row className="mt-4">
                     <Col>
                         <div className="d-flex justify-content-between align-items-center mb-2">

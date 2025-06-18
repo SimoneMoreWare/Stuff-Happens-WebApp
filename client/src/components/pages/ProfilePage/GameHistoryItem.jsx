@@ -1,26 +1,29 @@
+// GameHistoryItem.jsx - Individual game history item with expandable details
 import { useState } from 'react';
 import { Card, Badge, Button, Collapse, Row, Col, ListGroup } from 'react-bootstrap';
 import dayjs from 'dayjs';
 import 'dayjs/locale/it';
 
+// Set dayjs to Italian locale for date formatting
 dayjs.locale('it');
 
 function GameHistoryItem({ game, index }) {
     const [expanded, setExpanded] = useState(false);
 
-    // ✅ FILTRO: Mostra solo partite COMPLETE (non abbandonate)
+    // Check if game is complete (won or lost)
     const isGameComplete = () => {
-        // Una partita è completa se:
-        // 1. È stata vinta (6 carte raccolte)
-        // 2. È stata persa (3 errori)
+        // A game is complete if:
+        // 1. It was won (6 cards collected)
+        // 2. It was lost (3 wrong guesses)
         return (game.cards_collected >= 6) || (game.wrong_guesses >= 3);
     };
 
-    // ✅ Se la partita non è completa, non renderizzare nulla
+    // Don't render incomplete games
     if (!isGameComplete()) {
         return null;
     }
 
+    // Get appropriate status badge based on game outcome
     const getStatusBadge = (status) => {
         switch (status) {
             case 'won':
@@ -34,10 +37,12 @@ function GameHistoryItem({ game, index }) {
         }
     };
 
+    // Format date in Italian locale
     const formatDate = (dateString) => {
         return dayjs(dateString).format('DD MMM YYYY, HH:mm');
     };
 
+    // Calculate game duration
     const getGameDuration = () => {
         if (!game.completed_at) return null;
         const start = dayjs(game.created_at);
@@ -47,7 +52,7 @@ function GameHistoryItem({ game, index }) {
         return `${minutes} minuti`;
     };
 
-    // Separa le carte iniziali da quelle dei round
+    // Separate initial cards from round cards
     const initialCards = game.cards ? game.cards.filter(card => card.is_initial) : [];
     const roundCards = game.cards ? game.cards.filter(card => !card.is_initial) : [];
 
@@ -55,6 +60,7 @@ function GameHistoryItem({ game, index }) {
         <Card className="mb-3 border-start border-4" 
               style={{ borderLeftColor: game.status === 'won' ? '#198754' : game.status === 'lost' ? '#dc3545' : '#0d6efd' }}>
             <Card.Body>
+                {/* Game summary header */}
                 <div className="d-flex justify-content-between align-items-start">
                     <div className="flex-grow-1">
                         <div className="d-flex align-items-center mb-2">
@@ -65,6 +71,7 @@ function GameHistoryItem({ game, index }) {
                             {getStatusBadge(game.status)}
                         </div>
                         
+                        {/* Game timing information */}
                         <div className="text-muted small mb-2">
                             <i className="bi bi-calendar me-1"></i>
                             Iniziata: {formatDate(game.created_at)}
@@ -80,6 +87,7 @@ function GameHistoryItem({ game, index }) {
                             )}
                         </div>
 
+                        {/* Game statistics */}
                         <Row className="text-center">
                             <Col xs={4}>
                                 <div className="small text-muted">Carte Raccolte</div>
@@ -96,6 +104,7 @@ function GameHistoryItem({ game, index }) {
                         </Row>
                     </div>
 
+                    {/* Expand/collapse button */}
                     <Button
                         variant="outline-primary"
                         size="sm"
@@ -106,12 +115,12 @@ function GameHistoryItem({ game, index }) {
                     </Button>
                 </div>
 
-                {/* Dettagli espandibili - CRONOLOGIA SECONDO SPECIFICHE */}
+                {/* Expandable details section */}
                 <Collapse in={expanded}>
                     <div className="mt-3 pt-3 border-top">
                         {game.cards && game.cards.length > 0 ? (
                             <>
-                                {/* CARTE INIZIALI - Non associate a nessun round */}
+                                {/* Initial cards section */}
                                 {initialCards.length > 0 && (
                                     <div className="mb-4">
                                         <h6 className="mb-3">
@@ -135,7 +144,7 @@ function GameHistoryItem({ game, index }) {
                                     </div>
                                 )}
 
-                                {/* ROUND GIOCATI - Con indicazione vinti/persi */}
+                                {/* Round cards section with win/loss indication */}
                                 {roundCards.length > 0 && (
                                     <div className="mb-3">
                                         <h6 className="mb-3">
@@ -178,21 +187,19 @@ function GameHistoryItem({ game, index }) {
                                     </div>
                                 )}
 
-                                {/* RIEPILOGO SECONDO SPECIFICHE */}
+                                {/* Final summary as required by specifications */}
                                 <div className="mt-4 pt-3 border-top">
                                     <h6 className="mb-3">
                                         <i className="bi bi-trophy me-2"></i>
                                         Riepilogo Finale
                                     </h6>
                                     
-                                    {/* Solo il numero totale come richiesto dalle specifiche */}
                                     <div className="alert alert-light mb-0 text-center">
                                         <strong>
                                             {game.status === 'won' ? 'Vittoria' : 'Sconfitta'}: {game.cards_collected || 0} carte raccolte
                                         </strong>
                                     </div>
                                     
-                                    {/* Opzionale: struttura come specificato dal prof */}
                                     <div className="text-muted small mt-2 text-center">
                                         Partita con {initialCards.length} carte iniziali + {roundCards.filter(c => c.guessed_correctly).length} carte vinte nei round
                                     </div>

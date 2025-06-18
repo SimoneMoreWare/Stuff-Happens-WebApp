@@ -1,5 +1,3 @@
-// GameUI.jsx - VERSIONE CORRETTA con abbandono automatico
-
 import React, { useState, useContext } from 'react';
 import { Container, Row, Col, Card, Alert, Button, Spinner, Modal } from 'react-bootstrap';
 import { useNavigate } from 'react-router';
@@ -7,7 +5,17 @@ import UserContext from '../../../context/UserContext.jsx';
 import API from '../../../API/API.mjs';
 
 /**
- * ✅ NUOVO: Componente Modal per conferme invece di window.confirm
+ * ConfirmModal - Reusable confirmation dialog component
+ * 
+ * Replaces browser's window.confirm with a more accessible and styled modal.
+ * Provides consistent confirmation flow across different game actions.
+ * 
+ * @param {boolean} show - Modal visibility state
+ * @param {string} title - Modal header title
+ * @param {string} message - Confirmation message content
+ * @param {function} onConfirm - Callback for confirm action
+ * @param {function} onCancel - Callback for cancel action
+ * @param {string} confirmVariant - Bootstrap variant for confirm button
  */
 export function ConfirmModal({ show, title, message, onConfirm, onCancel, confirmVariant = "danger" }) {
   return (
@@ -30,7 +38,12 @@ export function ConfirmModal({ show, title, message, onConfirm, onCancel, confir
   );
 }
 
-// Loading component (invariato)
+/**
+ * GameLoading - Loading state indicator component
+ * 
+ * Displays spinner and contextual message during async operations.
+ * Provides user feedback during game state transitions.
+ */
 export function GameLoading({ gameState }) {
   return (
     <Container className="d-flex justify-content-center align-items-center min-vh-100">
@@ -44,7 +57,12 @@ export function GameLoading({ gameState }) {
   );
 }
 
-// ✅ CORRETTO: Error state component senza window.confirm
+/**
+ * GameError - Error state component with recovery options
+ * 
+ * Displays error information and provides multiple recovery paths.
+ * Integrates with game abandonment flow for proper state cleanup.
+ */
 export function GameError({ error, onBackHome, onReload, currentGame, onAbandonGame }) {
   const [showConfirm, setShowConfirm] = useState(false);
   
@@ -86,7 +104,6 @@ export function GameError({ error, onBackHome, onReload, currentGame, onAbandonG
         </Card.Body>
       </Card>
       
-      {/* ✅ CORRETTO: Modal invece di window.confirm */}
       <ConfirmModal
         show={showConfirm}
         title="Abbandona Partita"
@@ -99,7 +116,12 @@ export function GameError({ error, onBackHome, onReload, currentGame, onAbandonG
   );
 }
 
-// Abandoned game state component (invariato)
+/**
+ * GameAbandoned - Game abandonment success feedback
+ * 
+ * Displays confirmation when game abandonment is completed.
+ * Provides visual feedback during navigation transition.
+ */
 export function GameAbandoned() {
   return (
     <Col xs={12}>
@@ -120,7 +142,12 @@ export function GameAbandoned() {
   );
 }
 
-// Round start button component (invariato)
+/**
+ * RoundStartButton - Round initiation interface
+ * 
+ * Provides clear call-to-action for starting new rounds.
+ * Displays current round information and engaging start button.
+ */
 export function RoundStartButton({ currentGame, onStartRound }) {
   return (
     <Col xs={12}>
@@ -150,7 +177,12 @@ export function RoundStartButton({ currentGame, onStartRound }) {
   );
 }
 
-// Game stats component (invariato)
+/**
+ * GameStats - Game progress statistics display
+ * 
+ * Shows current game state including round number, cards collected,
+ * and error count. Provides at-a-glance progress information.
+ */
 export function GameStats({ currentGame, targetCard, timerActive, onTimeUp }) {
   return (
     <Col xs={12} className="mt-3">
@@ -183,11 +215,17 @@ export function GameStats({ currentGame, targetCard, timerActive, onTimeUp }) {
   );
 }
 
-// ✅ PULSANTE IDENTICO AL NAVBAR - COPIA/INCOLLA ESATTA
+/**
+ * AbandonGameButton - Game abandonment control
+ * 
+ * Provides game abandonment functionality with proper state management.
+ * Integrates with UserContext for consistent navigation behavior.
+ * Uses the same logic as navbar component for consistency.
+ */
 export function AbandonGameButton({ gameState, currentGame }) {
   const [showConfirm, setShowConfirm] = useState(false);
   
-  // ✅ STESSI IDENTICI IMPORT DEL NAVBAR
+  // Context integration for centralized state management
   const { 
     isInActiveGame,
     setIsInActiveGame,
@@ -197,23 +235,28 @@ export function AbandonGameButton({ gameState, currentGame }) {
   
   const navigate = useNavigate();
   
+  // Only show button during active gameplay
   if (gameState !== 'playing' || !currentGame) return null;
   
   const handleAbandonClick = () => {
     setShowConfirm(true);
   };
   
-  // ✅ FUNZIONE IDENTICA AL NAVBAR - handleNavigationWithAutoAbandon
+  /**
+   * Game abandonment handler - mirrors navbar implementation
+   * Ensures consistent behavior across different interface elements
+   */
   const handleConfirmAbandon = async () => {
     setShowConfirm(false);
     
-    // ✅ COPIA/INCOLLA ESATTA DAL NAVBAR
     if (isInActiveGame) {
       try {
+        // Attempt API abandonment
         if (currentGame) {
           await API.abandonGame(currentGame.id);
         }
         
+        // Clean up application state
         setIsInActiveGame(false);
         clearCurrentGame();
         setMessage({ type: 'info', msg: 'Partita abbandonata automaticamente' });
@@ -221,6 +264,7 @@ export function AbandonGameButton({ gameState, currentGame }) {
         navigate('/');
         
       } catch (err) {
+        // Fallback: local cleanup if API fails
         setIsInActiveGame(false);
         clearCurrentGame();
         setMessage({ type: 'warning', msg: 'Partita abbandonata localmente (errore API)' });
@@ -228,6 +272,7 @@ export function AbandonGameButton({ gameState, currentGame }) {
         navigate('/');
       }
     } else {
+      // No active game - direct navigation
       navigate('/');
     }
   };

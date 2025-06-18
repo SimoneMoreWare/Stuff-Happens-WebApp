@@ -1,7 +1,10 @@
+// GameHistory.jsx - Component for displaying user's completed game history
 import { Spinner, Alert, Card } from 'react-bootstrap';
+import { Link } from 'react-router';
 import GameHistoryItem from './GameHistoryItem.jsx';
 
 function GameHistory({ gameHistory, loading = false, error = null }) {
+    // Loading state
     if (loading) {
         return (
             <Card>
@@ -13,6 +16,7 @@ function GameHistory({ gameHistory, loading = false, error = null }) {
         );
     }
 
+    // Error state
     if (error) {
         return (
             <Alert variant="danger">
@@ -25,14 +29,15 @@ function GameHistory({ gameHistory, loading = false, error = null }) {
         );
     }
 
-    // ✅ FILTRO: considera solo partite COMPLETE (stessa logica di UserStats e GameHistoryItem)
+    // Filter only completed games (won or lost)
     const completeGames = gameHistory ? gameHistory.filter(game => {
-        // Una partita è completa se:
-        // 1. È stata vinta (6 carte raccolte)
-        // 2. È stata persa (3 errori)
+        // A game is complete if:
+        // 1. It was won (6 cards collected)
+        // 2. It was lost (3 wrong guesses)
         return (game.cards_collected >= 6) || (game.wrong_guesses >= 3);
     }) : [];
 
+    // Empty state
     if (!gameHistory || completeGames.length === 0) {
         return (
             <Card>
@@ -44,7 +49,6 @@ function GameHistory({ gameHistory, loading = false, error = null }) {
                     <p className="text-muted mb-4">
                         Non hai ancora completato nessuna partita. Inizia subito a giocare!
                     </p>
-                    {/* ✅ CORRETTO: usa Link invece di a href */}
                     <Link to="/game" className="btn btn-primary">
                         <i className="bi bi-play-circle me-2"></i>
                         Inizia Nuova Partita
@@ -54,16 +58,17 @@ function GameHistory({ gameHistory, loading = false, error = null }) {
         );
     }
 
+    // Main render with completed games list
     return (
         <div>
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h5 className="mb-0">
                     <i className="bi bi-clock-history me-2"></i>
-                    Cronologia Partite ({completeGames.length}) {/* ✅ Ora mostra solo quelle complete */}
+                    Cronologia Partite ({completeGames.length})
                 </h5>
                 <small className="text-muted">Ordinate dalla più recente</small>
             </div>
-            {/* ✅ Usa completeGames invece di gameHistory */}
+            
             {completeGames.map((game, index) => (
                 <GameHistoryItem 
                     key={game.id} 

@@ -1,11 +1,29 @@
-    import { Container, Row, Col, Card, Alert, Button, Badge } from 'react-bootstrap';
-    import { useState, useContext } from 'react';
-    import { useNavigate } from 'react-router';
-    import UserContext from '../../context/UserContext.jsx';
-    import API from '../../API/API.mjs';
-    import CardDisplay from './CardDisplay.jsx';
+import { Container, Row, Col, Card, Alert, Button, Badge } from 'react-bootstrap';
+import { useState, useContext } from 'react';
+import { useNavigate } from 'react-router';
+import UserContext from '../../../context/UserContext.jsx';
+import API from '../../../API/API.mjs';
+import CardDisplay from './CardDisplay.jsx';
 
-    function RoundResult({ 
+/**
+ * RoundResult - Round completion feedback component
+ * 
+ * Displays the outcome of a player's guess with contextual feedback and navigation options.
+ * Handles different game states (demo, active, completed) with appropriate UI adaptations.
+ * 
+ * Architecture Features:
+ * - Context integration for game state management
+ * - Conditional rendering based on game phase and outcome
+ * - Game abandonment flow with confirmation dialog
+ * - Responsive design with outcome-based visual themes
+ * - Navigation management with proper state cleanup
+ * 
+ * Design Patterns:
+ * - State Machine: Different UI states based on game phase
+ * - Observer: Watches UserContext for game state changes
+ * - Command: Action buttons encapsulate navigation commands
+ */
+function RoundResult({ 
     isCorrect, 
     isTimeout, 
     targetCard, 
@@ -18,9 +36,9 @@
     isDemo = false,
     gameCompleted = false,
     gameWon = false 
-    }) {
+}) {
     
-    // ✅ CONTEXT E NAVIGATE PER COPIARE LOGICA NAVBAR
+    // Context integration for centralized game state management
     const { 
         currentGame, 
         isInActiveGame,
@@ -30,54 +48,58 @@
     } = useContext(UserContext);
     const navigate = useNavigate();
     
-    // ✅ STATO PER GESTIRE LA CONFERMA
+    // Local state for abandonment confirmation flow
     const [showConfirmAbandon, setShowConfirmAbandon] = useState(false);
     
-    // ✅ FANCULO, TORNIAMO ALLA HOME CHE FUNZIONA!
+    // Game abandonment handler with proper cleanup
+    // Replicates navbar logic for consistent behavior across components
     const handleNewGameWithAutoAbandon = async () => {
         if (isInActiveGame) {
             try {
+                // Attempt to abandon current game via API
                 if (currentGame) {
                     await API.abandonGame(currentGame.id);
                 }
                 
+                // Clean up local state
                 setIsInActiveGame(false);
                 clearCurrentGame();
                 setMessage({ type: 'info', msg: 'Partita abbandonata - Torna al gioco per iniziarne una nuova' });
                 
-                // ✅ ANDIAMO ALLA HOME CHE FUNZIONA SEMPRE
+                // Navigate to safe home state
                 navigate('/');
                 
             } catch (err) {
+                // Fallback: local cleanup even if API fails
                 setIsInActiveGame(false);
                 clearCurrentGame();
                 setMessage({ type: 'warning', msg: 'Partita abbandonata localmente' });
                 
-                // ✅ ALLA HOME ANCHE IN CASO DI ERRORE
+                // Navigate to home as fallback
                 navigate('/');
             }
         } else {
-            // Se non c'è partita attiva, vai alla home
+            // No active game - direct navigation
             navigate('/');
         }
     };
     
-    // ✅ FUNZIONI PER GESTIRE LA CONFERMA (SEMPLIFICATE)
+    // New game request handler with conditional confirmation
     const handleRequestNewGame = () => {
-         if (gameCompleted) {
-            // Se la partita è completata, usa la logica navbar
+        if (gameCompleted) {
+            // Completed game - direct new game creation
             if (onNewGame) {
                 onNewGame();
             }
-       } else {
-           // Se la partita è in corso, mostra la conferma
-           setShowConfirmAbandon(true);
-       }
+        } else {
+            // Active game - requires confirmation to abandon
+            setShowConfirmAbandon(true);
+        }
     };
     
+    // Confirmation dialog handlers
     const handleConfirmAbandon = () => {
         setShowConfirmAbandon(false);
-        // ✅ USA LA LOGICA NAVBAR CHE FUNZIONA!
         handleNewGameWithAutoAbandon();
     };
     
@@ -85,7 +107,7 @@
         setShowConfirmAbandon(false);
     };
     
-    // ✅ LOGICA SEMPLIFICATA
+    // Dynamic content generation based on round outcome
     const getMainIcon = () => {
         if (isTimeout) return '⏰';
         return isCorrect ? '🎉' : '💔';
@@ -114,10 +136,10 @@
         }
     };
     
-    // ✅ COLORE UNICO BASATO SUL RISULTATO
+    // Theme color selection based on outcome
     const getThemeColor = () => {
         if (isTimeout) return 'warning';
-        return isCorrect ? 'success' : 'primary'; // Blu invece di rosso per essere meno aggressivo
+        return isCorrect ? 'success' : 'primary'; // Blue instead of red for less aggressive feedback
     };
     
     const themeColor = getThemeColor();
@@ -125,7 +147,7 @@
     return (
         <Container className="py-4" style={{ maxWidth: '800px' }}>
             
-            {/* ✅ MODALE DI CONFERMA REACT-STYLE */}
+            {/* Confirmation dialog for game abandonment - React-style modal */}
             {showConfirmAbandon && (
                 <Row className="mb-4">
                     <Col>
@@ -159,7 +181,7 @@
                 </Row>
             )}
             
-            {/* ✅ PULSANTE PROSSIMO ROUND - SUBITO VISIBILE */}
+            {/* Primary action button - immediately visible for better UX */}
             {!isDemo && !gameCompleted && (
                 <Row className="mb-4">
                     <Col className="text-center">
@@ -177,7 +199,7 @@
                 </Row>
             )}
             
-            {/* 🏆 NOTIFICA VITTORIA/SCONFITTA - QUANDO GIOCO COMPLETATO */}
+            {/* Game completion notification - victory or defeat */}
             {!isDemo && gameCompleted && (
                 <Row className="mb-4">
                     <Col className="text-center">
@@ -202,7 +224,7 @@
                 </Row>
             )}
             
-            {/* ✅ SEZIONE PRINCIPALE - RISULTATO CHIARO E SEMPLICE */}
+            {/* Main result display - clear and simple feedback */}
             <Row className="mb-4">
                 <Col className="text-center">
                     <Card className={`border-${themeColor} shadow-lg`}>
@@ -217,7 +239,7 @@
                                 {getMainMessage()}
                             </p>
                             
-                            {/* ✅ INFORMAZIONE ESSENZIALE SOLO SE NECESSARIA E NON COMPLETATA */}
+                            {/* Essential information only when relevant */}
                             {!isTimeout && !gameCompleted && (
                                 <div className={`p-3 bg-${themeColor === 'warning' ? 'light' : themeColor}-subtle rounded`}>
                                     <small className="text-muted">
@@ -233,7 +255,7 @@
                 </Col>
             </Row>
             
-            {/* ✅ CARTA VINTA - SOLO SE RILEVANTE E IN MODO PULITO */}
+            {/* Won card display - only when relevant */}
             {isCorrect && targetCard && (
                 <Row className="mb-4">
                     <Col className="text-center">
@@ -257,7 +279,7 @@
                 </Row>
             )}
             
-            {/* ✅ COLLEZIONE FINALE - SEMPRE PER DEMO */}
+            {/* Demo mode: final collection display */}
             {isDemo && allCards && allCards.length > 0 && (
                 <Row className="mb-4">
                     <Col>
@@ -296,13 +318,13 @@
                 </Row>
             )}
             
-            {/* ✅ AZIONI SECONDARIE - PIÙ DISCRETE */}
+            {/* Secondary actions - more discrete placement */}
             <Row>
                 <Col className="text-center">
                     <Card className="border-0 bg-transparent">
                         <Card.Body>
                             
-                            {/* PULSANTI PRINCIPALI PER DEMO E GAME COMPLETATO */}
+                            {/* Primary actions for demo and completed games */}
                             <div className="mb-3">
                                 {!isDemo && gameCompleted && (
                                     <Button 
@@ -331,7 +353,7 @@
                                 )}
                             </div>
                             
-                            {/* PULSANTI SECONDARI - PIÙ DISCRETI CON FIX */}
+                            {/* Secondary actions - more discrete styling */}
                             <div className="d-flex gap-2 justify-content-center flex-wrap">
                                 {!isDemo && (
                                     <Button 
@@ -366,7 +388,7 @@
                 </Col>
             </Row>
             
-            {/* ✅ MESSAGGIO PROMOZIONALE - SOLO PER DEMO E MOLTO DISCRETO */}
+            {/* Promotional message - only for demo mode and very discrete */}
             {isDemo && (
                 <Row className="mt-4">
                     <Col>
@@ -384,6 +406,6 @@
             )}
         </Container>
     );
-    }
+}
 
-    export default RoundResult;
+export default RoundResult;

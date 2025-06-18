@@ -1,61 +1,43 @@
 /**
  * Frontend API client for "Stuff Happens" game
  * 
- * This file contains all functions to communicate with the backend APIs.
- * Each function is autonomous and receives all necessary parameters.
+ * This module provides a clean abstraction layer for all server communication.
+ * Each function is autonomous, receives all necessary parameters, and handles
+ * its own error management without dependencies on React state or components.
  * 
- * IMPORTANT: All functions use credentials: 'include' for session cookie management.
- * After login, all subsequent API calls automatically include the session cookie.
+ * Architecture Decisions:
  * 
- * /*
- * Spiegazione delle scelte architetturali
- * Ecco le decisioni chiave:
+ * 1. Autonomous Functions:
+ *    - Each API function is self-contained and stateless
+ *    - No dependencies on global state or React components
+ *    - Receives all required parameters explicitly
+ *    - Returns only the data needed for that specific functionality
  * 
- * Perché ogni funzione ha const da qualche parte:
- * - const SERVER_URL: Definito una sola volta in cima al file per centralizzare la configurazione. 
- *   Evita duplicazione e rende facile modificare l'URL per produzione.
- * - const response: Ogni chiamata fetch viene assegnata a una const per:
- *   - Poter riutilizzare l'oggetto response per controlli multipli (response.ok, response.status)
- *   - Evitare di chiamare fetch due volte per errore
- *   - Rendere il codice più leggibile e debuggabile
- * - const errorData: Per gestire errori in modo consistente senza duplicare await response.json()
+ * 2. Session Management:
+ *    - All functions use 'credentials: include' for automatic cookie handling
+ *    - After login, session cookies are automatically included in requests
+ *    - Server handles authentication validation, client handles responses
  * 
- * API atomiche e funzionali:
- * - Ogni funzione è autonoma e riceve tutti i parametri necessari
- * - Non dipende da stato globale o componenti React
- * - Restituisce solo i dati necessari per quella specifica funzionalità
- * - Gestione errori dedicata per ogni tipo di chiamata
+ * 3. Error Handling Strategy:
+ *    - Always check response.ok before processing data
+ *    - Throw specific error types for different scenarios
+ *    - Include error context (type, activeGameId) for complex cases
+ *    - Consistent error format across all functions
  * 
- * Sicurezza e autenticazione:
- * - credentials: 'include' su tutte le chiamate per gestire automaticamente i cookie di sessione
- * - Distinzione chiara tra API pubbliche (demo) e API autenticate (full games)
- * - Validazione server-side implicita (il server fa i controlli, il client li gestisce)
+ * 4. URL Management:
+ *    - Centralized SERVER_URL configuration for easy deployment changes
+ *    - Automatic image URL conversion from relative to absolute paths
+ *    - Consistent API endpoint structure
  * 
- * Separazione per tipologia utente:
- * - Demo APIs: per utenti anonimi (nessun credentials richiesto per alcune)
- * - Full Game APIs: solo per utenti autenticati
- * - Card APIs: miste (alcune pubbliche, altre autenticate)
- * 
- * Gestione errori intelligente:
- * - Controllo sempre di response.ok prima di processare i dati
- * - Throw di errori specifici con informazioni utili
- * - Status code 404, 403, 400 gestiti in modo differenziato
- * - Oggetti errore con tipo specifico per casi complessi (es. ACTIVE_GAME_EXISTS)
- * 
- * Non polling irragionevole:
- * Le API sono progettate per essere chiamate solo quando necessario:
- * - getCurrentGame() solo all'avvio app o dopo azioni importanti
- * - getNextRoundCard() solo quando l'utente è pronto per il prossimo round
- * - getGameHistory() solo quando l'utente visita la pagina storico
- * 
- * Dati filtrati per funzionalità:
- * - Ogni API restituisce esattamente quello che serve per quel caso d'uso
- * 
+ * 5. Data Transformation:
+ *    - Convert relative image URLs to absolute URLs for proper display
+ *    - Maintain data consistency between demo and full game responses
+ *    - Filter sensitive data (bad_luck_index) appropriately
  */
 
 import { User } from "../models/User.mjs";
 
-// Base server URL - modify if different in production
+// Centralized server configuration - modify for production deployment
 const SERVER_URL = 'http://localhost:3001';
 
 // ==============================================================================
@@ -63,15 +45,19 @@ const SERVER_URL = 'http://localhost:3001';
 // ==============================================================================
 
 /**
- * User Login API
+ * User authentication via session creation
  * 
- * Sends credentials to the server to create a new session.
- * Uses POST method for security - credentials are sent in the request body
- * instead of the URL.
+ * Establishes a new session on the server using username/password credentials.
+ * The server responds with a session cookie that is automatically saved by the browser.
+ * 
+ * Technical Details:
+ * - Uses POST for security (credentials in body, not URL)
+ * - credentials: 'include' ensures proper CORS cookie handling
+ * - Session cookie is automatically managed by the browser
  * 
  * @param {Object} credentials - Object containing username and password
- * @returns {Promise<User>} - User object if login successful
- * @throws {string} - Error message if login fails
+ * @returns {Promise<User>} User object with session established
+ * @throws {string} Error message for display to user
  */
 const logIn = async (credentials) => {
   const response = await fetch(SERVER_URL + '/api/sessions', {
@@ -79,85 +65,56 @@ const logIn = async (credentials) => {
     headers: {
       'Content-Type': 'application/json',
     },
-    /**
-     * credentials: 'include' is essential for session management
-     * Even though we're not sending a cookie in this first login request,
-     * we need this setting so that:
-     * 1. The browser will save the session cookie from the response
-     * 2. Future requests will automatically include the cookie
-     * Without this, CORS won't handle credentials properly in subsequent requests
-     */
-    credentials: 'include',
-    /**
-     * Send the credentials (username, password) in the request body
-     * Must match the field names expected by Passport LocalStrategy
-     */
+    credentials: 'include', // Essential for session cookie management
     body: JSON.stringify(credentials),
   });
   
   if(response.ok) {
-    // Login successful - return the user object from the server
     const user = await response.json();
     return user;
-  }
-  else {
-    // Login failed - get the error message and throw it
-    // This will be caught by the handleLogin function to display error messages
+  } else {
+    // Extract error message for user feedback
     const errDetails = await response.text();
     throw errDetails;
   }
 };
 
 /**
- * Get Current User Info API
+ * Retrieve current user session information
  * 
- * Retrieves information about the currently authenticated user.
- * Uses the session cookie to identify the user.
+ * Validates existing session using the stored session cookie.
+ * Useful for app initialization and session persistence across page refreshes.
  * 
- * This API is useful for:
- * - Checking if a user session is still active after page refresh
- * - Restoring user state when the React app restarts
- * - Verifying if the session has expired
- * 
- * @returns {Promise<User>} - Current user object if authenticated
- * @throws {Object} - Error object if not authenticated or other error
+ * @returns {Promise<User>} Current user object if session valid
+ * @throws {Object} Error object if session invalid or expired
  */
 const getUserInfo = async () => {
   const response = await fetch(SERVER_URL + '/api/sessions/current', {
-    /**
-     * credentials: 'include' is needed here because:
-     * - When React app restarts (refresh, navigation via URL)
-     * - The cookie remains saved in the browser
-     * - We send the cookie to the server to check if the session is still valid
-     * - The server checks if that cookie corresponds to a logged-in user
-     */
-    credentials: 'include',
+    credentials: 'include', // Sends existing session cookie for validation
   });
+  
   const user = await response.json();
   if (response.ok) {
     return user;
   } else {
-    throw user;  // an object with the error coming from the server
+    throw user; // Server error object with details
   }
 };
 
 /**
- * User Logout API
+ * Destroy current user session
  * 
- * Destroys the current session on the server.
- * The session cookie will be automatically sent due to credentials: 'include'
+ * Invalidates the session on the server side. The session cookie remains
+ * in the browser but becomes invalid for subsequent requests.
  * 
- * Note: When logout is performed from one browser tab, other tabs won't 
- * automatically know about it. However, the session is closed on the server,
- * so any subsequent requests from other tabs will fail authentication.
- * 
- * @returns {Promise<null>} - null if logout successful
+ * @returns {Promise<null>} null if logout successful
  */
 const logOut = async() => {
   const response = await fetch(SERVER_URL + '/api/sessions/current', {
     method: 'DELETE',
     credentials: 'include'
   });
+  
   if (response.ok)
     return null;
 };
@@ -167,11 +124,14 @@ const logOut = async() => {
 // ==============================================================================
 
 /**
- * Start a demo game for anonymous users
+ * Initialize a demo game session for anonymous users
  * 
- * @param {string} theme - Theme for the cards (default: 'university_life')
- * @returns {Promise<Object>} - Demo game data with initial cards and target card
- * @throws {string} - Error message if request fails
+ * Creates a temporary game with 3 initial cards and 1 target card.
+ * No server-side persistence or user authentication required.
+ * 
+ * @param {string} theme - Card theme selection (default: 'university_life')
+ * @returns {Promise<Object>} Demo game data with initial and target cards
+ * @throws {Error} Error message if demo creation fails
  */
 const startDemoGame = async (theme = 'university_life') => {
   const response = await fetch(SERVER_URL + '/api/demo/start', {
@@ -185,7 +145,7 @@ const startDemoGame = async (theme = 'university_life') => {
   if (response.ok) {
     const demoData = await response.json();
     
-    // ✅ CONVERTI URL DELLE IMMAGINI
+    // Convert relative image URLs to absolute URLs for proper display
     return {
       ...demoData,
       initialCards: demoData.initialCards.map(c => ({
@@ -206,14 +166,17 @@ const startDemoGame = async (theme = 'university_life') => {
 };
 
 /**
- * Submit a guess for demo game
+ * Process demo game position guess
  * 
- * @param {number} targetCardId - ID of the card being guessed
- * @param {number[]} initialCardIds - IDs of the initial 3 cards in order
- * @param {number} position - Position where player thinks the card belongs (0-based)
- * @param {number} timeElapsed - Time elapsed in seconds (for validation)
- * @returns {Promise<Object>} - Result of the guess with explanation
- * @throws {string} - Error message if request fails
+ * Validates player's position choice and returns immediate feedback.
+ * No persistence required since it's a demo.
+ * 
+ * @param {number} targetCardId - ID of card being positioned
+ * @param {number[]} initialCardIds - IDs of initial cards in current order
+ * @param {number} position - Player's position choice (0-based index)
+ * @param {number} timeElapsed - Time taken for validation (optional)
+ * @returns {Promise<Object>} Guess result with correctness and explanation
+ * @throws {Error} Error message if guess processing fails
  */
 const submitDemoGuess = async (targetCardId, initialCardIds, position, timeElapsed = 0) => {
   const response = await fetch(SERVER_URL + '/api/demo/guess', {
@@ -221,7 +184,6 @@ const submitDemoGuess = async (targetCardId, initialCardIds, position, timeElaps
     headers: {
       'Content-Type': 'application/json',
     },
-    // Note: No credentials needed for demo games
     body: JSON.stringify({
       targetCardId,
       initialCardIds,
@@ -244,11 +206,18 @@ const submitDemoGuess = async (targetCardId, initialCardIds, position, timeElaps
 // ==============================================================================
 
 /**
- * Create a new full game for authenticated users
+ * Create new persistent game for authenticated user
  * 
- * @param {string} theme - Theme for the cards (default: 'university_life')
- * @returns {Promise<Object>} - New game data with initial cards
- * @throws {string} - Error message if request fails
+ * Initializes a full game with database persistence, game history tracking,
+ * and complete win/loss condition management.
+ * 
+ * Error Handling:
+ * - Detects existing active games and provides recovery options
+ * - Returns specific error types for different failure scenarios
+ * 
+ * @param {string} theme - Card theme selection (default: 'university_life')
+ * @returns {Promise<Object>} New game data with initial cards
+ * @throws {Object|Error} Specific error types for different scenarios
  */
 const createGame = async (theme = 'university_life') => {
   const response = await fetch(SERVER_URL + '/api/games', {
@@ -256,13 +225,14 @@ const createGame = async (theme = 'university_life') => {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
+    credentials: 'include', // Required for user identification
     body: JSON.stringify({ theme }),
   });
   
   if (response.ok) {
     const gameData = await response.json();
     
+    // Ensure proper image URL formatting
     return {
       ...gameData,
       initialCards: gameData.initialCards ? gameData.initialCards.map(c => ({
@@ -272,6 +242,8 @@ const createGame = async (theme = 'university_life') => {
     };
   } else {
     const errorData = await response.json();
+    
+    // Special case: active game exists - provide recovery information
     if (response.status === 400 && errorData.activeGameId) {
       throw { 
         message: errorData.error, 
@@ -284,24 +256,29 @@ const createGame = async (theme = 'university_life') => {
 };
 
 /**
- * Get the current active game for authenticated user
+ * Retrieve current active game state
  * 
- * @returns {Promise<Object>} - Current game data with won cards
- * @throws {string} - Error message if request fails or no active game
+ * Fetches complete game information including won cards and game progress.
+ * Essential for app state restoration and game continuation.
+ * 
+ * @returns {Promise<Object>} Current game data with all cards and metadata
+ * @throws {Object|Error} Specific error types for different scenarios
  */
 const getCurrentGame = async () => {
   const response = await fetch(SERVER_URL + '/api/games/current', {
-    credentials: 'include',
+    credentials: 'include', // Session cookie identifies the user
   });
+  
   if (response.ok) {
     const gameData = await response.json();
+    
+    // Convert image URLs for all card collections
     return {
       ...gameData,
       wonCards: gameData.wonCards ? gameData.wonCards.map(c => ({
         ...c,
         image_url: c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`
       })) : [],
-      // ✅ AGGIUNGI: Tutte le carte con informazioni complete
       allCards: gameData.allCards ? gameData.allCards.map(c => ({
         ...c,
         image_url: c.image_url.startsWith('http') ? c.image_url : `${SERVER_URL}/${c.image_url}`
@@ -317,10 +294,13 @@ const getCurrentGame = async () => {
 };
 
 /**
- * Get user's game history (completed games)
+ * Retrieve user's completed game history
  * 
- * @returns {Promise<Object[]>} - Array of completed games with card details
- * @throws {string} - Error message if request fails
+ * Fetches all finished games with complete card details and game statistics.
+ * Used for profile page and performance tracking.
+ * 
+ * @returns {Promise<Object[]>} Array of completed games with card details
+ * @throws {Error} Error message if history retrieval fails
  */
 const getGameHistory = async () => {
   const response = await fetch(SERVER_URL + '/api/games/history', {
@@ -330,7 +310,7 @@ const getGameHistory = async () => {
   if (response.ok) {
     const history = await response.json();
     
-    // ✅ AGGIUNGI CONVERSIONE URL PER LE CARTE NELLO STORICO
+    // Convert image URLs for all cards in game history
     return history.map(game => ({
       ...game,
       cards: game.cards ? game.cards.map(c => ({
@@ -345,21 +325,25 @@ const getGameHistory = async () => {
 };
 
 /**
- * Abandon/delete a game in progress
+ * Abandon active game and clean up resources
  * 
- * @param {number} gameId - ID of the game to abandon
- * @returns {Promise<null>} - null if successful
- * @throws {string} - Error message if request fails
+ * Permanently deletes an active game, allowing the user to start fresh.
+ * Includes proper authorization checks on the server side.
+ * 
+ * @param {number} gameId - ID of game to abandon
+ * @returns {Promise<null>} null if abandonment successful
+ * @throws {Error} Error message for different failure scenarios
  */
 const abandonGame = async (gameId) => {
   const response = await fetch(`${SERVER_URL}/api/games/${gameId}`, {
     method: 'DELETE',
-    credentials: 'include', // Required for authenticated endpoint
+    credentials: 'include', // Required for authorization
   });
   
   if (response.ok) {
-    return null; // Success - game abandoned
+    return null; // Successful abandonment
   } else {
+    // Provide specific error messages for different HTTP status codes
     if (response.status === 404) {
       throw new Error("Game not found");
     }
@@ -372,11 +356,14 @@ const abandonGame = async (gameId) => {
 };
 
 /**
- * Start next round or get current round card
+ * Request next round card for active game
  * 
- * @param {number} gameId - ID of the game
- * @returns {Promise<Object>} - Round card data (without bad_luck_index)
- * @throws {string} - Error message if request fails
+ * Initiates a new round by requesting a target card for positioning.
+ * The card's bad_luck_index is hidden from the client until after the guess.
+ * 
+ * @param {number} gameId - ID of active game
+ * @returns {Promise<Object>} Round card data (without bad_luck_index)
+ * @throws {Object|Error} Specific error types for different scenarios
  */
 const getNextRoundCard = async (gameId) => {
   const response = await fetch(`${SERVER_URL}/api/games/${gameId}/next-round`, {
@@ -390,7 +377,7 @@ const getNextRoundCard = async (gameId) => {
   if (response.ok) {
     const roundData = await response.json();
     
-    // ✅ AGGIUNGI CONVERSIONE URL PER LA ROUND CARD
+    // Convert image URL for round card
     return {
       ...roundData,
       roundCard: roundData.roundCard ? {
@@ -411,15 +398,19 @@ const getNextRoundCard = async (gameId) => {
     throw new Error(errorData.error || "Error getting next round card");
   }
 };
+
 /**
- * Submit a position guess for the current round card
+ * Submit position guess for current round
  * 
- * @param {number} gameId - ID of the game
- * @param {number} gameCardId - ID of the GameCard being guessed
- * @param {number} position - Position where player thinks the card belongs (0-based)
- * @param {number} timeElapsed - Time elapsed in seconds (for server-side validation)
- * @returns {Promise<Object>} - Result of the guess with game status
- * @throws {string} - Error message if request fails
+ * Processes player's position choice and returns complete result including
+ * the revealed bad_luck_index and game status updates.
+ * 
+ * @param {number} gameId - ID of active game
+ * @param {number} gameCardId - ID of GameCard being positioned
+ * @param {number} position - Player's position choice (0-based index)
+ * @param {number} timeElapsed - Time taken for server validation
+ * @returns {Promise<Object>} Complete guess result with game status
+ * @throws {Object|Error} Specific error types for different scenarios
  */
 const submitGameGuess = async (gameId, gameCardId, position, timeElapsed = 0) => {
   const response = await fetch(`${SERVER_URL}/api/games/${gameId}/guess`, {
@@ -438,7 +429,7 @@ const submitGameGuess = async (gameId, gameCardId, position, timeElapsed = 0) =>
   if (response.ok) {
     const result = await response.json();
     
-    // ✅ AGGIUNGI CONVERSIONE URL PER LA CARTA RIVELATA
+    // Convert image URL for revealed card
     return {
       ...result,
       revealed_card: result.revealed_card ? {
@@ -461,12 +452,15 @@ const submitGameGuess = async (gameId, gameCardId, position, timeElapsed = 0) =>
 };
 
 /**
- * Submit a timeout for the current round card (when 30 seconds expire)
+ * Handle round timeout (30 seconds elapsed)
  * 
- * @param {number} gameId - ID of the game
- * @param {number} gameCardId - ID of the GameCard that timed out
- * @returns {Promise<Object>} - Result of the timeout with game status
- * @throws {string} - Error message if request fails
+ * Processes automatic round failure when the timer expires.
+ * Updates game state and tracks the timeout as a wrong guess.
+ * 
+ * @param {number} gameId - ID of active game
+ * @param {number} gameCardId - ID of GameCard that timed out
+ * @returns {Promise<Object>} Timeout result with updated game status
+ * @throws {Object|Error} Specific error types for different scenarios
  */
 const submitGameTimeout = async (gameId, gameCardId) => {
   const response = await fetch(`${SERVER_URL}/api/games/${gameId}/timeout`, {
@@ -474,7 +468,7 @@ const submitGameTimeout = async (gameId, gameCardId) => {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include', // Required for authenticated endpoint
+    credentials: 'include',
     body: JSON.stringify({
       gameCardId
     }),
@@ -486,7 +480,6 @@ const submitGameTimeout = async (gameId, gameCardId) => {
   } else {
     const errorData = await response.json();
     if (response.status === 400) {
-      // Invalid game state or other specific error
       throw { 
         message: errorData.error, 
         type: 'INVALID_GAME_STATE'
@@ -501,24 +494,27 @@ const submitGameTimeout = async (gameId, gameCardId) => {
 // ==============================================================================
 
 /**
- * Main API object containing all available functions
+ * Main API object with organized function groups
  * 
- * Organized by functionality:
- * - Authentication: logIn, getUserInfo, logOut
- * - Demo Games: startDemoGame, submitDemoGuess, etc.
- * - Full Games: createGame, getCurrentGame, getGameHistory, etc.
+ * Structure:
+ * - Authentication: Session management functions
+ * - Demo Games: Anonymous user functionality
+ * - Full Games: Authenticated user complete game features
+ * 
+ * Each function is designed to be called independently with all required parameters.
+ * No shared state or dependencies between functions.
  */
 const API = {
-  // Authentication
+  // Authentication functions
   logIn,
   getUserInfo,
   logOut,
   
-  // Demo Games (anonymous users)
+  // Demo game functions (anonymous users)
   startDemoGame,
   submitDemoGuess, 
-
-  // Full Games (authenticated users)
+  
+  // Full game functions (authenticated users)
   createGame,
   getCurrentGame,
   getGameHistory,

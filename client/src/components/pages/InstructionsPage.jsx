@@ -1,3 +1,4 @@
+// InstructionsPage.jsx - Game rules and instructions page
 import { useContext } from 'react';
 import { Container, Row, Col, Card, Button, Badge, Alert, ListGroup } from 'react-bootstrap';
 import { Link } from 'react-router';
@@ -8,7 +9,7 @@ function InstructionsPage() {
 
     return (
         <Container className="py-4">
-            {/* Header principale */}
+            {/* Main Header */}
             <Row className="mb-5">
                 <Col className="text-center">
                     <h1 className="display-4 fw-bold text-primary mb-3">
@@ -21,7 +22,7 @@ function InstructionsPage() {
                 </Col>
             </Row>
 
-            {/* Obiettivo del gioco */}
+            {/* Game Objective */}
             <Row className="mb-5">
                 <Col>
                     <Card className="border-primary shadow-sm">
@@ -34,13 +35,13 @@ function InstructionsPage() {
                         <Card.Body className="p-4">
                             <Row>
                                 <Col md={8}>
-                                    <h5 className="text-success mb-3">🏆 Come Vincere</h5>
+                                    <h5 className="text-success mb-3">Come Vincere</h5>
                                     <p className="fs-5">
                                         Raccogli <strong className="text-success">6 carte</strong> ordinandole 
                                         correttamente dal <span className="text-success">meno grave</span> al <span className="text-danger">più catastrofico</span>!
                                     </p>
                                     
-                                    <h5 className="text-danger mb-3">💀 Come Perdere</h5>
+                                    <h5 className="text-danger mb-3">Come Perdere</h5>
                                     <p className="fs-5">
                                         Commetti <strong className="text-danger">3 errori</strong> e la partita finisce.
                                     </p>
@@ -60,7 +61,7 @@ function InstructionsPage() {
                 </Col>
             </Row>
 
-            {/* Come funziona */}
+            {/* How it Works */}
             <Row className="mb-5">
                 <Col>
                     <Card className="shadow-sm">
@@ -73,41 +74,42 @@ function InstructionsPage() {
                         <Card.Body className="p-4">
                             <Row>
                                 <Col md={6}>
-                                <h5 className="text-primary mb-3">🎯 Setup Iniziale</h5>
-                                <ListGroup variant="flush" className="mb-4">
-                                    <ListGroup.Item className="d-flex align-items-center">
-                                        <Badge bg="primary" className="me-3">1</Badge>
-                                        Ricevi&nbsp;<b>3 carte iniziali</b>&nbsp;ordinate automaticamente
-                                    </ListGroup.Item>
-                                    <ListGroup.Item className="d-flex align-items-center">
-                                        <Badge bg="primary" className="me-3">2</Badge>
-                                        Vedi&nbsp;<strong>nome e immagine</strong>&nbsp;di ogni carta
-                                    </ListGroup.Item>
-                                    <ListGroup.Item className="d-flex align-items-center">
-                                        <Badge bg="primary" className="me-3">3</Badge>
-                                        Conosci il&nbsp;<strong>Bad Luck Index</strong>&nbsp;delle tue carte
-                                    </ListGroup.Item>
-                                </ListGroup>
-                                <h5 className="text-success mb-3">🎮 Ogni Round</h5>
-                                <ListGroup variant="flush">
-                                    <ListGroup.Item className="d-flex align-items-center">
-                                        <Badge bg="success" className="me-3">1</Badge>
-                                        Ti viene mostrata una&nbsp;<strong>nuova situazione</strong>
-                                    </ListGroup.Item>
-                                    <ListGroup.Item className="d-flex align-items-center">
-                                        <Badge bg="success" className="me-3">2</Badge>
-                                        Vedi&nbsp;<strong>solo nome e immagine</strong>&nbsp;(non l'indice!)
-                                    </ListGroup.Item>
-                                    <ListGroup.Item className="d-flex align-items-center">
-                                        <Badge bg="success" className="me-3">3</Badge>
-                                        Hai&nbsp;<strong>30 secondi</strong>&nbsp;per decidere la posizione
-                                    </ListGroup.Item>
-                                    <ListGroup.Item className="d-flex align-items-center">
-                                        <Badge bg="success" className="me-3">4</Badge>
-                                        Clicca dove pensi che vada nella sequenza
-                                    </ListGroup.Item>
-                                </ListGroup>
-                            </Col>
+                                    <h5 className="text-primary mb-3">Setup Iniziale</h5>
+                                    <ListGroup variant="flush" className="mb-4">
+                                        <ListGroup.Item className="d-flex align-items-center">
+                                            <Badge bg="primary" className="me-3">1</Badge>
+                                            Ricevi <b>3 carte iniziali</b> ordinate automaticamente
+                                        </ListGroup.Item>
+                                        <ListGroup.Item className="d-flex align-items-center">
+                                            <Badge bg="primary" className="me-3">2</Badge>
+                                            Vedi <strong>nome e immagine</strong> di ogni carta
+                                        </ListGroup.Item>
+                                        <ListGroup.Item className="d-flex align-items-center">
+                                            <Badge bg="primary" className="me-3">3</Badge>
+                                            Conosci il <strong>Bad Luck Index</strong> delle tue carte
+                                        </ListGroup.Item>
+                                    </ListGroup>
+
+                                    <h5 className="text-success mb-3">Ogni Round</h5>
+                                    <ListGroup variant="flush">
+                                        <ListGroup.Item className="d-flex align-items-center">
+                                            <Badge bg="success" className="me-3">1</Badge>
+                                            Ti viene mostrata una <strong>nuova situazione</strong>
+                                        </ListGroup.Item>
+                                        <ListGroup.Item className="d-flex align-items-center">
+                                            <Badge bg="success" className="me-3">2</Badge>
+                                            Vedi <strong>solo nome e immagine</strong> (non l'indice!)
+                                        </ListGroup.Item>
+                                        <ListGroup.Item className="d-flex align-items-center">
+                                            <Badge bg="success" className="me-3">3</Badge>
+                                            Hai <strong>30 secondi</strong> per decidere la posizione
+                                        </ListGroup.Item>
+                                        <ListGroup.Item className="d-flex align-items-center">
+                                            <Badge bg="success" className="me-3">4</Badge>
+                                            Clicca dove pensi che vada nella sequenza
+                                        </ListGroup.Item>
+                                    </ListGroup>
+                                </Col>
                                 <Col md={6}>
                                     <Alert variant="info" className="mb-4">
                                         <h6 className="alert-heading">
@@ -143,7 +145,7 @@ function InstructionsPage() {
                 </Col>
             </Row>
 
-            {/* Modalità di gioco */}
+            {/* Game Modes */}
             <Row className="mb-5">
                 <Col md={6}>
                     <Card className="h-100 border-warning">
@@ -184,7 +186,6 @@ function InstructionsPage() {
                         </Card.Body>
                     </Card>
                 </Col>
-
                 <Col md={6}>
                     <Card className="h-100 border-success">
                         <Card.Header className="bg-success text-white">
@@ -233,7 +234,7 @@ function InstructionsPage() {
                 </Col>
             </Row>
 
-            {/* Esempi pratici */}
+            {/* Practical Examples */}
             <Row className="mb-5">
                 <Col>
                     <Card className="shadow-sm">
@@ -244,7 +245,7 @@ function InstructionsPage() {
                             </h3>
                         </Card.Header>
                         <Card.Body className="p-4">
-                            <h5 className="text-primary mb-3">🎯 Scenario di Esempio</h5>
+                            <h5 className="text-primary mb-3">Scenario di Esempio</h5>
                             <Row>
                                 <Col md={8}>
                                     <Alert variant="light" className="border-start border-primary border-5">
@@ -272,10 +273,10 @@ function InstructionsPage() {
                                     <div className="bg-body-secondary rounded p-3 text-center">
                                         <h6 className="text-primary mb-3">Posizioni Possibili</h6>
                                         <div className="d-grid gap-2">
-                                            <Button variant="outline-secondary" size="sm">↑ Prima delle chiavi</Button>
-                                            <Button variant="success" size="sm">📍 Tra chiavi e telefono</Button>
-                                            <Button variant="outline-secondary" size="sm">📱 Tra telefono e incidente</Button>
-                                            <Button variant="outline-secondary" size="sm">↓ Dopo l'incidente</Button>
+                                            <Button variant="outline-secondary" size="sm">Prima delle chiavi</Button>
+                                            <Button variant="success" size="sm">Tra chiavi e telefono</Button>
+                                            <Button variant="outline-secondary" size="sm">Tra telefono e incidente</Button>
+                                            <Button variant="outline-secondary" size="sm">Dopo l'incidente</Button>
                                         </div>
                                     </div>
                                 </Col>
@@ -285,7 +286,7 @@ function InstructionsPage() {
                 </Col>
             </Row>
 
-            {/* FAQ e consigli */}
+            {/* FAQ and Tips */}
             <Row className="mb-5">
                 <Col md={6}>
                     <Card className="h-100">
@@ -298,13 +299,13 @@ function InstructionsPage() {
                         <Card.Body>
                             <h6 className="text-primary">Cosa succede se finisce il tempo?</h6>
                             <p className="mb-3">È considerato un errore. Hai solo 30 secondi per decidere!</p>
-
+                            
                             <h6 className="text-primary">Posso cambiare idea dopo aver cliccato?</h6>
                             <p className="mb-3">No, la scelta è definitiva. Pensa bene prima di cliccare!</p>
-
+                            
                             <h6 className="text-primary">Come faccio a sapere il Bad Luck Index esatto?</h6>
                             <p className="mb-3">Delle nuove carte non lo sai! Devi intuirlo da nome e immagine.</p>
-
+                            
                             <h6 className="text-primary">Posso mettere in pausa la partita?</h6>
                             <p className="mb-0">
                                 {loggedIn ? (
@@ -316,7 +317,6 @@ function InstructionsPage() {
                         </Card.Body>
                     </Card>
                 </Col>
-
                 <Col md={6}>
                     <Card className="h-100">
                         <Card.Header className="bg-success text-white">
@@ -327,19 +327,19 @@ function InstructionsPage() {
                         </Card.Header>
                         <Card.Body>
                             <Alert variant="success" className="mb-3">
-                                <strong>💡 Strategia:</strong> Leggi attentamente il nome della situazione 
+                                <strong>Strategia:</strong> Leggi attentamente il nome della situazione 
                                 e osserva l'immagine prima di decidere!
                             </Alert>
-
-                            <h6 className="text-success">🧠 Pensa in termini di impatto:</h6>
+                            
+                            <h6 className="text-success">Pensa in termini di impatto:</h6>
                             <ul className="mb-3">
                                 <li><strong>Fisico:</strong> Quanto male fisico causa?</li>
                                 <li><strong>Emotivo:</strong> Quanto stress genera?</li>
                                 <li><strong>Finanziario:</strong> Quanto costa risolvere?</li>
                                 <li><strong>Tempo:</strong> Quanto tempo perdi?</li>
                             </ul>
-
-                            <h6 className="text-warning">⚠️ Attenzione a:</h6>
+                            
+                            <h6 className="text-warning">Attenzione a:</h6>
                             <ul className="mb-0">
                                 <li>Situazioni che sembrano gravi ma sono risolvibili</li>
                                 <li>Piccoli problemi che possono avere conseguenze enormi</li>
@@ -350,7 +350,7 @@ function InstructionsPage() {
                 </Col>
             </Row>
 
-            {/* Call to action finale */}
+            {/* Final Call to Action */}
             <Row>
                 <Col>
                     <Card className="bg-primary text-white text-center">

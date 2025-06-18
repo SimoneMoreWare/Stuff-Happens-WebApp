@@ -2,13 +2,22 @@ import React from 'react';
 import { Row, Col, Alert, Card } from 'react-bootstrap';
 
 /**
- * Componente per le istruzioni di gioco
- * Condiviso tra Demo e Full con varianti
+ * GameInstructions - Dynamic instruction display component
+ * 
+ * Provides contextual game instructions that adapt to different game modes
+ * and layout constraints. Supports both demo and full game variants with
+ * responsive text and layout adjustments.
+ * 
+ * Features:
+ * - Adaptive content based on game mode (demo vs full)
+ * - Compact layout support for space-constrained interfaces
+ * - Clear visual hierarchy with icons and color coding
+ * - Responsive instruction text for different screen sizes
  */
 export function GameInstructions({ isCompact = false, isDemo = false }) {
   return (
     <>
-      {/* Istruzioni principali */}
+      {/* Primary game instructions */}
       <Row className="mb-3 mt-3">
         <Col xs={12}>
           <Alert variant="info" className="mb-2 text-center">
@@ -21,8 +30,8 @@ export function GameInstructions({ isCompact = false, isDemo = false }) {
           </Alert>
         </Col>
       </Row>
-
-      {/* Info aggiuntive sulle posizioni */}
+      
+      {/* Position reference guide */}
       <Row className="mt-3">
         <Col xs={12}>
           <Card className="bg-body-secondary">
@@ -38,8 +47,8 @@ export function GameInstructions({ isCompact = false, isDemo = false }) {
           </Card>
         </Col>
       </Row>
-
-      {/* Istruzioni specifiche per demo */}
+      
+      {/* Demo-specific instructions */}
       {isDemo && (
         <Row className="mt-2">
           <Col xs={12}>

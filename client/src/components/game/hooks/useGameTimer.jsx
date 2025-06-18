@@ -1,22 +1,25 @@
+// useGameTimer.js - Custom hook for game timer management
 import { useState, useEffect, useCallback } from 'react';
 import dayjs from 'dayjs';
 
 /**
- * ✅ CONFORME PROF FULVIO CORNO: Timer puro senza API calls
+ * Custom hook for managing game timer state and operations
  * 
- * Regole rispettate:
- * - useEffect SOLO per side effects puri (setInterval)
- * - NESSUNA API call in useEffect
- * - Callback onTimeUp RIMOSSA per evitare side effects
- * - Solo aggiornamento di stato locale
+ * Provides timer functionality with start/stop/reset controls.
+ * Follows React best practices: pure side effects in useEffect,
+ * no API calls within effects, stable callbacks with useCallback.
+ * 
+ * @param {number} duration - Timer duration in seconds (default: 30)
+ * @returns {Object} Timer state and control functions
  */
 export const useGameTimer = (duration = 30) => {
+  // Timer state
   const [timeRemaining, setTimeRemaining] = useState(duration);
   const [isRunning, setIsRunning] = useState(false);
   const [gameStartTime, setGameStartTime] = useState(null);
   const [isTimeUp, setIsTimeUp] = useState(false);
   
-  // ✅ CALLBACK STABILI con useCallback
+  // Stable callback functions using useCallback to prevent unnecessary re-renders
   const startTimer = useCallback(() => {
     setTimeRemaining(duration);
     setIsRunning(true);
@@ -39,8 +42,7 @@ export const useGameTimer = (duration = 30) => {
     return gameStartTime ? dayjs().diff(gameStartTime, 'second') : 0;
   }, [gameStartTime]);
   
-  // ✅ UNICO useEffect - SOLO per setInterval (side effect puro)
-  // NESSUNA API call qui dentro!
+  // Timer interval effect - pure side effect only (no API calls)
   useEffect(() => {
     let intervalId;
     
@@ -49,10 +51,10 @@ export const useGameTimer = (duration = 30) => {
         setTimeRemaining(prevTime => {
           const newTime = prevTime - 1;
           
-          // ✅ SOLO AGGIORNAMENTO STATO - Nessuna API call!
+          // Only state updates - no API calls in useEffect
           if (newTime <= 0) {
             setIsRunning(false);
-            setIsTimeUp(true); // ← Solo flag, nessuna callback
+            setIsTimeUp(true); // Flag for parent component to handle
             return 0;
           }
           
@@ -61,19 +63,20 @@ export const useGameTimer = (duration = 30) => {
       }, 1000);
     }
     
-    // ✅ CLEANUP necessario per evitare memory leak
+    // Cleanup to prevent memory leaks
     return () => {
       if (intervalId) {
         clearInterval(intervalId);
       }
     };
-  }, [isRunning]); // Solo isRunning come dipendenza
+  }, [isRunning]); // Only isRunning as dependency
   
+  // Return timer state and control functions
   return {
     timeRemaining,
     timerActive: isRunning,
     gameStartTime,
-    isTimeUp, // ✅ Flag per il componente genitore
+    isTimeUp, // Flag for parent component to handle timeout
     startTimer,
     stopTimer,
     resetTimer,

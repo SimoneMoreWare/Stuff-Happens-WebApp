@@ -1,26 +1,25 @@
+// ProfilePage.jsx - User profile page with stats and game history
 import { useState, useEffect, useContext } from 'react';
 import { Container, Row, Col, Button, Alert, Card } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router';
-
 import UserContext from '../../../context/UserContext.jsx';
 import API from '../../../API/API.mjs';
-
 import UserStats from './UserStats.jsx';
 import GameHistory from './GameHistory.jsx';
 
 function ProfilePage() {
     const { loggedIn, user, currentGame, handleLogout } = useContext(UserContext);
     const navigate = useNavigate();
-
-    // Stati per cronologia partite
+    
+    // State for game history data
     const [gameHistory, setGameHistory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
     // ============================================================================
-    // PROTEZIONE AUTENTICAZIONE
+    // AUTHENTICATION PROTECTION
     // ============================================================================
-
+    
     useEffect(() => {
         if (!loggedIn) {
             navigate('/login');
@@ -30,9 +29,9 @@ function ProfilePage() {
     }, [loggedIn, navigate]);
 
     // ============================================================================
-    // CARICAMENTO DATI
+    // DATA LOADING
     // ============================================================================
-
+    
     const loadGameHistory = async () => {
         try {
             setLoading(true);
@@ -42,7 +41,6 @@ function ProfilePage() {
             setGameHistory(history);
             
         } catch (err) {
-            console.error('Errore caricamento cronologia:', err);
             setError('Impossibile caricare la cronologia delle partite. Riprova più tardi.');
         } finally {
             setLoading(false);
@@ -50,9 +48,9 @@ function ProfilePage() {
     };
 
     // ============================================================================
-    // GESTORI EVENTI
+    // EVENT HANDLERS
     // ============================================================================
-
+    
     const handleLogoutWithRedirect = async () => {
         await handleLogout();
         navigate('/');
@@ -67,9 +65,9 @@ function ProfilePage() {
     };
 
     // ============================================================================
-    // PROTEZIONE RENDER
+    // RENDER PROTECTION
     // ============================================================================
-
+    
     if (!loggedIn) {
         return (
             <Container>
@@ -89,12 +87,12 @@ function ProfilePage() {
     }
 
     // ============================================================================
-    // RENDER PRINCIPALE
+    // MAIN RENDER
     // ============================================================================
-
+    
     return (
         <Container className="py-4">
-            {/* Header profilo */}
+            {/* Profile header */}
             <Row className="mb-4">
                 <Col>
                     <div className="d-flex justify-content-between align-items-center">
@@ -121,7 +119,7 @@ function ProfilePage() {
                 </Col>
             </Row>
 
-            {/* Statistiche utente */}
+            {/* User statistics section */}
             <Row className="mb-5">
                 <Col>
                     <UserStats 
@@ -132,7 +130,7 @@ function ProfilePage() {
                 </Col>
             </Row>
 
-            {/* Cronologia partite */}
+            {/* Game history section */}
             <Row>
                 <Col>
                     <Card className="shadow-sm">

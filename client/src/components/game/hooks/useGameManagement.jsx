@@ -1,51 +1,74 @@
+// useGameManagement.jsx - Main game management hook combining state, API, and navigation
 import { useGameState } from './useGameState.jsx';
 import { useGameAPI } from './useGameAPI.jsx';
 import { useGameNavigation } from './useGameNavigation.jsx';
 
 /**
- * Hook principale per la gestione del gioco
- * ✅ VERSIONE SEMPLICE: Solo nuove partite sempre + nuova funzione abbandono
+ * Main hook for game management functionality
+ * 
+ * Combines specialized hooks for state management, API operations, and navigation
+ * to provide a unified interface for game operations. Handles the complete game
+ * lifecycle including creation, round management, and cleanup.
+ * 
+ * @returns {Object} Game state, actions, and handlers
  */
 export const useGameManagement = () => {
   
   // ============================================================================
-  // HOOKS SPECIALIZZATI
+  // SPECIALIZED HOOKS INTEGRATION
   // ============================================================================
   
-  // Gestione stato locale del gioco
+  // Local game state management
   const gameState = useGameState();
   
-  // Gestione chiamate API
-  const gameAPI = useGameAPI(gameState);  // ✅ CORRETTO: con parametro
+  // API operations handling
+  const gameAPI = useGameAPI(gameState);
   
-  // Gestione navigazione protetta
+  // Protected navigation management
   const navigation = useGameNavigation();
   
   // ============================================================================
-  // ✅ HANDLERS SEMPLIFICATI
+  // PRIMARY GAME ACTIONS
   // ============================================================================
   
-  // ✅ UNICA FUNZIONE: Crea sempre nuova partita
+  /**
+   * Create a new game session
+   * Handles cleanup of existing games and initializes new game state
+   */
   const handleCreateNewGame = async () => {
     await gameAPI.createNewGame(gameState);
   };
   
-  // ✅ NUOVA FUNZIONE: Abbandona + Crea Nuova (senza controlli)
+  /**
+   * Abandon current game and create a new one
+   * Simplified flow for quick game restart
+   */
   const handleAbandonAndCreateNew = async () => {
     await gameAPI.abandonAndCreateNew(gameState);
   };
   
-  // Avvio round con integrazione timer
+  /**
+   * Start the next round by fetching a new target card
+   * @returns {boolean} Success status
+   */
   const startNextRound = async () => {
     return await gameAPI.startNextRound(gameState);
   };
   
-  // Processamento risultati
+  /**
+   * Process player's position guess
+   * @param {number} position - Selected position for target card
+   * @param {number} timeElapsed - Time taken to make the guess
+   * @returns {boolean} Success status
+   */
   const processGameResult = async (position, timeElapsed) => {
     return await gameAPI.processGameResult(gameState, position, timeElapsed);
   };
   
-  // Gestione timeout
+  /**
+   * Handle timeout when player doesn't make a guess in time
+   * @returns {boolean} Success status
+   */
   const processTimeUp = async () => {
     return await gameAPI.processTimeUp(gameState);
   };
@@ -54,7 +77,7 @@ export const useGameManagement = () => {
   // NAVIGATION HANDLERS
   // ============================================================================
   
-  // Crea tutti gli handlers di navigazione
+  // Create navigation handlers with game state integration
   const {
     handleContinueAfterResult,
     handleNewGame,
@@ -63,11 +86,11 @@ export const useGameManagement = () => {
   } = navigation.createNavigationHandlers(gameState, gameAPI);
   
   // ============================================================================
-  // ✅ RETURN API SEMPLIFICATA + NUOVA FUNZIONE
+  // PUBLIC API
   // ============================================================================
   
   return {
-    // State (da useGameState)
+    // Game State Properties
     gameState: gameState.gameState,
     currentGame: gameState.currentGame,
     currentCards: gameState.currentCards,
@@ -80,18 +103,20 @@ export const useGameManagement = () => {
     isCompactLayout: gameState.isCompactLayout,
     user: gameState.user,
     
-    // ✅ Actions SEMPLIFICATI + NUOVA FUNZIONE
-    handleCreateNewGame,        // UNICA funzione per creare partite
-    handleAbandonAndCreateNew,  // ✅ NUOVA: Abbandona + Crea senza controlli
-    startNextRound,
-    processGameResult,
-    processTimeUp,
-    handleContinueAfterResult,
-    handleNewGame,              // Per bottoni interni al gioco
-    handleBackHome,
-    handleAbandonGame,
+    // Primary Game Actions
+    handleCreateNewGame,        // Create new game with cleanup
+    handleAbandonAndCreateNew,  // Quick restart functionality
+    startNextRound,             // Begin next round
+    processGameResult,          // Handle player guess
+    processTimeUp,              // Handle timeout
     
-    // ✅ AGGIUNGI Utils (da useGameState)
-    cleanupGameState: gameState.cleanupGameState  // ← QUESTA MANCAVA!
+    // Navigation Actions
+    handleContinueAfterResult,  // Continue after round result
+    handleNewGame,              // New game from within game interface
+    handleBackHome,             // Return to home page
+    handleAbandonGame,          // Abandon current game
+    
+    // Utility Functions
+    cleanupGameState: gameState.cleanupGameState  // Clean up game state
   };
 };

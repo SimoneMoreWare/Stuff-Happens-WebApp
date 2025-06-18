@@ -1,5 +1,18 @@
 import { Card, Row, Col, Badge, ProgressBar, Alert } from 'react-bootstrap';
 
+/**
+ * GameStatus - Main status display component for game progress
+ * 
+ * Provides comprehensive game status information including progress bars,
+ * critical state alerts, and responsive design for different game modes.
+ * 
+ * Features:
+ * - Progress tracking with visual indicators
+ * - Critical state alerts (near victory/defeat)
+ * - Responsive design for different screen sizes
+ * - Demo vs full game mode differentiation
+ * - Color-coded progress indicators based on performance
+ */
 function GameStatus({ 
     currentRound = 1,
     cardsCollected = 0,
@@ -9,11 +22,11 @@ function GameStatus({
     maxErrors = 3
 }) {
     
-    // Calcola percentuali per le progress bar
+    // Calculate progress percentages for visual indicators
     const cardsProgress = (cardsCollected / targetCards) * 100;
     const errorsProgress = (wrongGuesses / maxErrors) * 100;
     
-    // Determina colori basati sui progressi
+    // Dynamic color selection based on progress - improves UX feedback
     const getCardsVariant = () => {
         if (cardsProgress >= 100) return 'success';
         if (cardsProgress >= 66) return 'primary';
@@ -21,13 +34,14 @@ function GameStatus({
         return 'secondary';
     };
     
+    // Error progress color - red indicates danger
     const getErrorsVariant = () => {
         if (errorsProgress >= 100) return 'danger';
         if (errorsProgress >= 66) return 'warning';
         return 'success';
     };
     
-    // Stato critico se vicino alla sconfitta
+    // Critical game state detection for user alerts
     const isCritical = wrongGuesses >= maxErrors - 1;
     const isNearVictory = cardsCollected >= targetCards - 1;
     
@@ -41,7 +55,8 @@ function GameStatus({
             </Card.Header>
             
             <Card.Body className="p-3">
-                {/* Alert per stati critici */}
+                
+                {/* Critical state alerts - only shown when necessary */}
                 {isCritical && !isDemo && (
                     <Alert variant="danger" className="mb-3 py-2">
                         <i className="bi bi-exclamation-triangle-fill me-2"></i>
@@ -56,7 +71,7 @@ function GameStatus({
                     </Alert>
                 )}
                 
-                {/* Statistiche principali */}
+                {/* Main statistics display - responsive grid layout */}
                 <Row className="text-center mb-3">
                     <Col xs={4}>
                         <div className="d-flex flex-column align-items-center">
@@ -86,10 +101,10 @@ function GameStatus({
                     </Col>
                 </Row>
                 
-                {/* Progress bars per partite complete */}
+                {/* Progress bars - only for full games to avoid clutter in demo */}
                 {!isDemo && (
                     <>
-                        {/* Progresso carte */}
+                        {/* Cards collection progress */}
                         <div className="mb-3">
                             <div className="d-flex justify-content-between align-items-center mb-1">
                                 <small className="text-muted">
@@ -105,7 +120,7 @@ function GameStatus({
                             />
                         </div>
                         
-                        {/* Contatore errori (inverso) */}
+                        {/* Error margin indicator - inverted progress (remaining safety) */}
                         <div className="mb-0">
                             <div className="d-flex justify-content-between align-items-center mb-1">
                                 <small className="text-muted">
@@ -125,7 +140,7 @@ function GameStatus({
                     </>
                 )}
                 
-                {/* Informazioni demo */}
+                {/* Demo mode information - clear differentiation */}
                 {isDemo && (
                     <div className="text-center mt-2">
                         <small className="text-muted">
@@ -140,9 +155,13 @@ function GameStatus({
 }
 
 /**
- * MiniGameStatus - Versione compatta per navbar o sidebar
+ * MiniGameStatus - Compact version for navbar or sidebar
+ * 
+ * Simplified status display for space-constrained areas.
+ * Shows minimal essential information with clear visual indicators.
  */
 function MiniGameStatus({ cardsCollected = 0, wrongGuesses = 0, isDemo = false }) {
+    // Demo mode gets special treatment - single badge
     if (isDemo) {
         return (
             <Badge bg="warning" text="dark" className="d-flex align-items-center">
@@ -152,6 +171,7 @@ function MiniGameStatus({ cardsCollected = 0, wrongGuesses = 0, isDemo = false }
         );
     }
     
+    // Full game mode - essential stats only
     return (
         <div className="d-flex gap-2">
             <Badge bg="success" className="d-flex align-items-center">
@@ -167,7 +187,10 @@ function MiniGameStatus({ cardsCollected = 0, wrongGuesses = 0, isDemo = false }
 }
 
 /**
- * GameStatusBar - Barra orizzontale per header di pagina
+ * GameStatusBar - Horizontal status bar for page headers
+ * 
+ * Linear layout for header areas where vertical space is limited.
+ * Provides quick overview without detailed progress indicators.
  */
 function GameStatusBar({ 
     currentRound, 
@@ -196,6 +219,6 @@ function GameStatusBar({
     );
 }
 
-// Esporta tutti i componenti
+// Export all component variants for flexible usage
 export default GameStatus;
 export { MiniGameStatus, GameStatusBar };

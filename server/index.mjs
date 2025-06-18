@@ -45,7 +45,7 @@ app.use(session({
 app.use(passport.authenticate('session'));
 
 // API Routes
-app.use('/api', authRoutes);       // Authentication routes: /api/sessions/*
+app.use('/api', authRoutes);        // Authentication routes: /api/sessions/*
 app.use('/api/games', gamesRoutes); // Games routes: /api/games/*
 app.use('/api/demo', demoRoutes);   // Demo routes: /api/demo/*
 

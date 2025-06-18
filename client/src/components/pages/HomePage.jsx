@@ -1,3 +1,4 @@
+// HomePage.jsx - Application home page with game introduction and navigation
 import { useContext } from 'react';
 import { Container, Row, Col, Card, Button, Badge } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router';
@@ -8,11 +9,9 @@ function HomePage() {
   const navigate = useNavigate();
 
   // ============================================================================
-  // ✅ GESTIONE NAVIGAZIONE SEMPLIFICATA AL MASSIMO
+  // NAVIGATION HANDLERS
   // ============================================================================
   
-  // Tutti i pulsanti portano sempre a /game normale
-  // Sarà il GamePage a mostrare il pulsante per creare nuova partita
   const handleStartGame = () => {
     navigate('/game');
   };
@@ -22,7 +21,7 @@ function HomePage() {
   };
 
   // ============================================================================
-  // RENDER
+  // MAIN RENDER
   // ============================================================================
   
   return (
@@ -59,13 +58,13 @@ function HomePage() {
         </Col>
       </Row>
 
-      {/* Sezione Azioni Principali */}
+      {/* Main Action Section */}
       <Row className="justify-content-center mb-5">
         <Col md={8} lg={6}>
           <Card className="shadow-lg border-2 border-primary">
             <Card.Body className="p-4 bg-body-secondary">
               {loggedIn ? (
-                // ========== UTENTE AUTENTICATO ==========
+                // Authenticated User Section
                 <>
                   <div className="text-center mb-4">
                     <h3 className="text-success">
@@ -75,7 +74,6 @@ function HomePage() {
                     <p className="text-muted">Inizia una nuova partita completa:</p>
                   </div>
                   <div className="d-grid gap-3">
-                    {/* ✅ SUPER SEMPLICE: Un solo pulsante */}
                     <Button 
                       variant="primary" 
                       size="lg" 
@@ -96,7 +94,7 @@ function HomePage() {
                   </div>
                 </>
               ) : (
-                // ========== UTENTE ANONIMO ==========
+                // Anonymous User Section
                 <>
                   <div className="text-center mb-4">
                     <h3 className="text-primary">Inizia a Giocare!</h3>
@@ -133,7 +131,7 @@ function HomePage() {
         </Col>
       </Row>
 
-      {/* Sezione Informazioni */}
+      {/* Information Section */}
       <Row className="mb-5">
         <Col md={6} className="mb-4">
           <Card className="h-100 border-2 border-secondary shadow-lg">
@@ -166,7 +164,7 @@ function HomePage() {
                     Raccogli 6 carte per vincere! Massimo 3 errori prima della sconfitta.
                     <br />
                     <small className="text-info">
-                      💡 Ogni partita è sempre completamente nuova!
+                      Ogni partita è sempre completamente nuova!
                     </small>
                   </>
                 ) : (
@@ -184,7 +182,7 @@ function HomePage() {
         </Col>
       </Row>
 
-      {/* Footer informativo */}
+      {/* Informative Footer */}
       <Row className="text-center py-4 border-top">
         <Col>
           <p className="text-muted mb-0">
@@ -192,11 +190,6 @@ function HomePage() {
             <strong>Suggerimento:</strong> Non tutte le situazioni universitarie sono ovvie! 
             Pensa bene prima di posizionare una carta.
           </p>
-          {loggedIn && (
-            <small className="text-success d-block mt-2">
-              ✅ Zero errori in console - API chiamate solo al click dei pulsanti!
-            </small>
-          )}
         </Col>
       </Row>
     </Container>

@@ -2,8 +2,17 @@ import React from 'react';
 import { Row, Col, Card, Button } from 'react-bootstrap';
 
 /**
- * Header condiviso per i giochi
- * Versione semplificata e riutilizzabile
+ * GameHeader - Shared header component for game interfaces
+ * 
+ * Provides consistent branding and navigation across all game modes.
+ * Flexible design supports different variants and optional elements.
+ * 
+ * Features:
+ * - Responsive layout with flexbox alignment
+ * - Optional back button with customizable visibility
+ * - User information display when available
+ * - Theme variants for different game contexts
+ * - Icon integration for visual consistency
  */
 export function GameHeader({ 
   title, 
@@ -19,6 +28,8 @@ export function GameHeader({
         <Card className={`bg-${variant} text-white`}>
           <Card.Body className="py-3">
             <div className="d-flex justify-content-between align-items-center">
+              
+              {/* Left section: Navigation button or spacer */}
               {showBackButton ? (
                 <Button 
                   variant="outline-light" 
@@ -33,6 +44,7 @@ export function GameHeader({
                 <div></div>
               )}
               
+              {/* Center section: Title and subtitle */}
               <div className="text-center">
                 <h2 className="mb-1">
                   <i className="bi bi-controller me-2"></i>
@@ -45,6 +57,7 @@ export function GameHeader({
                 )}
               </div>
               
+              {/* Right section: User info or spacer */}
               <div className="text-end">
                 {username ? (
                   <small className="text-light opacity-75">

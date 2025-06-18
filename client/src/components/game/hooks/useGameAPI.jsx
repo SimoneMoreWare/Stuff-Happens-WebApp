@@ -1,23 +1,34 @@
-// useGameAPI.jsx - VERSIONE ORIGINALE FUNZIONANTE (senza errori 400)
-
+// useGameAPI.jsx - Custom hook for game API operations
 import API from '../../../API/API.mjs';
 import { Card as CardModel } from '../../../models/Card.mjs';
 
 /**
-* Hook per gestire le chiamate API del gioco
-* ✅ VERSIONE ORIGINALE che funzionava perfettamente
-*/
+ * Custom hook for handling game API operations
+ * 
+ * Provides functions for game lifecycle management:
+ * - Creating new games
+ * - Starting rounds
+ * - Processing game results
+ * - Handling timeouts and game abandonment
+ * 
+ * @param {Object} gameState - Game state object with setters
+ * @returns {Object} API operation functions
+ */
 export const useGameAPI = (gameState) => {
   
+  /**
+   * Create a new game session
+   * Handles existing game cleanup and initializes new game state
+   */
   const createNewGame = async (gameState) => {
     try {
-      // ✅ CONTROLLA PRIMA del cleanup (dati ancora presenti)
+      // Check current state before cleanup
       const currentState = gameState.gameState;
       const hadCurrentGame = !!gameState.currentGame;
       const roundResult = gameState.roundResult;
       const wasRecentlyAbandoned = gameState.wasAbandoned;
       
-      // ✅ LOGICA MIGLIORATA per riconoscere partite appena completate
+      // Determine if game was just completed (don't abandon completed games)
       const isGameJustCompleted = roundResult && 
         (roundResult.gameStatus === 'won' || roundResult.gameStatus === 'lost');
       
@@ -27,40 +38,27 @@ export const useGameAPI = (gameState) => {
                                   currentState !== 'game-over' &&
                                   currentState !== 'abandoned';
       
-      console.log('🎮 createNewGame - Debug values:');
-      console.log('  - currentState:', currentState);
-      console.log('  - hadCurrentGame:', hadCurrentGame);
-      console.log('  - roundResult:', roundResult);
-      console.log('  - isGameJustCompleted:', isGameJustCompleted);
-      console.log('  - shouldCheckAndAbandon:', shouldCheckAndAbandon);
-      
       gameState.setLoading(true);
       gameState.setError('');
       
-      // ✅ RESET del flag se presente
+      // Reset abandonment flag if present
       if (wasRecentlyAbandoned) {
         gameState.setWasAbandoned(false);
       }
       
-      // ✅ Solo se necessario controlla partite attive (PRIMA del cleanup)
+      // Check and abandon existing active games if necessary
       if (shouldCheckAndAbandon) {
         try {
-          console.log('🔍 Checking for existing game...');
           const existingGameData = await API.getCurrentGame();
           if (existingGameData && existingGameData.game && existingGameData.game.id) {
-            console.log('🗑️ Abandoning existing game:', existingGameData.game.id);
             await API.abandonGame(existingGameData.game.id);
           }
         } catch (checkError) {
-          console.log('✅ No active game found (404 is normal)');
-          // 404 è normale = nessuna partita attiva
+          // 404 is normal - no active game found
         }
-      } else {
-        console.log('⏭️ Skipping getCurrentGame check - game just completed');
       }
       
-      // ✅ CLEANUP INTERNO dopo i controlli (dati usati, ora posso pulire)
-      console.log('🧹 Cleaning up state before creating new game...');
+      // Clean up internal state after checks
       gameState.setCurrentGame(null);
       gameState.setCurrentCards([]);
       gameState.setTargetCard(null);
@@ -69,15 +67,14 @@ export const useGameAPI = (gameState) => {
       gameState.setAllGameCards([]);
       gameState.setError('');
       
-      // ✅ Crea la nuova partita
-      console.log('🎯 Creating new game...');
+      // Create new game
       const gameData = await API.createGame('university_life');
       
-      // ✅ Setup del nuovo gioco
+      // Setup new game state
       gameState.setCurrentGame(gameData.game);
       gameState.updateCurrentGame(gameData.game);
       
-      // Processa le carte iniziali
+      // Process initial cards
       const initialCards = gameData.initialCards.map(c =>
         new CardModel(c.id, c.name, c.image_url, c.bad_luck_index, c.theme)
       );
@@ -85,7 +82,7 @@ export const useGameAPI = (gameState) => {
       
       gameState.setCurrentCards(initialCards);
       
-      // Setup allGameCards per il tracking
+      // Setup game cards tracking
       const allGameCardsData = gameData.initialCards.map(c => ({
         id: c.id,
         name: c.name,
@@ -101,19 +98,15 @@ export const useGameAPI = (gameState) => {
       gameState.setGameState('playing');
       gameState.setMessage({ type: 'success', msg: 'Nuova partita creata!' });
       
-      console.log('✅ New game created successfully');
-      
     } catch (err) {
-      console.error('❌ Error in createNewGame:', err);
-      
-      // ✅ Gestione errori specifici
+      // Handle specific error types
       if (err.type === 'ACTIVE_GAME_EXISTS') {
         try {
-          console.log('🔄 Retrying after abandoning existing game...');
+          // Retry after abandoning existing game
           if (err.activeGameId) {
             await API.abandonGame(err.activeGameId);
             
-            // Retry creazione partita
+            // Retry game creation
             const retryGameData = await API.createGame('university_life');
             gameState.setCurrentGame(retryGameData.game);
             gameState.updateCurrentGame(retryGameData.game);
@@ -141,16 +134,13 @@ export const useGameAPI = (gameState) => {
               type: 'success', 
               msg: 'Nuova partita creata (precedente partita abbandonata automaticamente)!' 
             });
-            
-            console.log('✅ Retry successful');
           }
         } catch (retryErr) {
-          console.error('❌ Retry failed:', retryErr);
           gameState.setError('Errore nella creazione della partita. Riprova tra qualche secondo.');
           gameState.setGameState('error');
         }
       } else {
-        // Altri errori
+        // Handle other errors
         gameState.setError(err.message || 'Errore nella creazione della partita');
         gameState.setGameState('error');
       }
@@ -158,6 +148,10 @@ export const useGameAPI = (gameState) => {
       gameState.setLoading(false);
     }
   };
+
+  /**
+   * Start next round by fetching a new card from the server
+   */
   const startNextRound = async (gameState) => {
     try {
       gameState.setError('');
@@ -187,6 +181,9 @@ export const useGameAPI = (gameState) => {
     }
   };
 
+  /**
+   * Process game result after player makes a guess
+   */
   const processGameResult = async (gameState, position, timeElapsed) => {
     try {
       gameState.setGameState('loading');
@@ -198,11 +195,13 @@ export const useGameAPI = (gameState) => {
         timeElapsed
       );
       
+      // Update game state from server response
       if (result.game) {
         gameState.setCurrentGame(result.game);
         gameState.updateCurrentGame(result.game);
       }
       
+      // Process revealed card
       if (result.revealed_card) {
         const revealedCard = Array.isArray(result.revealed_card) ? result.revealed_card[0] : result.revealed_card;
         const revealedCardModel = new CardModel(
@@ -215,6 +214,7 @@ export const useGameAPI = (gameState) => {
         
         gameState.setTargetCard(revealedCardModel);
         
+        // Add card to player's collection if guess was correct
         if (result.correct) {
           gameState.setCurrentCards(prev => {
             const newCards = [...prev, revealedCardModel];
@@ -235,6 +235,7 @@ export const useGameAPI = (gameState) => {
         }
       }
       
+      // Set round result for display
       gameState.setRoundResult({
         isCorrect: result.correct,
         correctPosition: result.correctPosition,
@@ -252,6 +253,9 @@ export const useGameAPI = (gameState) => {
     }
   };
 
+  /**
+   * Process timeout when player doesn't make a guess in time
+   */
   const processTimeUp = async (gameState) => {
     if (!gameState.currentRoundCard || gameState.gameState !== 'playing') {
       return false;
@@ -264,11 +268,13 @@ export const useGameAPI = (gameState) => {
       
       const result = await API.submitGameTimeout(gameId, gameCardId);
       
+      // Update game state
       if (result.game) {
         gameState.setCurrentGame(result.game);
         gameState.updateCurrentGame(result.game);
       }
       
+      // Process revealed card for timeout
       if (result.revealed_card) {
         const revealedCard = Array.isArray(result.revealed_card) ? result.revealed_card[0] : result.revealed_card;
         const revealedCardModel = new CardModel(
@@ -281,6 +287,7 @@ export const useGameAPI = (gameState) => {
         gameState.setTargetCard(revealedCard);
       }
       
+      // Set timeout result
       gameState.setRoundResult({
         isCorrect: false,
         isTimeout: result.isTimeout || true,
@@ -292,12 +299,14 @@ export const useGameAPI = (gameState) => {
       gameState.setGameState('result');
       return true;
     } catch (err) {
+      // Handle specific timeout errors
       if (err.message && (
         err.message.includes('Invalid game card') || 
         err.message.includes('Card already processed') ||
         err.message.includes('Card already played')
       )) {
         try {
+          // Try to reload current game state
           const gameData = await API.getCurrentGame();
           if (gameData.game.current_round > gameState.currentGame.current_round) {
             gameState.setCurrentGame(gameData.game);
@@ -325,16 +334,19 @@ export const useGameAPI = (gameState) => {
     }
   };
 
+  /**
+   * Abandon current game
+   */
   const abandonGame = async (gameState) => {
     if (!gameState.currentGame) return;
     
     try {
       await API.abandonGame(gameState.currentGame.id);
     } catch (err) {
-      // Non bloccare l'operazione anche se l'abbandono fallisce
+      // Don't block operation even if abandon fails
     }
     
-    // Cleanup locale immediato
+    // Immediate local cleanup
     gameState.cleanupGameState();
     gameState.setCurrentGame(null);
     gameState.setMessage({ type: 'info', msg: 'Partita abbandonata' });
@@ -342,13 +354,15 @@ export const useGameAPI = (gameState) => {
     return true;
   };
 
-  // ✅ NUOVA FUNZIONE SEMPLICE: Abbandona + Crea Nuova
+  /**
+   * Abandon current game and create a new one
+   */
   const abandonAndCreateNew = async (gameState) => {
-    // Per ora, facciamo la stessa cosa di createNewGame
+    // For now, same as createNewGame which handles abandonment
     await createNewGame(gameState);
   };
-
-  // ✅ RETURN DELLE FUNZIONI
+  
+  // Return API operation functions
   return {
     createNewGame,
     startNextRound,

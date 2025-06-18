@@ -9,10 +9,21 @@ const router = express.Router();
  * 
  * Creates a single-round demo game for anonymous users.
  * Returns 3 initial cards and 1 card to guess.
- * No data is saved to the database permanently - everything is handled in memory.
+ * No data is saved to the database permanently.
  * 
  * Body parameters:
- * @param {string} theme - Theme for the cards (default: 'university_life')
+ * @param {string} theme - Theme for the cards (optional, default: 'university_life')
+ * 
+ * Response:
+ * @returns {Array} initialCards - 3 cards for the initial hand
+ * @returns {Object} targetCard - Card to guess (without bad_luck_index)
+ * @returns {string} message - Welcome message
+ * @returns {boolean} isDemo - Always true to indicate demo mode
+ * 
+ * Status codes:
+ * - 200: Demo game started successfully
+ * - 422: Validation errors
+ * - 500: Database error or insufficient cards
  */
 router.post('/start', [
     body('theme').optional().isIn(['university_life', 'travel', 'sports', 'love_life', 'work_life'])
@@ -39,13 +50,12 @@ router.post('/start', [
         const initialCards = allCards.slice(0, 3);
         const targetCard = allCards[3];
 
-        // For the demo, we return the target card WITHOUT the bad_luck_index
+        // Return target card without bad_luck_index (players shouldn't see it)
         const targetCardWithoutIndex = {
             id: targetCard.id,
             name: targetCard.name,
             image_url: targetCard.image_url,
             theme: targetCard.theme
-            // Deliberately excluding bad_luck_index
         };
 
         // Sort initial cards by bad_luck_index for proper display
@@ -59,7 +69,6 @@ router.post('/start', [
         });
 
     } catch (error) {
-        console.error('Error starting demo game:', error);
         res.status(500).json({ error: 'Database error while starting demo game' });
     }
 });
@@ -74,7 +83,21 @@ router.post('/start', [
  * @param {number} targetCardId - ID of the card being guessed
  * @param {number[]} initialCardIds - IDs of the initial 3 cards in order
  * @param {number} position - Position where player thinks the card belongs (0-based)
- * @param {number} timeElapsed - Time elapsed in seconds (for validation)
+ * @param {number} timeElapsed - Time elapsed in seconds (optional, for validation)
+ * 
+ * Response:
+ * @returns {boolean} correct - Whether the guess was correct
+ * @returns {number} correctPosition - The actual correct position
+ * @returns {boolean} timeUp - Whether time limit was exceeded
+ * @returns {Object} targetCard - Complete target card with bad_luck_index
+ * @returns {Array} initialCards - Complete initial cards with bad_luck_index
+ * @returns {string} message - Result message
+ * @returns {string} explanation - Explanation of card ordering
+ * 
+ * Status codes:
+ * - 200: Guess processed successfully
+ * - 422: Validation errors
+ * - 500: Database error
  */
 router.post('/guess', [
     body('targetCardId').isInt({ min: 1 })
@@ -100,7 +123,7 @@ router.post('/guess', [
         const TIME_LIMIT = 30; // seconds
         const isTimeUp = timeElapsed > TIME_LIMIT;
 
-        // Get the correct position
+        // Get the correct position based on bad luck indices
         const correctPosition = await getCorrectPosition(targetCardId, initialCardIds);
         const isCorrect = !isTimeUp && position === correctPosition;
 
@@ -116,6 +139,7 @@ router.post('/guess', [
         // Sort initial cards by bad_luck_index for proper display
         initialCardsComplete.sort((a, b) => a.bad_luck_index - b.bad_luck_index);
 
+        // Generate appropriate message based on result
         let message;
         if (isTimeUp) {
             message = `Time's up! The correct position was ${correctPosition}. The card "${targetCardComplete.name}" has a bad luck index of ${targetCardComplete.bad_luck_index}.`;
@@ -136,7 +160,6 @@ router.post('/guess', [
         });
 
     } catch (error) {
-        console.error('Error processing demo guess:', error);
         res.status(500).json({ error: 'Database error while processing demo guess' });
     }
 });

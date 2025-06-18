@@ -1,13 +1,20 @@
-// UserContext.jsx - VERSIONE SECONDO LE SLIDE DEL PROF
+// UserContext.jsx - Context definition for user authentication state
 import { createContext } from 'react';
 
 /**
- * Context Definition - Slide 6
+ * Context Definition following React patterns from course
  * 
- * "const ExContext = React.createContext(defaultValue)"
+ * Creates a context object for sharing user authentication state
+ * across the component tree without prop drilling.
  * 
- * Il prof mostra che il Context è SOLO la definizione, 
- * NON include la logica del Provider
+ * The context will contain:
+ * - user: current authenticated user object
+ * - loggedIn: boolean authentication status
+ * - authentication functions (handleLogin, handleLogout)
+ * - message state for user feedback
+ * 
+ * The actual state and Provider logic are implemented in App.jsx
+ * as shown in course slides.
  */
 const UserContext = createContext();
 

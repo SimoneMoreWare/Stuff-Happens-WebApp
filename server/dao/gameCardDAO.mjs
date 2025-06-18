@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 
 /**
  * Aggiunge una carta iniziale a una partita  
- * 🔒 SECURITY: Imposta card_dealt_at anche per le carte iniziali
+ * Imposta card_dealt_at anche per le carte iniziali
  * @param {number} game_id 
  * @param {number} card_id 
  * @returns {Promise<number>} - ID del GameCard creato
@@ -17,7 +17,7 @@ export const addInitialCard = (game_id, card_id) => {
             VALUES (?, ?, 0, TRUE, ?, ?)
         `;
         
-        // 🔒 SECURITY: Per le carte iniziali, card_dealt_at = played_at
+        // Per le carte iniziali, card_dealt_at = played_at
         db.run(query, [game_id, card_id, now, now], function (err) {
             if (err) {
                 reject(err);
@@ -30,7 +30,7 @@ export const addInitialCard = (game_id, card_id) => {
 
 /**
  * Aggiunge una carta di round a una partita
- * 🔒 SECURITY: Imposta card_dealt_at per validazione timer server-side
+ * Imposta card_dealt_at per validazione timer server-side
  * @param {number} game_id 
  * @param {number} card_id 
  * @param {number} round_number 
@@ -44,7 +44,7 @@ export const addRoundCard = (game_id, card_id, round_number) => {
             VALUES (?, ?, ?, FALSE, ?)
         `;
         
-        // 🔒 SECURITY: Salviamo l'ora esatta in cui la carta viene distribuita
+        // Salviamo l'ora esatta in cui la carta viene distribuita
         db.run(query, [game_id, card_id, round_number, now], function (err) {
             if (err) {
                 reject(err);
@@ -221,7 +221,7 @@ export const getGameCardById = (id) => {
                 const gameCard = new GameCard(
                     row.id, row.game_id, row.card_id, row.round_number,
                     row.guessed_correctly, row.position_guessed, row.is_initial, 
-                    row.played_at, row.card_dealt_at  // 🔒 AGGIUNTO: card_dealt_at
+                    row.played_at, row.card_dealt_at 
                 );
                 resolve(gameCard);
             }

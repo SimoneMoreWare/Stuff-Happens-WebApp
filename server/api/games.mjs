@@ -30,9 +30,22 @@ const router = express.Router();
 /**
  * POST /api/games - Create a new game (AUTHENTICATED USERS ONLY)
  * 
- * ✅ SECURITY: Already properly protected with isLoggedIn middleware.
  * Creates a new full game for authenticated users that will be saved in history.
  * Anonymous users should use /api/demo/start for demo games.
+ * 
+ * Body parameters:
+ * @param {string} theme - Theme for the cards (optional, default: 'university_life')
+ * 
+ * Response:
+ * @returns {Object} game - Created game object
+ * @returns {Array} initialCards - Array of 3 initial cards
+ * @returns {string} message - Success message
+ * 
+ * Status codes:
+ * - 201: Game created successfully
+ * - 400: User already has an active game
+ * - 422: Validation errors
+ * - 500: Database error
  */
 router.post('/', isLoggedIn, [
     body('theme').optional().isIn(['university_life'])
@@ -44,7 +57,7 @@ router.post('/', isLoggedIn, [
     }
     
     const { theme = 'university_life' } = req.body;
-    const userId = req.user.id; // Always authenticated due to middleware
+    const userId = req.user.id;
     
     try {
         // Check if user already has an active game
@@ -80,7 +93,6 @@ router.post('/', isLoggedIn, [
             message: 'Full game created successfully'
         });
     } catch (error) {
-        console.error('Error creating game:', error);
         res.status(500).json({ error: 'Database error while creating game' });
     }
 });
@@ -88,8 +100,16 @@ router.post('/', isLoggedIn, [
 /**
  * GET /api/games/current - Get current active game (AUTHENTICATED USERS ONLY)
  * 
- * ✅ SECURITY: Already properly protected with isLoggedIn middleware.
- * Returns the active game for the authenticated user only.
+ * Returns the active game for the authenticated user.
+ * 
+ * Response:
+ * @returns {Object} game - Active game object
+ * @returns {Array} wonCards - Array of cards won so far
+ * 
+ * Status codes:
+ * - 200: Active game found
+ * - 404: No active game found
+ * - 500: Database error
  */
 router.get('/current', isLoggedIn, async (req, res) => {
     try {
@@ -99,7 +119,7 @@ router.get('/current', isLoggedIn, async (req, res) => {
             return res.status(404).json({ error: 'No active game found' });
         }
         
-        // Get all game cards (including initial cards and won cards)
+        // Get all won cards for this game
         const wonCards = await getWonCards(activeGame.id);
         const wonCardIds = wonCards.map(gc => gc.card_id);
         const cardDetails = wonCardIds.length > 0 ? await getCardsByIds(wonCardIds) : [];
@@ -109,7 +129,6 @@ router.get('/current', isLoggedIn, async (req, res) => {
             wonCards: cardDetails
         });
     } catch (error) {
-        console.error('Error fetching current game:', error);
         res.status(500).json({ error: 'Database error while fetching current game' });
     }
 });
@@ -117,8 +136,14 @@ router.get('/current', isLoggedIn, async (req, res) => {
 /**
  * GET /api/games/history - Get user's game history (AUTHENTICATED USERS ONLY)
  * 
- * ✅ SECURITY: Already properly protected with isLoggedIn middleware.
- * Returns completed games for the authenticated user only.
+ * Returns completed games for the authenticated user with card details.
+ * 
+ * Response:
+ * @returns {Array} games - Array of completed games with card information
+ * 
+ * Status codes:
+ * - 200: History retrieved successfully
+ * - 500: Database error
  */
 router.get('/history', isLoggedIn, async (req, res) => {
     try {
@@ -152,7 +177,6 @@ router.get('/history', isLoggedIn, async (req, res) => {
         
         res.json(gamesWithDetails);
     } catch (error) {
-        console.error('Error fetching game history:', error);
         res.status(500).json({ error: 'Database error while fetching game history' });
     }
 });
@@ -160,7 +184,18 @@ router.get('/history', isLoggedIn, async (req, res) => {
 /**
  * DELETE /api/games/:id - Delete/abandon a game (AUTHENTICATED USERS ONLY)
  * 
- * ✅ SECURITY: Already properly protected with isLoggedIn middleware.
+ * Allows a user to abandon their active game.
+ * 
+ * Parameters:
+ * @param {number} id - Game ID to abandon
+ * 
+ * Status codes:
+ * - 204: Game abandoned successfully
+ * - 400: Game is not active or cannot be abandoned
+ * - 403: User can only abandon their own games
+ * - 404: Game not found
+ * - 422: Validation errors
+ * - 500: Database error
  */
 router.delete('/:id', isLoggedIn, [
     param('id').isInt({ min: 1 }).withMessage('Game ID must be a positive integer')
@@ -177,7 +212,7 @@ router.delete('/:id', isLoggedIn, [
             return res.status(404).json({ error: 'Game not found' });
         }
         
-        // 🔒 SECURITY: Users can only abandon their own games
+        // Users can only abandon their own games
         if (game.user_id !== req.user.id) {
             return res.status(403).json({ error: 'You can only abandon your own games' });
         }
@@ -192,7 +227,6 @@ router.delete('/:id', isLoggedIn, [
         
         res.status(204).end();
     } catch (error) {
-        console.error('Error abandoning game:', error);
         res.status(500).json({ error: 'Database error while abandoning game' });
     }
 });
@@ -200,8 +234,22 @@ router.delete('/:id', isLoggedIn, [
 /**
  * POST /api/games/:id/next-round - Start next round (AUTHENTICATED USERS ONLY)
  * 
- * 🔒 SECURITY FIX: Added isLoggedIn middleware protection!
- * ⚠️ PREVIOUS VULNERABILITY: Anonymous users could access round cards!
+ * Starts the next round by providing a new card to guess.
+ * 
+ * Parameters:
+ * @param {number} id - Game ID
+ * 
+ * Response:
+ * @returns {Object} roundCard - Card for current round (without bad_luck_index)
+ * @returns {string} message - Round status message
+ * 
+ * Status codes:
+ * - 200: Round card provided
+ * - 400: Game not active or invalid state
+ * - 403: User can only play their own games
+ * - 404: Game not found
+ * - 422: Validation errors
+ * - 500: Database error
  */
 router.post('/:id/next-round', isLoggedIn, [
     param('id').isInt({ min: 1 }).withMessage('Game ID must be a positive integer')
@@ -218,7 +266,7 @@ router.post('/:id/next-round', isLoggedIn, [
             return res.status(404).json({ error: 'Game not found' });
         }
         
-        // 🔒 SECURITY: Users can only play their own games
+        // Users can only play their own games
         if (game.user_id !== req.user.id) {
             return res.status(403).json({ error: 'You can only play your own games' });
         }
@@ -289,28 +337,44 @@ router.post('/:id/next-round', isLoggedIn, [
             message: `Round ${game.current_round} started`
         });
     } catch (error) {
-        console.error('Error starting next round:', error);
         res.status(500).json({ error: 'Database error while starting next round' });
     }
 });
 
-
 /**
  * POST /api/games/:id/guess - Submit a guess (AUTHENTICATED USERS ONLY)
  * 
- * 🔒 SECURITY COMPLETA + ✅ CHECK-THEN-ACT PATTERN:
- * - Validazione timer server-side (ignora timeElapsed dal client)
- * - Controllo ownership del game
- * - Prevenzione guess multipli
- * - Validazione round corrente
- * - Calcolo stato futuro PRIMA delle modifiche
- * - Autenticazione obbligatoria
+ * Processes a player's guess for the current round.
+ * Implements server-side timer validation and prevents cheating.
+ * 
+ * Parameters:
+ * @param {number} id - Game ID
+ * 
+ * Body parameters:
+ * @param {number} gameCardId - ID of the game card being guessed
+ * @param {number} position - Position where player thinks the card belongs (0-based)
+ * 
+ * Response:
+ * @returns {boolean} correct - Whether the guess was correct
+ * @returns {number} correctPosition - The actual correct position
+ * @returns {number} actualTimeElapsed - Server-calculated time elapsed
+ * @returns {string} gameStatus - Updated game status
+ * @returns {Object} game - Updated game object
+ * @returns {Object} revealed_card - Complete card with bad_luck_index
+ * @returns {string} message - Result message
+ * 
+ * Status codes:
+ * - 200: Guess processed successfully
+ * - 400: Invalid game state or card already played
+ * - 403: User can only play their own games
+ * - 404: Game not found
+ * - 422: Validation errors
+ * - 500: Database error
  */
 router.post('/:id/guess', isLoggedIn, [
     param('id').isInt({ min: 1 }).withMessage('Game ID must be a positive integer'),
     body('gameCardId').isInt({ min: 1 }).withMessage('Game card ID must be a positive integer'),
     body('position').isInt({ min: 0 }).withMessage('Position must be a non-negative integer')
-    // 🔒 SECURITY: Rimuovo validazione timeElapsed - non ci fidiamo del client!
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -318,20 +382,16 @@ router.post('/:id/guess', isLoggedIn, [
     }
     
     const { gameCardId, position } = req.body;
-    // 🔒 SECURITY: Ignoriamo completamente timeElapsed dal client!
     
     try {
-        // ====================================================================
-        // FASE 1: CONTROLLI PRELIMINARI (Read-Only)
-        // ====================================================================
-        
+        // Get game and perform security checks
         const game = await getGameById(req.params.id);
         
         if (!game) {
             return res.status(404).json({ error: 'Game not found' });
         }
         
-        // 🔒 SECURITY: Users can only play their own games
+        // Users can only play their own games
         if (game.user_id !== req.user.id) {
             return res.status(403).json({ error: 'You can only play your own games' });
         }
@@ -341,19 +401,19 @@ router.post('/:id/guess', isLoggedIn, [
             return res.status(400).json({ error: 'Game is not active' });
         }
         
-        // Get the card being guessed - CON CONTROLLI COMPLETI
+        // Get the card being guessed and validate it
         const gameCard = await getGameCardById(gameCardId);
         
         if (!gameCard) {
             return res.status(400).json({ error: 'Game card not found' });
         }
         
-        // 🔒 SECURITY: Verifica che la carta appartenga al gioco corrente
+        // Verify card belongs to this game
         if (gameCard.game_id !== game.id) {
             return res.status(400).json({ error: 'Game card does not belong to this game' });
         }
         
-        // 🔒 SECURITY: Verifica che sia davvero il round corrente
+        // Verify it's the current round
         if (gameCard.round_number !== game.current_round) {
             return res.status(400).json({ 
                 error: 'This card is not for the current round',
@@ -361,7 +421,7 @@ router.post('/:id/guess', isLoggedIn, [
             });
         }
         
-        // 🔒 SECURITY: Verifica che la carta non sia già stata giocata
+        // Verify card hasn't been played already
         if (gameCard.guessed_correctly !== null) {
             return res.status(400).json({ 
                 error: 'This card has already been played',
@@ -369,11 +429,7 @@ router.post('/:id/guess', isLoggedIn, [
             });
         }
         
-        // ====================================================================
-        // FASE 2: CALCOLO STATO FUTURO (Check-Then-Act Pattern)
-        // ====================================================================
-        
-        // 🔒 SECURITY: VALIDAZIONE TIMER SERVER-SIDE
+        // Server-side timer validation
         const now = dayjs();
         const cardDealtAt = dayjs(gameCard.card_dealt_at);
         const actualTimeElapsed = now.diff(cardDealtAt, 'second');
@@ -385,75 +441,61 @@ router.post('/:id/guess', isLoggedIn, [
         const correctPosition = await getCorrectPosition(gameCard.card_id, wonCardIds);
         const isCorrect = !isTimeUp && position === correctPosition;
         
-        // ✅ CHECK-THEN-ACT: Calcola stato futuro PRIMA delle modifiche
+        // Calculate future state to determine game outcome
         const futureCardsCollected = isCorrect ? game.cards_collected + 1 : game.cards_collected;
         const futureWrongGuesses = !isCorrect ? game.wrong_guesses + 1 : game.wrong_guesses;
         
-        // ✅ PREDICTI: Determina risultato finale senza modifiche
         const willWinGame = futureCardsCollected >= 6;
         const willLoseGame = futureWrongGuesses >= 3;
         const finalGameStatus = willWinGame ? 'won' : (willLoseGame ? 'lost' : 'playing');
         
-        // Get card details for response (preparare ora per evitare query extra)
+        // Get card details for response
         const cardDetails = await getCardsByIds([gameCard.card_id]);
         const revealedCard = cardDetails[0];
         
-        // ====================================================================
-        // FASE 3: APPLICAZIONE MODIFICHE (Act)
-        // ====================================================================
-        // Ora che sappiamo esattamente cosa succederà, possiamo applicare le modifiche
-        
-        // 1. Aggiorna sempre il guess
+        // Apply all database updates
         await updateGuess(gameCardId, isCorrect, isTimeUp ? null : position);
         
-        // 2. Aggiorna contatori basandosi sui calcoli precedenti
         if (isCorrect) {
             await incrementCardsCollected(game.id);
         } else {
             await incrementWrongGuesses(game.id);
         }
         
-        // 3. Gestisci stato finale del gioco
         if (willWinGame || willLoseGame) {
             await completeGame(game.id, finalGameStatus);
         } else {
-            // Continue to next round only if game continues
             await advanceRound(game.id);
         }
         
-        // ====================================================================
-        // FASE 4: RISPOSTA (Una sola query per stato aggiornato)
-        // ====================================================================
-        
-        // Una sola query finale per ottenere lo stato aggiornato
+        // Get final updated game state
         const finalUpdatedGame = await getGameById(game.id);
         
-        // Costruisci messaggio specifico
+        // Construct response message
         let message;
         let reason = null;
         
         if (isTimeUp) {
             reason = 'time_up_server';
             if (willLoseGame) {
-                message = `Tempo scaduto! (Server: ${actualTimeElapsed}s > ${TIME_LIMIT}s) Game over.`;
+                message = `Time expired! (Server: ${actualTimeElapsed}s > ${TIME_LIMIT}s) Game over.`;
             } else {
-                message = `Tempo scaduto! (Server: ${actualTimeElapsed}s > ${TIME_LIMIT}s) Prossimo round.`;
+                message = `Time expired! (Server: ${actualTimeElapsed}s > ${TIME_LIMIT}s) Next round.`;
             }
         } else if (isCorrect) {
             if (willWinGame) {
-                message = `Corretto! (Tempo: ${actualTimeElapsed}s) Hai vinto la partita!`;
+                message = `Correct! (Time: ${actualTimeElapsed}s) You won the game!`;
             } else {
-                message = `Corretto! (Tempo: ${actualTimeElapsed}s) Hai preso la carta.`;
+                message = `Correct! (Time: ${actualTimeElapsed}s) You got the card.`;
             }
         } else {
             if (willLoseGame) {
-                message = `Sbagliato! (Tempo: ${actualTimeElapsed}s) Game over.`;
+                message = `Wrong! (Time: ${actualTimeElapsed}s) Game over.`;
             } else {
-                message = `Sbagliato! (Tempo: ${actualTimeElapsed}s) Prossimo round.`;
+                message = `Wrong! (Time: ${actualTimeElapsed}s) Next round.`;
             }
         }
         
-        // ✅ RISPOSTA UNIFICATA: Un solo punto di uscita
         return res.json({
             correct: isCorrect,
             correctPosition,
@@ -462,11 +504,10 @@ router.post('/:id/guess', isLoggedIn, [
             game: finalUpdatedGame,
             revealed_card: revealedCard,
             message,
-            ...(reason && { reason }) // Aggiunge reason solo se presente
+            ...(reason && { reason })
         });
         
     } catch (error) {
-        console.error('Error processing guess:', error);
         res.status(500).json({ error: 'Database error while processing guess' });            
     }
 });
@@ -474,8 +515,29 @@ router.post('/:id/guess', isLoggedIn, [
 /**
  * POST /api/games/:id/timeout - Handle timeout (AUTHENTICATED USERS ONLY)
  * 
- * 🔒 SECURITY FIX: Added isLoggedIn middleware protection!
- * ⚠️ PREVIOUS VULNERABILITY: Anonymous users could trigger timeouts!
+ * Handles when a round times out without a guess.
+ * 
+ * Parameters:
+ * @param {number} id - Game ID
+ * 
+ * Body parameters:
+ * @param {number} gameCardId - ID of the game card that timed out
+ * 
+ * Response:
+ * @returns {boolean} correct - Always false for timeout
+ * @returns {boolean} isTimeout - Always true
+ * @returns {number} correctPosition - The correct position
+ * @returns {string} gameStatus - Updated game status
+ * @returns {Object} game - Updated game object
+ * @returns {Object} revealed_card - Complete card with bad_luck_index
+ * @returns {string} message - Timeout message
+ * 
+ * Status codes:
+ * - 200: Timeout processed successfully
+ * - 400: Invalid game state or card already processed
+ * - 403: User can only play their own games
+ * - 422: Validation errors
+ * - 500: Database error
  */
 router.post('/:id/timeout', isLoggedIn, [
     param('id').isInt({ min: 1 }).withMessage('Game ID must be a positive integer'),
@@ -495,7 +557,7 @@ router.post('/:id/timeout', isLoggedIn, [
             return res.status(400).json({ error: 'Game is not active' });
         }
         
-        // 🔒 SECURITY: Users can only play their own games
+        // Users can only play their own games
         if (game.user_id !== req.user.id) {
             return res.status(403).json({ error: 'You can only play your own games' });
         }
@@ -533,7 +595,7 @@ router.post('/:id/timeout', isLoggedIn, [
                 gameStatus: 'lost',
                 game: updatedGame,
                 revealed_card: revealedCard,
-                message: `Tempo scaduto! La carta "${revealedCard.name}" aveva un Bad Luck Index di ${revealedCard.bad_luck_index}. Partita terminata.`
+                message: `Time expired! The card "${revealedCard.name}" had a Bad Luck Index of ${revealedCard.bad_luck_index}. Game over.`
             });
         }
         
@@ -548,11 +610,10 @@ router.post('/:id/timeout', isLoggedIn, [
             gameStatus: 'playing',
             game: finalUpdatedGame,
             revealed_card: revealedCard,
-            message: `Tempo scaduto! La carta "${revealedCard.name}" aveva un Bad Luck Index di ${revealedCard.bad_luck_index}. Prossimo round!`
+            message: `Time expired! The card "${revealedCard.name}" had a Bad Luck Index of ${revealedCard.bad_luck_index}. Next round!`
         });
         
     } catch (error) {
-        console.error('Error processing timeout:', error);
         res.status(500).json({ error: 'Database error while processing timeout' });
     }
 });

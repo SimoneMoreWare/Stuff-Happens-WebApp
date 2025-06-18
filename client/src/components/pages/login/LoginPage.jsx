@@ -1,27 +1,28 @@
+// LoginPage.jsx - User login page with authentication form
 import { useContext, useEffect } from 'react';
 import { Container, Row, Col, Card, Alert } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router';
-import UserContext from '../../context/UserContext.jsx';
-import { LoginForm } from '../common/LoginForm.jsx';
+import UserContext from '../../../context/UserContext.jsx';
+import { LoginForm } from './LoginForm.jsx';
 
 function LoginPage() {
     const { loggedIn, handleLogin } = useContext(UserContext);
     const navigate = useNavigate();
 
-    // Se già loggato, redirect alla home (come fa il prof con Navigate)
+    // Redirect to home if already authenticated
     useEffect(() => {
         if (loggedIn) {
             navigate('/');
         }
     }, [loggedIn, navigate]);
 
-    // Wrapper per handleLogin che gestisce il redirect dopo successo
+    // Login handler with redirect management
     const handleLoginWithRedirect = async (credentials) => {
         await handleLogin(credentials);
-        // Se arriviamo qui senza errori, il login è riuscito
-        // Il redirect viene gestito dall'useEffect sopra quando loggedIn cambia
+        // Redirect is handled by useEffect when loggedIn state changes
     };
 
+    // Show loading message while redirecting
     if (loggedIn) {
         return (
             <Container>
@@ -39,7 +40,7 @@ function LoginPage() {
 
     return (
         <Container className="py-5">
-            {/* Header della pagina */}
+            {/* Page Header */}
             <Row className="mb-4">
                 <Col className="text-center">
                     <h1 className="display-5 fw-bold text-primary mb-3">
@@ -52,10 +53,10 @@ function LoginPage() {
                 </Col>
             </Row>
 
-            {/* Form di login */}
+            {/* Login Form */}
             <LoginForm handleLogin={handleLoginWithRedirect} />
 
-            {/* Sezione informativa per utenti non registrati */}
+            {/* Information Section for Non-Registered Users */}
             <Row className="mt-5">
                 <Col>
                     <Card className="border-0 bg-body-secondary">
@@ -83,7 +84,7 @@ function LoginPage() {
                 </Col>
             </Row>
 
-            {/* Credenziali di test per lo sviluppo */}
+            {/* Test Credentials for Development */}
             <Row className="mt-4">
                 <Col>
                     <Card className="border-warning bg-warning bg-opacity-10">

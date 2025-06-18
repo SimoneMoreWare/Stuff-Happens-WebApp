@@ -1,3 +1,4 @@
+// useDragDrop.jsx - Custom hook for drag and drop functionality
 import { useState, useMemo } from 'react';
 import {
   useSensor,
@@ -9,28 +10,30 @@ import {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 
 /**
- * Custom hook per gestire la logica Drag & Drop
- * Condiviso tra DemoGameBoard e FullGameBoard
+ * Custom hook for managing Drag & Drop logic
  * 
- * @param {Array} currentCards - Array delle carte correnti del giocatore
- * @param {Object} targetCard - Carta target da posizionare
- * @param {function} onPositionSelect - Callback per gestire la selezione della posizione
- * @returns {object} - Oggetti e funzioni per gestire il drag & drop
+ * Handles the drag and drop interactions for positioning the target card
+ * among the player's existing cards. Supports mouse, touch, and keyboard interactions.
+ * 
+ * @param {Array} currentCards - Array of player's current cards
+ * @param {Object} targetCard - Target card to be positioned
+ * @param {Function} onPositionSelect - Callback function for position selection
+ * @returns {Object} Drag and drop state and handlers
  */
 export const useDragDrop = (currentCards, targetCard, onPositionSelect) => {
   const [isDragging, setIsDragging] = useState(false);
 
-  // Sensori per dnd-kit
+  // Configure sensors for different input methods
   const sensors = useSensors(
     useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 8, // Minimum distance to start drag
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 200,
-        tolerance: 5,
+        delay: 200,    // Delay before drag starts on touch
+        tolerance: 5,  // Movement tolerance
       },
     }),
     useSensor(KeyboardSensor, {
@@ -38,7 +41,7 @@ export const useDragDrop = (currentCards, targetCard, onPositionSelect) => {
     })
   );
 
-  // Crea la lista unificata di elementi per sortable
+  // Create unified list of sortable items
   const allItems = useMemo(() => {
     if (!targetCard || !currentCards) return [];
     
@@ -55,74 +58,62 @@ export const useDragDrop = (currentCards, targetCard, onPositionSelect) => {
     ];
   }, [currentCards, targetCard]);
 
-  // Gestisce l'inizio del drag
+  // Handle drag start event
   const handleDragStart = (event) => {
     const { active } = event;
     
     if (String(active.id).startsWith('target-')) {
       setIsDragging(true);
-      console.log('🎯 Drag started per target card');
     }
   };
 
-  // Gestisce la fine del drag
+  // Handle drag end event and calculate final position
   const handleDragEnd = (event) => {
     const { active, over } = event;
     
     setIsDragging(false);
     
     if (!over) {
-      console.log('❌ Drop su area non valida');
-      return;
+      return; // No valid drop target
     }
     
-    // Solo se è la target card che viene droppata
+    // Only process if target card was dragged
     if (String(active.id).startsWith('target-')) {
       let newGamePosition;
       
-      console.log('🔍 DRAG END DEBUG:');
-      console.log('- Active ID:', active.id);
-      console.log('- Over ID:', over.id);
-      console.log('- CurrentCards length:', currentCards.length);
-      
-      // Calcola la posizione basata su dove è stata droppata
+      // Calculate position based on drop target
       if (over.id === 'invisible-before') {
-        newGamePosition = 0;
-        console.log('🎯 BEFORE ZONE → Posizione gioco: 0 (prima di tutte)');
+        newGamePosition = 0; // Before all cards
       }
       else if (over.id === 'invisible-after') {
-        newGamePosition = currentCards.length;
-        console.log('🎯 AFTER ZONE → Posizione gioco:', newGamePosition, '(dopo tutte)');
+        newGamePosition = currentCards.length; // After all cards
       }
       else if (String(over.id).startsWith('static-')) {
+        // Extract card ID and find its position
         const cardId = parseInt(String(over.id).replace('static-', ''));
         const cardIndex = currentCards.findIndex(card => card.id === cardId);
         
         if (cardIndex !== -1) {
-          newGamePosition = cardIndex + 1;
-          console.log('🎯 STATIC CARD', cardId, 'at index', cardIndex, '→ Posizione gioco:', newGamePosition, '(dopo questa carta)');
+          newGamePosition = cardIndex + 1; // After this card
         } else {
-          console.log('❌ Carta static non trovata in currentCards');
-          return;
+          return; // Card not found
         }
       }
       else {
-        console.log('❌ Drop sulla target card stessa o altro, ignorando');
-        return;
+        return; // Invalid drop target
       }
       
-      // Valida la posizione
+      // Validate position range
       if (newGamePosition < 0 || newGamePosition > currentCards.length) {
-        console.log('❌ Posizione non valida:', newGamePosition, '(range: 0 -', currentCards.length, ')');
         return;
       }
       
-      console.log('📍 FINALE: Calling onPositionSelect con posizione:', newGamePosition);
+      // Execute position selection callback
       onPositionSelect(newGamePosition);
     }
   };
 
-  // Gestisce l'annullamento del drag
+  // Handle drag cancellation
   const handleDragCancel = () => {
     setIsDragging(false);
   };

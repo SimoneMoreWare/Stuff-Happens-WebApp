@@ -1,42 +1,45 @@
+// DemoGameBoard.jsx - Demo game mode for anonymous users
 import React, { useState, useEffect, useContext } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 import { useNavigate } from 'react-router';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 
-import UserContext from '../../context/UserContext.jsx';
-import API from '../../API/API.mjs';
-import { Card as CardModel } from '../../models/Card.mjs';
+// Context and API
+import UserContext from '../../../context/UserContext.jsx';
+import API from '../../../API/API.mjs';
+import { Card as CardModel } from '../../../models/Card.mjs';
 
-// Componenti condivisi
-import { DraggableTargetCard, StaticHandCard, InvisibleDropZone } from './dragdrop/DragDrop.jsx';
-import { GameHeader } from './shared/GameHeader.jsx';
-import { GameInstructions } from './shared/GameInstructions.jsx';
-import { GameLoading, GameError } from './shared/GameUI.jsx';
-import Timer from './Timer.jsx';
-import RoundResult from './RoundResult.jsx';
+// Shared components
+import { DraggableTargetCard, StaticHandCard, InvisibleDropZone } from '../dragdrop/DragDrop.jsx';
+import { GameHeader } from '../shared/GameHeader.jsx';
+import { GameInstructions } from '../shared/GameInstructions.jsx';
+import { GameLoading, GameError } from '../shared/GameUI.jsx';
+import Timer from '../shared/Timer.jsx';
+import RoundResult from '../shared/RoundResult.jsx';
 
-// Hooks condivisi
-import { useGameTimer } from './hooks/useGameTimer.jsx';
-import { useDragDrop } from './hooks/useDragDrop.jsx';
+// Shared hooks
+import { useGameTimer } from '../hooks/useGameTimer.jsx';
+import { useDragDrop } from '../hooks/useDragDrop.jsx';
 
-// Stili condivisi
-import { gameStyles } from './shared/GameStyles.jsx';
+// Shared styles
+import { gameStyles } from '../shared/GameStyles.jsx';
 
 /**
- * DemoGameBoard - Final Refactored Version
- * Gestisce la modalità demo per utenti anonimi
+ * DemoGameBoard - Demo game mode component
  * 
- * Versione finale ottimizzata: ~120 righe (da 300!)
- * Logica semplificata per demo, mantenendo solo l'essenziale
+ * Provides a single-round demo game for anonymous users to try the game
+ * without registration. Includes drag & drop functionality, timer, and
+ * result display. Simplified version of the full game experience.
  */
 function DemoGameBoard() {
     const { setMessage } = useContext(UserContext);
     const navigate = useNavigate();
     
     // ============================================================================
-    // STATO LOCALE SEMPLIFICATO
+    // LOCAL STATE MANAGEMENT
     // ============================================================================
+    
     const [gameState, setGameState] = useState('loading');
     const [currentCards, setCurrentCards] = useState([]);
     const [targetCard, setTargetCard] = useState(null);
@@ -45,10 +48,10 @@ function DemoGameBoard() {
     const [error, setError] = useState('');
     
     // ============================================================================
-    // HOOKS CONDIVISI
+    // SHARED HOOKS INTEGRATION
     // ============================================================================
     
-    // Timer hook
+    // Timer functionality
     const {
         timerActive,
         timeRemaining,
@@ -58,7 +61,7 @@ function DemoGameBoard() {
         isTimeUp
     } = useGameTimer(30, null);
     
-    // Drag & Drop hook
+    // Drag & drop functionality
     const {
         sensors,
         allItems,
@@ -68,19 +71,18 @@ function DemoGameBoard() {
     } = useDragDrop(currentCards, targetCard, handlePositionSelect);
     
     // ============================================================================
-    // INIZIALIZZAZIONE E GAME LOGIC
+    // GAME INITIALIZATION AND LOGIC
     // ============================================================================
     
+    // Initialize demo game on component mount
     useEffect(() => {
         startDemoGame();
     }, []);
 
-    // ✅ GESTIONE CORRETTA - Solo useEffect con flag
+    // Handle timer timeout
     useEffect(() => {
         const handleTimeout = async () => {
             if (isTimeUp && gameState === 'playing' && !loading) {
-                console.log('⏰ Demo timeout rilevato dal flag isTimeUp');
-                
                 try {
                     setGameState('loading');
                     
@@ -92,6 +94,7 @@ function DemoGameBoard() {
                         Math.max(timeElapsed, 31)
                     );
                     
+                    // Reveal card with timeout result
                     const revealedCard = new CardModel(
                         targetCard.id,
                         targetCard.name,
@@ -111,7 +114,6 @@ function DemoGameBoard() {
                     setGameState('result');
                     
                 } catch (err) {
-                    console.error('Errore demo timeout:', err);
                     setError('Errore nella gestione del timeout. Riprova.');
                     setGameState('playing');
                     startTimer();
@@ -119,26 +121,30 @@ function DemoGameBoard() {
             }
         };
         handleTimeout();
-    }, [isTimeUp, gameState, loading]); // Aggiungi loading
+    }, [isTimeUp, gameState, loading]);
     
+    /**
+     * Initialize demo game session
+     * Loads initial cards and target card from server
+     */
     const startDemoGame = async () => {
         try {
             setLoading(true);
             setError('');
             
-            console.log('🎮 Avviando partita demo...');
-            
             const demoData = await API.startDemoGame();
             
+            // Create initial cards with bad luck index visible
             const initialCards = demoData.initialCards.map(c => 
                 new CardModel(c.id, c.name, c.image_url, c.bad_luck_index, c.theme)
             );
             
+            // Create target card without bad luck index (hidden from player)
             const target = new CardModel(
                 demoData.targetCard.id, 
                 demoData.targetCard.name, 
                 demoData.targetCard.image_url, 
-                null,
+                null, // Hidden bad luck index
                 demoData.targetCard.theme
             );
             
@@ -148,7 +154,6 @@ function DemoGameBoard() {
             startTimer();
             
         } catch (err) {
-            console.error('Errore demo:', err);
             setError(err.message || 'Errore nel caricamento della demo');
             setGameState('finished');
         } finally {
@@ -156,6 +161,12 @@ function DemoGameBoard() {
         }
     };
     
+    /**
+     * Handle player's position selection
+     * Processes the guess and shows result
+     * 
+     * @param {number} position - Selected position for target card
+     */
     async function handlePositionSelect(position) {
         try {
             stopTimer();
@@ -169,7 +180,7 @@ function DemoGameBoard() {
                 timeElapsed
             );
             
-            // Rivela bad_luck_index SOLO se ha vinto
+            // Reveal bad luck index only if guess was correct
             const revealedCard = new CardModel(
                 targetCard.id,
                 targetCard.name,
@@ -179,7 +190,7 @@ function DemoGameBoard() {
             );
             setTargetCard(revealedCard);
             
-            // Se vinto, aggiorna currentCards
+            // Add card to collection if guess was correct
             if (result.correct && result.targetCard.bad_luck_index) {
                 const wonCard = new CardModel(
                     targetCard.id,
@@ -206,7 +217,6 @@ function DemoGameBoard() {
             setGameState('result');
             
         } catch (err) {
-            console.error('Errore submit demo guess:', err);
             setError('Errore nell\'invio della risposta. Riprova.');
             setGameState('playing');
             startTimer();
@@ -217,27 +227,36 @@ function DemoGameBoard() {
     // NAVIGATION HANDLERS
     // ============================================================================
     
-    const handleNewGame = async () => {  // ← Aggiungi async
+    /**
+     * Start a new demo game
+     * Resets state and initializes new game session
+     */
+    const handleNewGame = async () => {
         setGameState('loading');
         setCurrentCards([]);
         setTargetCard(null);
         setGameResult(null);
         setError('');
-        await startDemoGame();  // ← Aggiungi await
+        await startDemoGame();
     };
     
+    /**
+     * Navigate back to home page
+     */
     const handleBackHome = () => {
         navigate('/');
     };
     
     // ============================================================================
-    // RENDER
+    // RENDER LOGIC
     // ============================================================================
     
+    // Loading state
     if (loading) {
         return <GameLoading gameState={gameState} />;
     }
     
+    // Error state
     if (error) {
         return (
             <GameError 
@@ -250,6 +269,7 @@ function DemoGameBoard() {
         );
     }
     
+    // Main game interface
     return (
         <Container className="py-4">
             <style>{gameStyles}</style>
@@ -261,7 +281,7 @@ function DemoGameBoard() {
                 onDragEnd={handleDragEnd}
                 onDragCancel={handleDragCancel}
             >
-                {/* Header del gioco */}
+                {/* Game header */}
                 {(gameState === 'playing' || gameState === 'result') && (
                     <GameHeader
                         title="Modalità Demo"
@@ -271,23 +291,23 @@ function DemoGameBoard() {
                     />
                 )}
                 
-                {/* GAMEPLAY */}
+                {/* Playing state */}
                 {gameState === 'playing' && (
                     <>
-                        {/* Timer integrato nelle stats - VERSIONE CORRETTA */}
+                        {/* Timer display */}
                         {targetCard && (
-                        <Col xs={12} className="mt-2">
-                            <div className="d-flex justify-content-center">
-                            <Timer
-                                timeRemaining={timeRemaining}  // ← PASSA IL VALORE DAL HOOK useGameTimer
-                                duration={30}
-                                isActive={timerActive}
-                            />
-                            </div>
-                        </Col>
+                            <Col xs={12} className="mt-2">
+                                <div className="d-flex justify-content-center">
+                                    <Timer
+                                        timeRemaining={timeRemaining}
+                                        duration={30}
+                                        isActive={timerActive}
+                                    />
+                                </div>
+                            </Col>
                         )}
                         
-                        {/* Layout orizzontale con tutte le carte */}
+                        {/* Horizontal card layout with drag & drop */}
                         <Row className="justify-content-center mt-4">
                             <Col md={12}>
                                 <SortableContext 
@@ -320,13 +340,13 @@ function DemoGameBoard() {
                                 </SortableContext>
                             </Col>
                         </Row>
-
-                         {/* Istruzioni di gioco */}
+                        
+                        {/* Game instructions */}
                         <GameInstructions isDemo={true} />
                     </>
                 )}
                 
-                {/* Risultato round */}
+                {/* Round result display */}
                 {gameState === 'result' && gameResult && (
                     <RoundResult 
                         isCorrect={gameResult.isCorrect}

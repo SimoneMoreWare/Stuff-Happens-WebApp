@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
-// Componenti condivisi
-import { DraggableTargetCard, StaticHandCard, InvisibleDropZone } from './dragdrop/DragDrop.jsx';
-import { GameHeader } from './shared/GameHeader.jsx';
-import { GameInstructions } from './shared/GameInstructions.jsx';
+
+// Custom drag & drop components - external library integration for card positioning
+import { DraggableTargetCard, StaticHandCard, InvisibleDropZone } from '../dragdrop/DragDrop.jsx';
+
+// Shared UI components - modular design for code reusability
+import { GameHeader } from '../shared/GameHeader.jsx';
+import { GameInstructions } from '../shared/GameInstructions.jsx';
 import { 
   GameLoading, 
   GameError, 
@@ -13,31 +16,50 @@ import {
   RoundStartButton, 
   GameStats, 
   AbandonGameButton 
-} from './shared/GameUI.jsx';
-import Timer from './Timer.jsx';
-import RoundResult from './RoundResult.jsx';
+} from '../shared/GameUI.jsx';
+
+// Specialized components for game phases
+import Timer from '../shared/Timer.jsx';
+import RoundResult from '../shared/RoundResult.jsx';
 import GameSummary from './GameSummary.jsx';
-// Hooks condivisi
-import { useGameTimer } from './hooks/useGameTimer.jsx';
-import { useDragDrop } from './hooks/useDragDrop.jsx';
-import { useGameManagement } from './hooks/useGameManagement.jsx';
-// Stili condivisi
-import { gameStyles } from './shared/GameStyles.jsx';
+
+// Custom hooks - separation of concerns for maintainability
+import { useGameTimer } from '../hooks/useGameTimer.jsx';
+import { useDragDrop } from '../hooks/useDragDrop.jsx';
+import { useGameManagement } from '../hooks/useGameManagement.jsx';
+
+// Shared styling - consistent appearance across components
+import { gameStyles } from '../shared/GameStyles.jsx';
 
 /**
- * FullGameBoard - VERSIONE CORRETTA CON TIMER FUNZIONANTE
+ * FullGameBoard - Main component for complete game functionality
+ * 
+ * This is the primary game component that orchestrates all game phases:
+ * - Initial game setup and creation
+ * - Round-based gameplay with timer integration
+ * - Drag & drop card positioning mechanics
+ * - Result handling and game completion
+ * 
+ * Architecture decisions:
+ * - Custom hooks separate concerns (timer, drag&drop, game management)
+ * - State is lifted up to this component for centralized control
+ * - External drag&drop library (@dnd-kit) chosen for robust touch/mouse support
+ * - Timer integration ensures consistent 30-second rounds
  */
 function FullGameBoard() {
+  
   // ============================================================================
-  // STATO SEMPLICE
+  // LOCAL STATE MANAGEMENT
   // ============================================================================
   
+  // Controls initial game setup flow - prevents automatic game creation
   const [gameInitialized, setGameInitialized] = useState(false);
   
   // ============================================================================
-  // HOOKS PRINCIPALI
+  // CUSTOM HOOKS INTEGRATION
   // ============================================================================
   
+  // Main game state and API operations - centralized game logic
   const {
     gameState,
     currentGame,
@@ -55,14 +77,14 @@ function FullGameBoard() {
     startNextRound,
     processGameResult,
     processTimeUp,
-    handleContinueAfterResult,  // ← USA QUESTA DAL HOOK
+    handleContinueAfterResult,
     handleNewGame,
     handleBackHome,
     handleAbandonGame,
-    cleanupGameState  // ✅ AGGIUNGI QUESTA RIGA
+    cleanupGameState
   } = useGameManagement();
   
-  // Hook per timer
+  // Timer functionality with 30-second rounds - game rule implementation
   const {
     timerActive,
     timeRemaining,
@@ -72,7 +94,7 @@ function FullGameBoard() {
     isTimeUp 
   } = useGameTimer(30, handleTimeUp);
   
-  // Hook per drag & drop
+  // Drag & drop functionality - external library integration
   const {
     sensors,
     allItems,
@@ -81,78 +103,95 @@ function FullGameBoard() {
     handleDragCancel
   } = useDragDrop(currentCards, targetCard, handlePositionSelect);
   
+  // Prevents double-clicks during game creation - UX improvement
   const [isCreating, setIsCreating] = useState(false);
-
+  
   // ============================================================================
-  // EVENT HANDLERS
+  // TIMEOUT HANDLING - CRITICAL GAME LOGIC
   // ============================================================================
-
-  // ✅ AGGIUNGI useEffect per gestire timeout
+  
+  // Watches for timer expiration and triggers timeout logic
+  // Uses effect to handle async timeout processing without blocking render
   useEffect(() => {
     const handleTimeout = async () => {
+      // Only process timeout in active game state to prevent duplicate calls
       if (isTimeUp && gameState === 'playing' && !loading) {
-        console.log('⏰ Timeout rilevato dal flag isTimeUp');
         await processTimeUp();
       }
     };
-
     handleTimeout();
-  }, [isTimeUp, gameState, loading]); // Solo flag come dipendenze
+  }, [isTimeUp, gameState, loading]); // Minimal dependencies to prevent excessive calls
   
-  // Handler per selezione posizione
+  // ============================================================================
+  // EVENT HANDLERS - USER INTERACTION PROCESSING
+  // ============================================================================
+  
+  /**
+   * Handle player's card position selection
+   * Stops timer and processes the guess with elapsed time tracking
+   */
   async function handlePositionSelect(position) {
     try {
+      // Stop timer immediately to capture accurate elapsed time
       stopTimer();
       const timeElapsed = getElapsedTime();
+      
+      // Process the guess through API
       await processGameResult(position, timeElapsed);
     } catch (error) {
-      console.error('Error in position select:', error);
+      // Error handling
       setError('Errore nell\'invio della risposta');
-      // Restart timer or handle appropriately
     }
   }
   
-  // Handler per timeout
+  /**
+   * Handle timeout when player doesn't make a selection
+   * Safety check prevents duplicate timeout processing
+   */
   async function handleTimeUp() {
+    // Guard clause prevents multiple timeout calls
     if (!timerActive || gameState !== 'playing') return;
     await processTimeUp();
   }
   
-  // Handler per avvio round che avvia anche il timer
+  /**
+   * Start new round and activate timer
+   * Combines round start with timer activation for seamless gameplay
+   */
   const handleStartRound = async () => {
-    console.log('🎮 BEFORE startNextRound');
     const success = await startNextRound();
-    console.log('🎮 AFTER startNextRound, success:', success);
+    // Only start timer if round creation was successful
     if (success) {
-      console.log('🎮 CALLING startTimer...');
       startTimer();
-      console.log('🎮 startTimer CALLED');
     }
   };
-
-  // ✅ CUSTOM HANDLER che chiama il timer + quello del hook
+  
+  /**
+   * Continue button handler that manages timer for next round
+   * Differentiates between continuing game vs. game over scenarios
+   */
   const handleContinueWithTimer = async () => {
     if (roundResult?.gameStatus === 'playing') {
-      console.log('🎮 Continue with timer - starting next round...');
-      
-      // Avvia il prossimo round
+      // Game continues - start next round with timer
       const success = await startNextRound();
       
-      // IMPORTANTE: Avvia il timer
+      // Critical: restart timer for new round
       if (success) {
-        console.log('🎮 CALLING startTimer from continue...');
         startTimer();
-        console.log('🎮 startTimer CALLED from continue');
       }
     } else {
-      // Usa la funzione originale del hook per il game-over
+      // Game over - use standard continuation flow
       await handleContinueAfterResult();
     }
   };
   
-  // EVENT HANDLER: Inizializza gioco (SEMPRE nuova partita)
+  /**
+   * Initialize game on user request
+   * Handles creation state to prevent duplicate game creation
+   */
   const handleInitializeGame = async () => {
-    if (isCreating) return; // Prevent double clicks
+    // Prevent double-clicks during creation
+    if (isCreating) return;
     
     setIsCreating(true);
     try {
@@ -164,10 +203,11 @@ function FullGameBoard() {
   };
   
   // ============================================================================
-  // RENDER SCHERMATA INIZIALE
+  // RENDER: INITIAL SETUP SCREEN
   // ============================================================================
   
-  // Se il gioco non è ancora stato inizializzato, mostra solo un pulsante
+  // Show setup screen before game initialization
+  // This design choice gives users explicit control over game creation
   if (!gameInitialized) {
     return (
       <Container fluid>
@@ -219,15 +259,15 @@ function FullGameBoard() {
   }
   
   // ============================================================================
-  // RENDER CONDIZIONALE DEGLI STATI
+  // RENDER: LOADING AND ERROR STATES
   // ============================================================================
   
-  // Loading state
+  // Loading state with user feedback
   if (loading) {
     return <GameLoading gameState={gameState} />;
   }
   
-  // Error state
+  // Error state with recovery options
   if (error && gameState === 'error') {
     return (
       <GameError 
@@ -241,7 +281,7 @@ function FullGameBoard() {
   }
   
   // ============================================================================
-  // RENDER PRINCIPALE DEL GIOCO
+  // RENDER: MAIN GAME INTERFACE
   // ============================================================================
   
   return (
@@ -249,7 +289,7 @@ function FullGameBoard() {
       <style>{gameStyles}</style>
       
       <Row>
-        {/* Header del gioco */}
+        {/* Game header with user info and navigation */}
         <Col xs={12}>
           <GameHeader
             title="Partita Completa"
@@ -259,22 +299,23 @@ function FullGameBoard() {
           />
         </Col>
         
-        {/* Stato: Partita abbandonata */}
+        {/* Game abandoned state - allows recovery */}
         {gameState === 'abandoned' && <GameAbandoned />}
         
-        {/* Stato: Gioco attivo */}
+        {/* Active game state - main gameplay interface */}
         {gameState === 'playing' && currentGame && (
           <>
             {!targetCard ? (
-              /* Bottone per iniziare il round */
+              /* Round start interface - player initiates next round */
               <RoundStartButton 
                 currentGame={currentGame}
                 onStartRound={handleStartRound}
               />
             ) : (
-              /* Area Drag & Drop */
+              /* Main game interface with drag & drop */
               <Col xs={12}>
-                {/* Timer integrato nelle stats - VERSIONE CORRETTA */}
+                
+                {/* Timer display with game stats integration */}
                 {targetCard && (
                   <Col xs={12} className="mt-2">
                     <div className="d-flex justify-content-center">
@@ -287,6 +328,7 @@ function FullGameBoard() {
                   </Col>
                 )}
                 
+                {/* Drag & drop card positioning area */}
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -342,13 +384,13 @@ function FullGameBoard() {
                   </SortableContext>
                 </DndContext>
                 
-                {/* Istruzioni di gioco */}
+                {/* Game instructions for user guidance */}
                 <GameInstructions isCompact={isCompactLayout} />
-
-                {/* Stats e Timer */}
+                
+                {/* Game statistics and current round info */}
                 <GameStats currentGame={currentGame} targetCard={targetCard} />
                 
-                {/* Bottone abbandona partita - VERSIONE AGGIORNATA */}
+                {/* Game abandonment option - always available during play */}
                 <AbandonGameButton 
                   gameState={gameState}
                   currentGame={currentGame}
@@ -356,12 +398,10 @@ function FullGameBoard() {
                 />
               </Col>
             )}
-            
-            
           </>
         )}
         
-        {/* Stato: Risultato round */}
+        {/* Round result state - shows outcome of player's guess */}
         {gameState === 'result' && roundResult && (
           <Col xs={12}>
             <RoundResult 
@@ -371,7 +411,7 @@ function FullGameBoard() {
               correctPosition={roundResult.correctPosition}
               guessedPosition={roundResult.guessedPosition}
               allCards={currentCards}
-              onContinue={handleContinueWithTimer}  // ← USA LA FUNZIONE CUSTOM
+              onContinue={handleContinueWithTimer} // Uses timer-aware handler
               onNewGame={handleNewGame}
               onBackHome={handleBackHome} 
               isDemo={false}
@@ -381,7 +421,7 @@ function FullGameBoard() {
           </Col>
         )}
         
-        {/* Stato: Partita terminata */}
+        {/* Game completion state - final summary and options */}
         {gameState === 'game-over' && currentGame && (
           <Col xs={12}>
             <GameSummary

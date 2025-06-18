@@ -1,4 +1,4 @@
--- Database Schema per "Stuff Happens" - VERSIONE SICURA
+-- Database Schema per "Stuff Happens"
 -- Tema: University Life
 
 -- Tabella Users
@@ -15,7 +15,7 @@ CREATE TABLE Users (
 CREATE TABLE Cards (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,                    -- Nome della situazione
-    image_url TEXT NOT NULL,               -- URL robohash
+    image_url TEXT NOT NULL,               -- URL immagine
     bad_luck_index REAL NOT NULL UNIQUE,   -- Da 1 a 100, unico
     theme TEXT NOT NULL DEFAULT 'university_life', -- Tema delle carte
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -39,7 +39,7 @@ CREATE TABLE Games (
     CHECK (wrong_guesses >= 0 AND wrong_guesses <= 3)
 );
 
--- Tabella GameCards (carte coinvolte nelle partite) - AGGIORNATA PER SICUREZZA
+-- Tabella GameCards (carte coinvolte nelle partite)
 CREATE TABLE GameCards (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     game_id INTEGER NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE GameCards (
     position_guessed INTEGER,              -- Dove l'utente ha piazzato la carta
     is_initial BOOLEAN DEFAULT FALSE,      -- Se è una delle 3 carte iniziali
     played_at TIMESTAMP,                   -- Quando è stata giocata
-    card_dealt_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 🔒 SECURITY: Quando la carta è stata distribuita
+    card_dealt_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Quando la carta è stata distribuita
     FOREIGN KEY (game_id) REFERENCES Games(id) ON DELETE CASCADE,
     FOREIGN KEY (card_id) REFERENCES Cards(id),
     CHECK (round_number >= 0),  -- 0 per carte iniziali, 1+ per round
@@ -131,7 +131,6 @@ INSERT INTO Games (user_id, status, cards_collected, wrong_guesses, current_roun
     (1, 'won', 6, 1, 5, '2024-05-13 19:20:00');
 
 -- Inserimento GameCards per le partite completate (esempio per la prima partita)
--- 🔒 NOTA: Aggiungo card_dealt_at per essere coerenti con il nuovo schema
 INSERT INTO GameCards (game_id, card_id, round_number, guessed_correctly, position_guessed, is_initial, played_at, card_dealt_at) VALUES 
     -- Carte iniziali della prima partita
     (1, 15, 0, NULL, NULL, TRUE, '2024-05-15 14:00:00', '2024-05-15 14:00:00'),

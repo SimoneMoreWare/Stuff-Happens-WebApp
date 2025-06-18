@@ -1,3 +1,4 @@
+// NotFoundPage.jsx - 404 error page for invalid routes
 import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 import { Link } from 'react-router';
 

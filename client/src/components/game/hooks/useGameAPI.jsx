@@ -24,7 +24,6 @@ export const useGameAPI = (gameState) => {
     try {
       // Check current state before cleanup
       const currentState = gameState.gameState;
-      const hadCurrentGame = !!gameState.currentGame;
       const roundResult = gameState.roundResult;
       const wasRecentlyAbandoned = gameState.wasAbandoned;
       

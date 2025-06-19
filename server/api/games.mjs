@@ -108,7 +108,7 @@ router.post('/', isLoggedIn, [
  * 
  * Status codes:
  * - 200: Active game found
- * - 404: No active game found
+ * - 204: No active game found 
  * - 500: Database error
  */
 router.get('/current', isLoggedIn, async (req, res) => {
@@ -116,7 +116,9 @@ router.get('/current', isLoggedIn, async (req, res) => {
         const activeGame = await getActiveGameByUser(req.user.id);
         
         if (!activeGame) {
-            return res.status(404).json({ error: 'No active game found' });
+            // 204 = "richiesta valida, ma nessun contenuto da restituire"
+            // 404 = "risorsa non trovata" (implica errore)
+            return res.status(204).end(); // No JSON, just empty response
         }
         
         // Get all won cards for this game

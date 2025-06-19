@@ -270,6 +270,11 @@ const getCurrentGame = async () => {
   });
   
   if (response.ok) {
+    // GESTIONE 204: No Content (nessuna partita attiva)
+    if (response.status === 204) {
+      throw { message: "No active game found", type: 'NO_ACTIVE_GAME' };
+    }
+    
     const gameData = await response.json();
     
     // Convert image URLs for all card collections

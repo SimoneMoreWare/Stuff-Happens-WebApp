@@ -131,8 +131,8 @@
   "wonCards": [ /* array of won cards with details */ ]
 }
 ```
-- **Response (404):** `{ "error": "No active game found" }`
-- **Status codes:** 200 (found), 404 (no active game), 401 (not authenticated), 500 (database error)
+- **Response (204):** No content (no active game found)
+- **Status codes:** 200 (active game found), 204 (no active game), 401 (not authenticated), 500 (database error)
 
 #### GET `/api/games/history`
 **Purpose:** Get user's completed games history

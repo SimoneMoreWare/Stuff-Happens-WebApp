@@ -1,190 +1,216 @@
-### Stuff Happens API Test File
-### Use this file in VS Code with the REST Client extension to test all endpoints
+### API Tests for Stuff Happens Game
+### Base URL
+@baseUrl = http://localhost:3001
 
 ### Variables
-@baseUrl = http://localhost:3001/api
-@theme = university_life
+@username = user1
+@password = password
 
-###
-### Authentication Tests
-###
+### ===== AUTHENTICATION TESTS =====
 
-### Login with invalid credentials
-POST {{baseUrl}}/sessions
+### 1. Login (Create Session)
+POST {{baseUrl}}/api/sessions
 Content-Type: application/json
 
 {
-  "username": "invalid_user",
-  "password": "wrong_password"
+  "username": "{{username}}",
+  "password": "{{password}}"
 }
 
-### Login as user1
-POST {{baseUrl}}/sessions
+### 2. Get Current Session (Check if logged in)
+GET {{baseUrl}}/api/sessions/current
+
+### 3. Login with wrong credentials
+POST {{baseUrl}}/api/sessions
 Content-Type: application/json
 
 {
-  "username": "user1",
-  "password": "password"
+  "username": "wrong",
+  "password": "wrong"
 }
 
-### Check current session
-GET {{baseUrl}}/sessions/current
+### 4. Logout (Delete Session)
+DELETE {{baseUrl}}/api/sessions/current
 
-### Logout
-DELETE {{baseUrl}}/sessions/current
+### ===== DEMO GAME TESTS (Anonymous Users) =====
 
-###
-### Demo API Tests (Anonymous Users)
-###
-
-### Get game instructions
-GET {{baseUrl}}/demo/instructions
-
-### Get practice cards
-POST {{baseUrl}}/demo/practice-cards
+### 5. Start Demo Game (default theme)
+POST {{baseUrl}}/api/demo/start
 Content-Type: application/json
 
 {
-  "theme": "{{theme}}",
-  "count": 5
 }
 
-### Start demo game
-POST {{baseUrl}}/demo/start
+### 6. Start Demo Game with specific theme
+POST {{baseUrl}}/api/demo/start
 Content-Type: application/json
 
 {
-  "theme": "{{theme}}"
+  "theme": "university_life"
 }
 
-### Submit demo guess (replace with actual card IDs from demo start response)
-POST {{baseUrl}}/demo/guess
+### 7. Demo Guess - Correct position (update with real IDs from start response)
+POST {{baseUrl}}/api/demo/guess
 Content-Type: application/json
 
 {
   "targetCardId": 1,
   "initialCardIds": [2, 3, 4],
   "position": 1,
-  "timeElapsed": 15.5
+  "timeElapsed": 15
 }
 
-###
-### Cards API Tests
-###
-
-### Get all cards
-GET {{baseUrl}}/cards
-
-### Get cards by theme
-GET {{baseUrl}}/cards/theme/{{theme}}
-
-### Get specific card
-GET {{baseUrl}}/cards/1
-
-### Get card without bad luck index (for gameplay)
-GET {{baseUrl}}/cards/1/without-index
-
-### Get random cards
-POST {{baseUrl}}/cards/random
-Content-Type: application/json
-
-{
-  "theme": "{{theme}}",
-  "count": 3,
-  "excludeIds": []
-}
-
-### Get multiple cards by IDs
-POST {{baseUrl}}/cards/by-ids
-Content-Type: application/json
-
-{
-  "ids": [1, 2, 3, 4, 5]
-}
-
-###
-### Games API Tests (Authenticated Users)
-### First login before running these tests
-###
-
-### Create new game
-POST {{baseUrl}}/games
-Content-Type: application/json
-
-{
-  "theme": "{{theme}}"
-}
-
-### Get current active game
-GET {{baseUrl}}/games/current
-
-### Get specific game details (replace 1 with actual game ID)
-GET {{baseUrl}}/games/1
-
-### Start next round (replace 1 with actual game ID)
-POST {{baseUrl}}/games/1/next-round
-Content-Type: application/json
-
-{}
-
-### Start next round (replace 1 with actual game ID)
-POST {{baseUrl}}/games/10/next-round
-Content-Type: application/json
-
-{}
-
-### Submit guess (replace with actual values from your game)
-POST {{baseUrl}}/games/10/guess
-Content-Type: application/json
-
-{
-  "gameCardId": 34,
-  "position": 2,
-  "timeElapsed": 12.3
-}
-
-### Get game history
-GET {{baseUrl}}/games/history
-
-### Abandon game (replace 1 with actual game ID)
-DELETE {{baseUrl}}/games/1
-
-###
-### Error Testing
-###
-
-### Try to access protected route without login
-GET {{baseUrl}}/games/current
-
-### Try invalid card ID
-GET {{baseUrl}}/cards/999999
-
-### Try invalid theme
-GET {{baseUrl}}/cards/theme/invalid_theme
-
-### Try demo route while logged in (should work - demo is for everyone)
-POST {{baseUrl}}/demo/start
-Content-Type: application/json
-
-{
-  "theme": "{{theme}}"
-}
-
-### Try to guess with invalid position
-POST {{baseUrl}}/demo/guess
+### 8. Demo Guess - Wrong position
+POST {{baseUrl}}/api/demo/guess
 Content-Type: application/json
 
 {
   "targetCardId": 1,
   "initialCardIds": [2, 3, 4],
-  "position": 10,
-  "timeElapsed": 15.5
+  "position": 0,
+  "timeElapsed": 10
 }
 
-### Try to create game with invalid theme
-POST {{baseUrl}}/games
+### 9. Demo Guess - Time expired
+POST {{baseUrl}}/api/demo/guess
+Content-Type: application/json
+
+{
+  "targetCardId": 1,
+  "initialCardIds": [2, 3, 4],
+  "position": 1,
+  "timeElapsed": 35
+}
+
+### ===== FULL GAME TESTS (Authenticated Users) =====
+### NOTE: Login first with test #1
+
+### 10. Create New Game (must be logged in)
+POST {{baseUrl}}/api/games
+Content-Type: application/json
+
+{
+  "theme": "university_life"
+}
+
+### 11. Get Current Active Game
+GET {{baseUrl}}/api/games/current
+
+### 12. Try to create another game (should fail - one active game limit)
+POST {{baseUrl}}/api/games
+Content-Type: application/json
+
+{
+  "theme": "university_life"
+}
+
+### 13. Start Next Round (use game ID from create response)
+POST {{baseUrl}}/api/games/1/next-round
+
+### 14. Submit Guess - Correct (update with real IDs)
+POST {{baseUrl}}/api/games/1/guess
+Content-Type: application/json
+
+{
+  "gameCardId": 1,
+  "position": 2
+}
+
+### 15. Submit Guess - Wrong (update with real IDs)
+POST {{baseUrl}}/api/games/1/guess
+Content-Type: application/json
+
+{
+  "gameCardId": 2,
+  "position": 0
+}
+
+### 16. Handle Timeout (update with real IDs)
+POST {{baseUrl}}/api/games/1/timeout
+Content-Type: application/json
+
+{
+  "gameCardId": 3
+}
+
+### 17. Get Game History
+GET {{baseUrl}}/api/games/history
+
+### 18. Abandon Game (use real game ID)
+DELETE {{baseUrl}}/api/games/1
+
+### ===== ERROR TESTS =====
+
+### 19. Try to access protected route without login
+GET {{baseUrl}}/api/games/current
+
+### 20. Invalid validation - Demo start with wrong theme
+POST {{baseUrl}}/api/demo/start
 Content-Type: application/json
 
 {
   "theme": "invalid_theme"
 }
+
+### 21. Invalid validation - Demo guess with invalid position
+POST {{baseUrl}}/api/demo/guess
+Content-Type: application/json
+
+{
+  "targetCardId": 1,
+  "initialCardIds": [2, 3, 4],
+  "position": 5,
+  "timeElapsed": 10
+}
+
+### 22. Invalid validation - Create game with wrong theme
+POST {{baseUrl}}/api/games
+Content-Type: application/json
+
+{
+  "theme": "invalid_theme"
+}
+
+### 23. Try to guess on non-existent game
+POST {{baseUrl}}/api/games/999/guess
+Content-Type: application/json
+
+{
+  "gameCardId": 1,
+  "position": 1
+}
+
+### 24. Try to access other user's game (if you have multiple users)
+POST {{baseUrl}}/api/games/999/next-round
+
+### ===== WORKFLOW TEST =====
+### Complete game workflow (run in sequence after login)
+
+### 25. WORKFLOW: Create game
+POST {{baseUrl}}/api/games
+Content-Type: application/json
+
+{
+  "theme": "university_life"
+}
+
+### 26. WORKFLOW: Start first round
+POST {{baseUrl}}/api/games/1/next-round
+
+### 27. WORKFLOW: Make first guess
+POST {{baseUrl}}/api/games/1/guess
+Content-Type: application/json
+
+{
+  "gameCardId": 1,
+  "position": 1
+}
+
+### 28. WORKFLOW: Start second round
+POST {{baseUrl}}/api/games/1/next-round
+
+### 29. WORKFLOW: Check current game status
+GET {{baseUrl}}/api/games/current
+
+### 30. WORKFLOW: Check history (after completing a game)
+GET {{baseUrl}}/api/games/history

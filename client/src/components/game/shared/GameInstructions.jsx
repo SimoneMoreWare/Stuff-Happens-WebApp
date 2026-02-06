@@ -1,63 +1,71 @@
 import React from 'react';
-import { Row, Col, Alert, Card } from 'react-bootstrap';
+import { Row, Col, Card } from 'react-bootstrap';
 
 /**
  * GameInstructions - Dynamic instruction display component
  * 
- * Provides contextual game instructions that adapt to different game modes
- * and layout constraints. Supports both demo and full game variants with
- * responsive text and layout adjustments.
- * 
- * Features:
- * - Adaptive content based on game mode (demo vs full)
- * - Compact layout support for space-constrained interfaces
- * - Clear visual hierarchy with icons and color coding
- * - Responsive instruction text for different screen sizes
+ * Provides contextual game instructions with modern, compact design.
+ * Features gradient backgrounds and better visual hierarchy.
  */
 export function GameInstructions({ isCompact = false, isDemo = false }) {
   return (
     <>
-      {/* Primary game instructions */}
+      {/* Compact instruction card with gradient */}
       <Row className="mb-3 mt-3">
         <Col xs={12}>
-          <Alert variant="info" className="mb-2 text-center">
-            <i className="bi bi-info-circle-fill me-2"></i>
-            Trascina la carta Target nella posizione corretta
-          </Alert>
-          <Alert variant="warning" className="mb-0 text-center">
-            <i className="bi bi-clock me-2"></i>
-            Posizionala in base al Bad Luck Index delle altre carte
-          </Alert>
-        </Col>
-      </Row>
-      
-      {/* Position reference guide */}
-      <Row className="mt-3">
-        <Col xs={12}>
-          <Card className="bg-body-secondary">
-            <Card.Body className="py-2">
-              <small className="text-muted d-flex align-items-center justify-content-center">
-                <i className="bi bi-lightbulb me-2"></i>
-                {isCompact ? 
-                  "Posizioni: Prima (0) • Tra carte (1,2,3...) • Dopo tutte" :
-                  "Posizioni valide: Prima di tutte (0) • Dopo ogni carta (1, 2, 3...) • Dopo tutte"
-                }
-              </small>
+          <Card className="border-0 shadow-sm">
+            <Card.Body className="py-3 px-4" style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white'
+            }}>
+              <div className="d-flex align-items-center justify-content-center mb-2">
+                <i className="bi bi-cursor-fill me-2 fs-5"></i>
+                <strong className="fs-6">Trascina la carta nella posizione corretta</strong>
+              </div>
+              <div className="text-center">
+                <small style={{ opacity: 0.9 }}>
+                  Posizionala secondo il <strong>Bad Luck Index</strong> crescente
+                </small>
+              </div>
             </Card.Body>
           </Card>
         </Col>
       </Row>
       
+      {/* Position reference guide - Modern chip style */}
+      <Row className="mb-3">
+        <Col xs={12}>
+          <div className="d-flex align-items-center justify-content-center gap-2 flex-wrap">
+            <span className="badge rounded-pill bg-light text-dark px-3 py-2 border">
+              <i className="bi bi-arrow-left me-1"></i>
+              Prima (0)
+            </span>
+            <span className="badge rounded-pill bg-light text-dark px-3 py-2 border">
+              <i className="bi bi-arrows-expand me-1"></i>
+              Tra le carte (1, 2, 3...)
+            </span>
+            <span className="badge rounded-pill bg-light text-dark px-3 py-2 border">
+              <i className="bi bi-arrow-right me-1"></i>
+              Dopo tutte
+            </span>
+          </div>
+        </Col>
+      </Row>
+      
       {/* Demo-specific instructions */}
       {isDemo && (
-        <Row className="mt-2">
+        <Row className="mb-2">
           <Col xs={12}>
-            <Alert variant="secondary" className="text-center mb-0">
-              <small>
-                <i className="bi bi-info-circle me-2"></i>
-                <strong>Modalità Demo:</strong> Una sola carta da posizionare per imparare il gioco
-              </small>
-            </Alert>
+            <Card className="border-0 bg-warning bg-opacity-10">
+              <Card.Body className="py-2 px-3">
+                <div className="d-flex align-items-center justify-content-center">
+                  <i className="bi bi-star-fill text-warning me-2"></i>
+                  <small className="text-dark">
+                    <strong>Demo:</strong> Una sola carta per imparare il gioco
+                  </small>
+                </div>
+              </Card.Body>
+            </Card>
           </Col>
         </Row>
       )}

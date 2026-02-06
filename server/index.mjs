@@ -35,18 +35,26 @@ app.use(cors(corsOptions));
 // Serve static files (images)
 app.use(express.static('public'));
 
-// Session configuration BEFORE passport
+// Session configuration with secure cookies for production
+console.log('🔍 NODE_ENV:', process.env.NODE_ENV);
+console.log('🔍 Is production?', process.env.NODE_ENV === 'production');
+
 app.use(session({
   secret: process.env.SESSION_SECRET || "shhhhh... it's a secret!",
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site in production
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 24 * 60 * 60 * 1000
   }
 }));
+
+console.log('🔍 Cookie config:', {
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+});
 
 // Configure Passport strategies BEFORE initialize
 configurePassport();

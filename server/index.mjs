@@ -28,7 +28,7 @@ const port = process.env.PORT || 3001;
 const corsOptions = {
   origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   optionsSuccessStatus: 200,
-  credentials: true,
+  credentials: true, // CRITICAL: Allow cookies
 };
 app.use(cors(corsOptions));
 
@@ -46,10 +46,10 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site in production
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
-app.use(passport.authenticate('session'));
 
 // API Routes
 app.use('/api', authRoutes);

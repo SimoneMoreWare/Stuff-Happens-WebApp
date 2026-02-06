@@ -34,6 +34,7 @@ app.use(cors(corsOptions));
 
 // Serve static files (images)
 app.use(express.static('public'));
+app.set('trust proxy', 1); // Trust first proxy
 
 // Session configuration with secure cookies for production
 console.log('🔍 NODE_ENV:', process.env.NODE_ENV);

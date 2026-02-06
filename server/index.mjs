@@ -35,10 +35,10 @@ app.use(cors(corsOptions));
 // Serve static files (images)
 app.use(express.static('public'));
 
-// Configure Passport
+// Configure Passport strategies
 configurePassport();
 
-// Session configuration
+// Session configuration with secure cookies for production
 app.use(session({
   secret: process.env.SESSION_SECRET || "shhhhh... it's a secret!",
   resave: false,
@@ -50,6 +50,10 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
+
+// Initialize Passport AFTER session middleware
+app.use(passport.initialize());
+app.use(passport.session());
 
 // API Routes
 app.use('/api', authRoutes);

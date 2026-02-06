@@ -1,31 +1,62 @@
 /**
  * GameStyles - Shared CSS styles for game components
  * 
- * Centralized styling solution for consistent appearance across
- * DemoGameBoard and FullGameBoard components. Includes responsive
- * design patterns and interactive animations.
- * 
- * Style Categories:
- * - Responsive card layouts that adapt to screen size and card count
- * - Compact layout variants for high card density scenarios
- * - Smooth animations for drag & drop interactions
- * - Game state visual indicators (loading, active, warning)
- * - Mobile-responsive breakpoints and adjustments
+ * Centralized styling solution with minimal, functional design.
+ * Features compact info bar, clean card layouts, and smooth animations.
  */
 export const gameStyles = `
-  /* Hide scrollbars in card containers for cleaner appearance */
+  /* ============================================
+     MINIMAL INFO BAR - Sopra le carte
+     ============================================ */
+  .info-bar-minimal {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .info-bar-minimal .badge {
+    font-size: 0.85rem;
+    padding: 0.35rem 0.6rem;
+    font-weight: 500;
+  }
+  
+  /* ============================================
+     CARD CONTAINERS - Pulito e funzionale
+     ============================================ */
+  .cards-container {
+    overflow-x: hidden;
+    overflow-y: hidden;
+    transition: all 0.3s ease;
+  }
+  
   .cards-container::-webkit-scrollbar {
     display: none;
   }
   
-  /* Responsive card sizing - adapts to available space and card count */
+  /* ============================================
+     RESPONSIVE CARD SIZING
+     ============================================ */
   .responsive-card {
     min-width: 100px;
     max-width: 180px;
     flex: 1;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
   
-  /* Compact layout for 6+ cards - reduces spacing and sizing */
+  .responsive-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  
+  /* ============================================
+     COMPACT LAYOUT - Per 6+ carte
+     ============================================ */
   .compact-layout .responsive-card {
     min-width: 90px;
     max-width: 140px;
@@ -48,21 +79,9 @@ export const gameStyles = `
     font-size: 0.85rem;
   }
   
-  /* Drag & drop interaction animations */
-  .cards-container {
-    transition: all 0.3s ease;
-  }
-  
-  .responsive-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-  
-  .responsive-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  }
-  
-  /* Game state visual indicators */
+  /* ============================================
+     GAME STATE INDICATORS
+     ============================================ */
   .game-loading {
     filter: blur(2px);
     pointer-events: none;
@@ -73,7 +92,9 @@ export const gameStyles = `
     pointer-events: all;
   }
   
-  /* Timer warning animation for urgency indication */
+  /* ============================================
+     TIMER WARNING - Animazione urgenza
+     ============================================ */
   .timer-warning {
     animation: pulse 1s infinite;
   }
@@ -84,8 +105,21 @@ export const gameStyles = `
     100% { opacity: 1; }
   }
   
-  /* Mobile responsive adjustments */
+  /* ============================================
+     MOBILE RESPONSIVE
+     ============================================ */
   @media (max-width: 768px) {
+    .info-bar-minimal {
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 0.75rem;
+    }
+    
+    .info-bar-minimal > div {
+      width: 100%;
+      justify-content: center;
+    }
+    
     .responsive-card {
       min-width: 80px;
       max-width: 120px;
@@ -95,5 +129,35 @@ export const gameStyles = `
       min-width: 70px;
       max-width: 100px;
     }
+  }
+  
+  /* ============================================
+     UTILITY CLASSES
+     ============================================ */
+  .text-minimal {
+    font-size: 0.875rem;
+    color: #6c757d;
+  }
+  
+  .btn-minimal {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .btn-minimal:hover {
+    transform: scale(1.1);
+  }
+  
+  /* ============================================
+     SMOOTH TRANSITIONS
+     ============================================ */
+  * {
+    transition: background-color 0.2s ease,
+                color 0.2s ease,
+                border-color 0.2s ease;
   }
 `;

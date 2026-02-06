@@ -13,9 +13,7 @@ import {
   GameLoading, 
   GameError, 
   GameAbandoned, 
-  RoundStartButton, 
-  GameStats, 
-  AbandonGameButton 
+  RoundStartButton
 } from '../shared/GameUI.jsx';
 
 // Specialized components for game phases
@@ -300,33 +298,73 @@ function FullGameBoard() {
         {/* Game abandoned state - allows recovery */}
         {gameState === 'abandoned' && <GameAbandoned />}
         
-        {/* Active game state - main gameplay interface */}
+        {/* Active game state - MINIMAL UI */}
         {gameState === 'playing' && currentGame && (
           <>
             {!targetCard ? (
-              /* Round start interface - player initiates next round */
-              <RoundStartButton 
-                currentGame={currentGame}
-                onStartRound={handleStartRound}
-              />
+              /* Round start */
+              <Col xs={12} className="mt-4">
+                <div className="text-center">
+                  <Button 
+                    variant="success" 
+                    size="lg" 
+                    onClick={handleStartRound}
+                  >
+                    <i className="bi bi-play-fill me-2"></i>
+                    Inizia Round {currentGame.current_round}
+                  </Button>
+                </div>
+              </Col>
             ) : (
-              /* Main game interface with drag & drop */
+              /* Main game - TUTTO MINIMAL */
               <Col xs={12}>
                 
-                {/* Timer display with game stats integration */}
-                {targetCard && (
-                  <Col xs={12} className="mt-2">
-                    <div className="d-flex justify-content-center">
-                      <Timer
-                        timeRemaining={timeRemaining}
-                        duration={30}
-                        isActive={timerActive}
-                      />
-                    </div>
-                  </Col>
-                )}
+                {/* BARRA INFO MINIMAL */}
+                <div className="info-bar-minimal mb-3 mt-3">
+                  {/* Timer */}
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <Timer
+                      timeRemaining={timeRemaining}
+                      duration={30}
+                      isActive={timerActive}
+                    />
+                  </div>
+                  
+                  {/* Stats */}
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span className="badge bg-primary">R{currentGame.current_round}</span>
+                    <span className="badge bg-success">{currentGame.cards_collected}/6</span>
+                    <span className={`badge ${
+                      currentGame.wrong_guesses === 0 ? 'bg-success' :
+                      currentGame.wrong_guesses === 1 ? 'bg-warning text-dark' :
+                      'bg-danger'
+                    }`}>
+                      ❌ {currentGame.wrong_guesses}/3
+                    </span>
+                  </div>
+                  
+                  {/* Abbandona */}
+                  <button 
+                    className="btn-minimal text-danger"
+                    onClick={() => {
+                      if (window.confirm('Abbandonare la partita?')) {
+                        handleAbandonGame();
+                      }
+                    }}
+                    title="Abbandona partita"
+                  >
+                    <i className="bi bi-x-lg fs-5"></i>
+                  </button>
+                </div>
                 
-                {/* Drag & drop card positioning area */}
+                {/* Istruzione minimal */}
+                <div className="text-center mb-2">
+                  <small className="text-minimal">
+                    Trascina <strong>Target</strong> nella posizione corretta
+                  </small>
+                </div>
+                
+                {/* CARTE */}
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -341,12 +379,9 @@ function FullGameBoard() {
                     <div 
                       className={`cards-container d-flex gap-1 p-3 bg-light rounded ${isCompactLayout ? 'compact-layout' : ''}`}
                       style={{
-                        overflowX: 'hidden',
-                        overflowY: 'hidden',
                         minHeight: isCompactLayout ? '220px' : '290px',
                         justifyContent: 'center',
                         alignItems: 'flex-start',
-                        display: 'flex',
                         flexWrap: 'nowrap'
                       }}
                     >
@@ -381,19 +416,6 @@ function FullGameBoard() {
                     </div>
                   </SortableContext>
                 </DndContext>
-                
-                {/* Game instructions for user guidance */}
-                <GameInstructions isCompact={isCompactLayout} />
-                
-                {/* Game statistics and current round info */}
-                <GameStats currentGame={currentGame} targetCard={targetCard} />
-                
-                {/* Game abandonment option - always available during play */}
-                <AbandonGameButton 
-                  gameState={gameState}
-                  currentGame={currentGame}
-                  cleanupGameState={cleanupGameState}
-                />
               </Col>
             )}
           </>

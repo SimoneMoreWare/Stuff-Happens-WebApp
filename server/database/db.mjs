@@ -6,8 +6,10 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Build the absolute path to the database file
-const dbPath = path.join(__dirname, 'database.sqlite');
+// Use environment variable or default path
+const dbPath = process.env.DATABASE_PATH 
+  ? path.resolve(process.env.DATABASE_PATH)
+  : path.join(__dirname, 'database.sqlite');
 
 const db = new sqlite.Database(dbPath, (err) => { 
     if (err) throw err; 

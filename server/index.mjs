@@ -1,55 +1,68 @@
 // imports
 import express from 'express';
-// import cors for handling CORS issues and use in development mode react and express server
 import cors from 'cors';
-// For debbugin purposes
 import morgan from 'morgan';
-// Importing the necessary modules for authentication
 import passport from 'passport';
 import session from 'express-session';
 import { configurePassport } from './config/passport.mjs';
-// Import API routes
 import authRoutes from './api/auth.mjs';
 import gamesRoutes from './api/games.mjs';
 import demoRoutes from './api/demo.mjs';
 
-// init express
-const app = new express();
+// Load environment variables in development
+if (process.env.NODE_ENV !== 'production') {
+  const dotenv = await import('dotenv');
+  dotenv.config();
+}
+
+const app = express();
+
 // Use express.json for parsing JSON bodies
 app.use(express.json());
-// Use morgan for logging requests to the console
 app.use(morgan('dev'));
-const port = 3001;
 
+// Port configuration
+const port = process.env.PORT || 3001;
+
+// CORS configuration - allow frontend origin
 const corsOptions = {
-  origin: 'http://localhost:5173', // React app URL
-  optionsSuccessStatus: 200, // For legacy browser support
-  credentials: true, // Allow cookies to be sent with requests
-}
-// Enable ALL CORS requests for this server
-// Use ONLY for development purposes, otherwise use a more restrictive policy
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  optionsSuccessStatus: 200,
+  credentials: true,
+};
 app.use(cors(corsOptions));
 
-// Middleware per servire file statici (ESSENZIALE per le immagini)
+// Serve static files (images)
 app.use(express.static('public'));
 
 // Configure Passport
 configurePassport();
 
-// Initialize Passport and use session for authentication
+// Session configuration
 app.use(session({
-  secret: "shhhhh... it's a secret!",
+  secret: process.env.SESSION_SECRET || "shhhhh... it's a secret!",
   resave: false,
   saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
 }));
 app.use(passport.authenticate('session'));
 
 // API Routes
-app.use('/api', authRoutes);        // Authentication routes: /api/sessions/*
-app.use('/api/games', gamesRoutes); // Games routes: /api/games/*
-app.use('/api/demo', demoRoutes);   // Demo routes: /api/demo/*
+app.use('/api', authRoutes);
+app.use('/api/games', gamesRoutes);
+app.use('/api/demo', demoRoutes);
 
-// activate the server
+// Health check endpoint (useful for Render)
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Start server
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });

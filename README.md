@@ -1,5 +1,9 @@
 [![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/ArqHNgsV)
 
+[![GitHub release](https://img.shields.io/github/v/release/SimoneMoreWare/Stuff-Happens-WebApp)](https://github.com/SimoneMoreWare/Stuff-Happens-WebApp/releases)
+[![GitHub stars](https://img.shields.io/github/stars/SimoneMoreWare/Stuff-Happens-WebApp?style=social)](https://github.com/SimoneMoreWare/Stuff-Happens-WebApp)
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://stuff-happens-web-app.vercel.app/)
+
 # Exam #1: "Stuff Happens"
 ## Student: s337165 Candido Simone pio
 
